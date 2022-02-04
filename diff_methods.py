@@ -30,7 +30,7 @@ def diff_method_paper(t_list, x_list):
             final_X = X
             final_X_dot = X_dot
         else:
-            final_X = np.r_(final_X, X)
-            final_X_dot = np.r_(final_X_dot, X_dot)
+            final_X = np.r_[final_X, X]
+            final_X_dot = np.r_[final_X_dot, X_dot]
     
     return final_X, final_X_dot
