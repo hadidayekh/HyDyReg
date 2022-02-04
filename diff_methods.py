@@ -26,11 +26,11 @@ def diff_method_paper(t_list, x_list):
                 X[j] = x_points[j-D+5]
                 X_dot[j] = (-137*x_points[j-D+5] - 300*x_points[j-D+4] + 300*x_points[j-D+3] - 200*x_points[j-D+2] + 75*x_points[j-D+1] - 12*x_points[j-D])*h/60
     
-    if (i==0):
-        final_X = X
-        final_X_dot = X_dot
-    else:
-        final_X = np.r_(final_X, X)
-        final_X_dot = np.r_(final_X_dot, X_dot)
+        if (i==0):
+            final_X = X
+            final_X_dot = X_dot
+        else:
+            final_X = np.r_(final_X, X)
+            final_X_dot = np.r_(final_X_dot, X_dot)
     
     return final_X, final_X_dot
