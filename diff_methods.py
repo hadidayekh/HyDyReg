@@ -14,9 +14,9 @@ def diff_method_paper(t_list, x_list):
         h = t_points[1] - t_points[0]
 
         D = nb_points - 5
-
-        X = np.zeros([D, x_dim])
-        X_dot = np.zeros([D, x_dim])
+        
+        X = np.zeros([2*D, x_dim])
+        X_dot = np.zeros([2*D, x_dim])
 
         for j in range(2*D):
             if j < D:
