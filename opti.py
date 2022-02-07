@@ -53,19 +53,19 @@ def optimize(kernel_mat_list, x_dot, n):
     sum_norms_alpha = 0
     for j in range(n):
         for d in range(D):
-            sum_norms_alpha += np.dot(Alphas[j][d], Alphas[j][d].T)
+            sum_norms_alpha += Alphas[j][d] @ Alphas[j][d].T
     
     opti.minimize(sum_norms_alpha + sum_products_chis)
 
     for j in range(n):
-        opti.subject_to(Chis[j] > 0)
+        opti.subject_to(Chis[j] >= 0)
 
     x_dotT = x_dot.T    # d by N
     eye = np.ones(N)
     for d in range(D):
         for j in range(n):
-            opti.subject_to(x_dotT[d] - np.dot(kernel_mat_list[j], Alphas[j][d]) - betas[j][d]*eye <= deltas[j]*eye + Chis[j])
-            opti.subject_to(x_dotT[d] - np.dot(kernel_mat_list[j], Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+            opti.subject_to(x_dotT[d] - kernel_mat_list[j] @ Alphas[j][d] - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
+            opti.subject_to(x_dotT[d] - kernel_mat_list[j] @ Alphas[j][d] - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
 
     opti.solve('ipopt')
 
