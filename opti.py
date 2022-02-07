@@ -40,7 +40,7 @@ def optimize(kernel_mat_list, x_dot, n):
             betas[j][d] = opti.variable()
 
     C = opti.parameter()
-
+    opti.set_value(C, 0.1)
     sum_products_chis = 0
     for i in range(N):
         temp = 1
