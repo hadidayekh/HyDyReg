@@ -53,7 +53,7 @@ def optimize(kernel_mat_list, x_dot, n):
     sum_norms_alpha = 0
     for j in range(n):
         for d in range(D):
-            sum_norms_alpha += Alphas[j][d] @ Alphas[j][d].T
+            sum_norms_alpha += casadi.norm_2(Alphas[j][d])
     
     opti.minimize(sum_norms_alpha + sum_products_chis)
 
@@ -67,6 +67,6 @@ def optimize(kernel_mat_list, x_dot, n):
             opti.subject_to(x_dotT[d] - kernel_mat_list[j] @ Alphas[j][d] - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
             opti.subject_to(x_dotT[d] - kernel_mat_list[j] @ Alphas[j][d] - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
 
-    opti.solve('ipopt')
+    opti.solver('ipopt')
 
     return opti.solve()
