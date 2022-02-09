@@ -53,7 +53,7 @@ def optimize(kernel_mat_list, x_dot, n):
     sum_norms_alpha = 0
     for j in range(n):
         for d in range(D):
-            sum_norms_alpha += (Alphas[j][d].T @ Alphas[j][d])**2
+            sum_norms_alpha += (Alphas[j][d].T @ Alphas[j][d])
     
     opti.minimize(sum_norms_alpha + sum_products_chis)
     # opti.minimize(sum_norms_alpha)
