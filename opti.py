@@ -16,8 +16,8 @@ x_dot.T is DxN
 """
 
 # We will assume the kernel matrices are passed as arguments in a list
-def optimize(kernel_mat_list, x_dot, deltas, n):
-    assert(len(kernel_mat_list) == n)
+def optimize(kernel_mat_list, x_dot, deltas):
+    n = len(kernel_mat_list)
 
     if (np.isscalar(deltas)):
         temp = np.ones(n)
