@@ -16,8 +16,14 @@ x_dot.T is DxN
 """
 
 # We will assume the kernel matrices are passed as arguments in a list
-def optimize(kernel_mat_list, x_dot, n):
+def optimize(kernel_mat_list, x_dot, deltas, n):
     assert(len(kernel_mat_list) == n)
+
+    if (np.isscalar(deltas)):
+        temp = np.ones(n)
+        deltas = deltas*temp
+    else:
+        assert(len(deltas) == n)
 
     N = x_dot.shape[0]  # nb of points
     D = x_dot.shape[1]  # dimension of each vector
@@ -28,12 +34,10 @@ def optimize(kernel_mat_list, x_dot, n):
     Alphas = np.ndarray((n, D), dtype=object)
     betas = np.ndarray((n, D), dtype=object)
     Chis = np.ndarray((n,), dtype=object)
-    deltas = np.ndarray((n,), dtype=object)
-
+    
     for j in range(n):
 
         Chis[j] = opti.variable(N)
-        deltas[j] = 0.5
 
         for d in range(D):
             Alphas[j][d] = opti.variable(N)
