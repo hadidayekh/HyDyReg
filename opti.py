@@ -16,7 +16,7 @@ x_dot.T is DxN
 """
 
 # We will assume the kernel matrices are passed as arguments in a list
-def optimize(kernel_mat_list, x_dot, deltas, print_on=False):
+def optimize(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     n = len(kernel_mat_list)
 
     if (np.isscalar(deltas)):
@@ -44,7 +44,7 @@ def optimize(kernel_mat_list, x_dot, deltas, print_on=False):
             betas[j][d] = opti.variable()
 
     C = opti.parameter()
-    opti.set_value(C, 0.1)
+    opti.set_value(C, C_param)
     sum_products_chis = 0
     for i in range(N):
         temp = 1
