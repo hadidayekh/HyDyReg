@@ -15,4 +15,6 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, print_on=False):
         for i in range(nb_replicas):
             kernel_mat_list.append(K)
     # run the optimization function
-    optimize(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
+    sol, Alphas_sol, betas_sol, Chis_sol = optimize(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
+
+    return sol, Alphas_sol, betas_sol, Chis_sol

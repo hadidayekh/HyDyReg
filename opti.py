@@ -87,4 +87,15 @@ def optimize(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
                 print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
                 print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
 
-    return sol
+    Alphas_sol = np.ndarray((n, D))
+    betas_sol  = np.ndarray((n, D))
+    Chis_sol   = np.ndarray((n,))
+
+    for j in range(n):
+            Chis_sol[j] = sol.value(Chis[j])
+    for j in range(n):
+        for d in range(D):
+            Alphas_sol[j][d] = sol.value(Alphas[j][d])
+            betas_sol[j][d]  = sol.value(betas[j][d])
+
+    return sol, Alphas_sol, betas_sol, Chis_sol
