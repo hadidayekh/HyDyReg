@@ -16,7 +16,7 @@ x_dot.T is DxN
 """
 
 # We will assume the kernel matrices are passed as arguments in a list
-def optimize(kernel_mat_list, x_dot, deltas):
+def optimize(kernel_mat_list, x_dot, deltas, print_on=False):
     n = len(kernel_mat_list)
 
     if (np.isscalar(deltas)):
@@ -78,4 +78,13 @@ def optimize(kernel_mat_list, x_dot, deltas):
     #print(opti.debug.x_describe(7))
     #print(opti.debug.g_describe(3))
     sol = opti.solve()
+
+    if print_on:
+        for j in range(n):
+            print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
+        for j in range(n):
+            for d in range(D):
+                print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
+                print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
+
     return sol
