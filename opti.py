@@ -89,7 +89,7 @@ def optimize(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
 
     Alphas_sol = np.ndarray((n, D))
     betas_sol  = np.ndarray((n, D))
-    Chis_sol   = np.ndarray((n,))
+    Chis_sol   = np.ndarray((n, N))
 
     for j in range(n):
             Chis_sol[j] = sol.value(Chis[j])
@@ -97,5 +97,7 @@ def optimize(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
         for d in range(D):
             Alphas_sol[j][d] = sol.value(Alphas[j][d])
             betas_sol[j][d]  = sol.value(betas[j][d])
-
+    np.savetxt("output/Alphas.csv", Alphas_sol, delimiter=', ', fmt='%8f')
+    np.savetxt("output/betas.csv", betas_sol, delimiter=', ', fmt='%8f')
+    np.savetxt("output/Chis.csv", Chis_sol, delimiter=', ', fmt='%8f')
     return sol, Alphas_sol, betas_sol, Chis_sol
