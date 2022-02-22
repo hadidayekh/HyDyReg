@@ -1,8 +1,8 @@
 from turtle import shape
 from numpy import zeros
 from pyparsing import java_style_comment
-
-
+import numpy as np
+""" 
 print("Hello world!")
 import numpy as np
 
@@ -23,4 +23,12 @@ from diff_methods import diff_method_paper
 X, X_dot = diff_method_paper(t_list, x_list)
 
 print(X)
-print(X_dot)
+print(X_dot) """
+
+from opti import optimize
+
+K = np.array([[17, 18, 19], [18, 20, 22], [19, 22, 25]])
+x_dot = np.array([[1, 0], [1, 0], [1, 0]])
+n = 1
+
+optimize([K, K], x_dot, 0.01, 1, print_on=True)
