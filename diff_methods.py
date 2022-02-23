@@ -56,7 +56,7 @@ def diff_method_central(t_list, x_list):
 
         for j in range(D):
             X[j] = x_points[j+1]
-            X_dot[j] = (x_points[j+2] - x_points[j]) / (12.0 * h)
+            X_dot[j] = (x_points[j+2] - x_points[j]) / (2.0 * h)
 
         if (i==0):
             final_X = X
