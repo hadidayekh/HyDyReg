@@ -98,8 +98,5 @@ def optimize(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
             Alphas_sol[j][d] = sol.value(Alphas[j][d])
             betas_sol[j][d]  = sol.value(betas[j][d])
     
-    for j in range(n):
-        np.savetxt("output/Alphas" + str(j) + ".csv", Alphas_sol[j], delimiter=', ', fmt='%8f')
-        np.savetxt("output/betas" + str(j) + ".csv", betas_sol[j], delimiter=', ', fmt='%8f')
-        np.savetxt("output/Chis" + str(j) + ".csv", Chis_sol[j], delimiter=', ', fmt='%8f')
+    
     return sol, Alphas_sol, betas_sol, Chis_sol
