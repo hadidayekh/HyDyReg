@@ -3,6 +3,10 @@ from opti import optimize
 import diff_methods
 import numpy as np
 
+
+def get_modes(Chis_sol):
+    return np.argmin(Chis_sol, axis=0)
+
 def learn(t_list, x_list, diff_method, kernel_list, deltas, C, print_on=False):
     # getting final X and final X dot by estimating derivatives
     final_X, final_X_dot = diff_method(t_list, x_list)
