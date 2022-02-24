@@ -100,3 +100,6 @@ def optimize(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     
     
     return sol, Alphas_sol, betas_sol, Chis_sol
+
+def get_modes(Chis_sol):
+    return np.argmin(Chis_sol, axis=0)
