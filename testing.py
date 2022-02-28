@@ -25,10 +25,10 @@ X, X_dot = diff_method_paper(t_list, x_list)
 print(X)
 print(X_dot) """
 
-from opti import optimize
+from opti import optimizeL1, optimizeL2
 
 K = np.array([[17, 18, 19], [18, 20, 22], [19, 22, 25]])
 x_dot = np.array([[1, 0], [1, 0], [1, 0]])
 n = 1
 
-optimize([K, K], x_dot, 0.01, 1, print_on=True)
+optimizeL1([K, K], x_dot, 0.01, 1, print_on=True)
