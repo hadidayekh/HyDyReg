@@ -128,6 +128,7 @@ def optimizeL1(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
 
         for d in range(D):
             Alphas[j][d] = opti.variable(N)
+            As[j][d] = opti.variable(N)
             betas[j][d] = opti.variable()
 
     C = opti.parameter()
@@ -146,7 +147,7 @@ def optimizeL1(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     sum_norms_a = 0
     for j in range(n):
         for d in range(D):
-            sum_norms_a += (eye.T @ As[j][d])
+            sum_norms_a += (As[j][d].T @ eye)
     
     opti.minimize(sum_norms_a + sum_products_chis)
    
