@@ -37,7 +37,7 @@ import diff_methods
 import kernels
 
 kernel_list = [[kernels.linear, [0], 2]]
-kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_central, kernel_list, 0.01, 10, print_on=True)
+kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_central, kernel_list, 0.01, 1, print_on=True)
 
 n = Alphas_sol.shape[0]
 D = Alphas_sol.shape[1]
@@ -61,17 +61,17 @@ print(modes - modes_true0)
 print(modes - modes_true1)
 
 
-# print("\n\n\nNow printing differences:")
-# for d in range(D):
-#     difference = np.zeros(N)
-#     differences = []
-#     for j in range(n):
-#         differences.append(X_dot.T[d] - kernel_mat_list[j] @ Alphas_sol[j][d] - betas_sol[j][d] * np.ones(N))
+print("\n\n\nNow printing differences:")
+for d in range(D):
+    difference = np.zeros(N)
+    differences = []
+    for j in range(n):
+        differences.append(X_dot.T[d] - kernel_mat_list[j] @ Alphas_sol[j][d] - betas_sol[j][d] * np.ones(N))
 
-#     for i in range(N):
-#         difference[i] = differences[modes[i]][i]
+    for i in range(N):
+        difference[i] = differences[modes[i]][i]
     
-#     print(difference)
+    print(difference)
 
 # difference1 = X_dot.T[0] - kernel_mat_list[0] @ Alphas_sol[0][0] - betas_sol[0][0] * np.ones(N)
 # difference2 = X_dot.T[0] - kernel_mat_list[1] @ Alphas_sol[1][0] - betas_sol[1][0] * np.ones(N)
