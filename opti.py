@@ -16,7 +16,7 @@ x_dot.T is DxN
 """
 
 # We will assume the kernel matrices are passed as arguments in a list
-def optimize(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
+def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     n = len(kernel_mat_list)
 
     if (np.isscalar(deltas)):
@@ -100,3 +100,94 @@ def optimize(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     
     
     return sol, Alphas_sol, betas_sol, Chis_sol
+
+# We will assume the kernel matrices are passed as arguments in a list
+def optimizeL1(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
+    n = len(kernel_mat_list)
+
+    if (np.isscalar(deltas)):
+        temp = np.ones(n)
+        deltas = deltas*temp
+    else:
+        assert(len(deltas) == n)
+
+    N = x_dot.shape[0]  # nb of points
+    D = x_dot.shape[1]  # dimension of each vector
+
+    opti = casadi.Opti()
+
+    # variable declaration arrays
+    Alphas = np.ndarray((n, D), dtype=object)
+    As = np.ndarray((n, D), dtype=object)
+    betas = np.ndarray((n, D), dtype=object)
+    Chis = np.ndarray((n,), dtype=object)
+    
+    for j in range(n):
+
+        Chis[j] = opti.variable(N)
+
+        for d in range(D):
+            Alphas[j][d] = opti.variable(N)
+            betas[j][d] = opti.variable()
+
+    C = opti.parameter()
+    opti.set_value(C, C_param)
+    sum_products_chis = 0
+    for i in range(N):
+        temp = 1
+        for j in range(n):
+            temp *= Chis[j][i]
+        sum_products_chis += temp
+    
+    sum_products_chis *= C
+
+
+    eye = np.ones(N)
+    sum_norms_a = 0
+    for j in range(n):
+        for d in range(D):
+            sum_norms_a += (eye.T @ As[j][d])
+    
+    opti.minimize(sum_norms_a + sum_products_chis)
+   
+    for j in range(n):
+        opti.subject_to(Chis[j] >= 0)
+
+    x_dotT = x_dot.T    # d by N
+    
+    for d in range(D):
+        for j in range(n):
+            opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
+            opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+
+            opti.subject_to(-Alphas[j][d] <= As[j][d])
+            opti.subject_to(As[j][d] <= Alphas[j][d])
+
+    opti.solver('ipopt')
+
+    #print(opti.debug.x_describe(7))
+    #print(opti.debug.g_describe(3))
+    sol = opti.solve()
+
+    if print_on:
+        for j in range(n):
+            print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
+        for j in range(n):
+            for d in range(D):
+                print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
+                print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
+
+    Alphas_sol = np.ndarray((n, D, N))
+    betas_sol  = np.ndarray((n, D))
+    Chis_sol   = np.ndarray((n, N))
+
+    for j in range(n):
+            Chis_sol[j] = sol.value(Chis[j])
+    for j in range(n):
+        for d in range(D):
+            Alphas_sol[j][d] = sol.value(Alphas[j][d])
+            betas_sol[j][d]  = sol.value(betas[j][d])
+    
+    
+    return sol, Alphas_sol, betas_sol, Chis_sol
+

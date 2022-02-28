@@ -1,5 +1,5 @@
 import kernels
-from opti import optimize
+from opti import optimizeL1, optimizeL2
 import diff_methods
 import numpy as np
 
@@ -7,7 +7,8 @@ import numpy as np
 def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
-def learn(t_list, x_list, diff_method, kernel_list, deltas, C, print_on=False):
+def learn(t_list, x_list, diff_method, kernel_list, deltas, C, norm='L2', print_on=False):
+    assert (norm == 'L1' or norm == 'L2')
     # getting final X and final X dot by estimating derivatives
     final_X, final_X_dot = diff_method(t_list, x_list)
     # computing kernels and adding them to list
@@ -20,7 +21,10 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, print_on=False):
         for i in range(nb_replicas):
             kernel_mat_list.append(K)
     # run the optimization function
-    sol, Alphas_sol, betas_sol, Chis_sol = optimize(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
+    if norm == 'L1':
+        sol, Alphas_sol, betas_sol, Chis_sol = optimizeL1(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
+    else:
+        sol, Alphas_sol, betas_sol, Chis_sol = optimizeL1(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
     n = len(kernel_list)
     for j in range(n):
         np.savetxt("output/Alphas" + str(j) + ".csv", Alphas_sol[j], delimiter=', ', fmt='%8f')
