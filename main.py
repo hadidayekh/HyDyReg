@@ -25,7 +25,7 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, norm='L2', print_
         sol, Alphas_sol, betas_sol, Chis_sol = optimizeL1(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
     else:
         sol, Alphas_sol, betas_sol, Chis_sol = optimizeL2(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
-    n = len(kernel_list)
+    n = len(kernel_mat_list)
     for j in range(n):
         np.savetxt("output/Alphas" + str(j) + ".csv", Alphas_sol[j], delimiter=', ', fmt='%8f')
         np.savetxt("output/betas" + str(j) + ".csv", betas_sol[j], delimiter=', ', fmt='%8f')
