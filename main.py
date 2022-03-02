@@ -11,6 +11,11 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, norm='L2', print_
     assert (norm == 'L1' or norm == 'L2')
     # getting final X and final X dot by estimating derivatives
     final_X, final_X_dot = diff_method(t_list, x_list)
+
+    if write_on:
+        np.savetxt("input/final_X.csv", final_X, delimiter=', ', fmt='%8f')
+        np.savetxt("input/final_X_dot.csv", final_X_dot, delimiter=', ', fmt='%8f')
+
     # computing kernels and adding them to list
     kernel_mat_list = []
     for k_list in kernel_list:
@@ -32,6 +37,4 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, norm='L2', print_
             np.savetxt("output/Alphas" + str(j) + ".csv", Alphas_sol[j], delimiter=', ', fmt='%8f')
             np.savetxt("output/betas" + str(j) + ".csv", betas_sol[j], delimiter=', ', fmt='%8f')
             np.savetxt("output/Chis" + str(j) + ".csv", Chis_sol[j], delimiter=', ', fmt='%8f')
-        np.savetxt("input/final_X.csv", final_X, delimiter=', ', fmt='%8f')
-        np.savetxt("input/final_X_dot.csv", final_X_dot, delimiter=', ', fmt='%8f')
     return kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol
