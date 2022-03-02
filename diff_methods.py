@@ -1,5 +1,6 @@
 import numpy as np
 
+# Diffrerential method used in paper, calculating the derivative of the lagrange interpolating polynomial at said point
 def diff_method_paper(t_list, x_list):
     nb_traj = t_list.shape[0] # number of arrays of t-points in t_list
     assert(nb_traj == x_list.shape[0]) # should be equal to number of x-points in x_list
@@ -15,14 +16,17 @@ def diff_method_paper(t_list, x_list):
 
         D = nb_points - 5
         
+        # Calculating both backwards and forwards, so D*2
         X = np.zeros([2*D, x_dim])
         X_dot = np.zeros([2*D, x_dim])
 
         for j in range(2*D):
             if j < D:
+                # forward
                 X[j] = x_points[j]
                 X_dot[j] = (-137*x_points[j] + 300*x_points[j+1] - 300*x_points[j+2] + 200*x_points[j+3] - 75*x_points[j+4] + 12*x_points[j+5])*h/60
             else:
+                # backward
                 X[j] = x_points[j-D+5]
                 X_dot[j] = (137*x_points[j-D+5] - 300*x_points[j-D+4] + 300*x_points[j-D+3] - 200*x_points[j-D+2] + 75*x_points[j-D+1] - 12*x_points[j-D])*h/60
     
@@ -30,12 +34,13 @@ def diff_method_paper(t_list, x_list):
             final_X = X
             final_X_dot = X_dot
         else:
+            # if multiple trajectories, concatenate them
             final_X = np.r_[final_X, X]
             final_X_dot = np.r_[final_X_dot, X_dot]
     
     return final_X, final_X_dot
 
-
+# Central differentiation method that uses one point from back and one point from the front
 def diff_method_central(t_list, x_list):
     nb_traj = t_list.shape[0] # number of arrays of t-points in t_list
     assert(nb_traj == x_list.shape[0]) # should be equal to number of x-points in x_list
@@ -62,11 +67,13 @@ def diff_method_central(t_list, x_list):
             final_X = X
             final_X_dot = X_dot
         else:
+            # if multiple trajectories, concatenate them
             final_X = np.r_[final_X, X]
             final_X_dot = np.r_[final_X_dot, X_dot]
     
     return final_X, final_X_dot
 
+# Five point stencil differentiation method, using two points from the back and two from the front
 def diff_method_fps(t_list, x_list):
     nb_traj = t_list.shape[0] # number of arrays of t-points in t_list
     assert(nb_traj == x_list.shape[0]) # should be equal to number of x-points in x_list
@@ -93,6 +100,7 @@ def diff_method_fps(t_list, x_list):
             final_X = X
             final_X_dot = X_dot
         else:
+            # if multiple trajectories, concatenate them
             final_X = np.r_[final_X, X]
             final_X_dot = np.r_[final_X_dot, X_dot]
     

@@ -15,10 +15,13 @@ x_dot is a NxD matrix
 x_dot.T is DxN
 """
 
+# Optimization for identifying Hybrid Systems by minimizing the L2 norm
 # We will assume the kernel matrices are passed as arguments in a list
 def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
+    # the number of kernel matrices is the number of modes
     n = len(kernel_mat_list)
 
+    # deltas could be a scalar or defined per mode
     if (np.isscalar(deltas)):
         temp = np.ones(n)
         deltas = deltas*temp
@@ -45,6 +48,11 @@ def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
 
     C = opti.parameter()
     opti.set_value(C, C_param)
+
+    # First part of the optimization objective function:
+    # the sum of products of Chis
+    # This forces one Chi per data point to be ~0, which dictates the mode
+
     sum_products_chis = 0
     for i in range(N):
         temp = 1
@@ -54,15 +62,20 @@ def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     
     sum_products_chis *= C
 
+    # Second part of the optimization objective function:
+    # The sum of norms of alphas
+    # Here we use the L2 norm
     sum_norms_alpha = 0
     for j in range(n):
         for d in range(D):
             sum_norms_alpha += (Alphas[j][d].T @ Alphas[j][d])
     
+    # Setting the objective function
     opti.minimize(sum_norms_alpha + sum_products_chis)
-    # opti.minimize(sum_norms_alpha)
-    # opti.minimize(sum_products_chis)
 
+    # CONSTRAINTS
+
+    # all chis must be positive
     for j in range(n):
         opti.subject_to(Chis[j] >= 0)
 
@@ -70,15 +83,16 @@ def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     eye = np.ones(N)
     for d in range(D):
         for j in range(n):
+            # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
             opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
             opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
 
     opti.solver('ipopt')
 
-    #print(opti.debug.x_describe(7))
-    #print(opti.debug.g_describe(3))
+    # Initiate the optimization
     sol = opti.solve()
 
+    # Printing the results if print is on
     if print_on:
         for j in range(n):
             print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
@@ -87,6 +101,7 @@ def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
                 print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
                 print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
 
+    # Saving the results in proper arrays
     Alphas_sol = np.ndarray((n, D, N))
     betas_sol  = np.ndarray((n, D))
     Chis_sol   = np.ndarray((n, N))
@@ -101,10 +116,14 @@ def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     
     return sol, Alphas_sol, betas_sol, Chis_sol
 
+
+# Optimization for identifying Hybrid Systems by minimizing the L1 norm
 # We will assume the kernel matrices are passed as arguments in a list
 def optimizeL1(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
+    # the number of kernel matrices is the number of modes
     n = len(kernel_mat_list)
 
+    # deltas could be a scalar or defined per mode
     if (np.isscalar(deltas)):
         temp = np.ones(n)
         deltas = deltas*temp
@@ -133,6 +152,11 @@ def optimizeL1(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
 
     C = opti.parameter()
     opti.set_value(C, C_param)
+
+    # First part of the optimization objective function:
+    # the sum of products of Chis
+    # This forces one Chi per data point to be ~0, which dictates the mode
+
     sum_products_chis = 0
     for i in range(N):
         temp = 1
@@ -142,34 +166,42 @@ def optimizeL1(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     
     sum_products_chis *= C
 
-
+    # Second part of the optimization objective function:
+    # The sum of norms of alphas
+    # Here we use the L1 norm
     eye = np.ones(N)
     sum_norms_a = 0
     for j in range(n):
         for d in range(D):
             sum_norms_a += (As[j][d].T @ eye)
     
+    # Setting the objective function
     opti.minimize(sum_norms_a + sum_products_chis)
-   
+
+    # CONSTRAINTS
+
+    # all chis must be positive
     for j in range(n):
         opti.subject_to(Chis[j] >= 0)
 
     x_dotT = x_dot.T    # d by N
-    
+
     for d in range(D):
         for j in range(n):
+            # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
             opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
             opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
 
+            # As are bounded by [-alpha, +alpha]
             opti.subject_to(-Alphas[j][d] <= As[j][d])
             opti.subject_to(As[j][d] <= Alphas[j][d])
 
     opti.solver('ipopt')
 
-    #print(opti.debug.x_describe(7))
-    #print(opti.debug.g_describe(3))
+    # Initiate the optimization
     sol = opti.solve()
 
+    # Printing the results if print is on
     if print_on:
         for j in range(n):
             print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
@@ -178,6 +210,7 @@ def optimizeL1(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
                 print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
                 print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
 
+    # Saving the results in proper arrays
     Alphas_sol = np.ndarray((n, D, N))
     betas_sol  = np.ndarray((n, D))
     Chis_sol   = np.ndarray((n, N))
