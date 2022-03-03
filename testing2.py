@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import solve_ivp
+from scipy.integrate import solve_ivp
 import kernels
 from functools import wraps
 import matplotlib.pyplot as plt
