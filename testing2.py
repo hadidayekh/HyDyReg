@@ -2,6 +2,7 @@ import numpy as np
 from scipy import solve_ivp
 import kernels
 from functools import wraps
+import matplotlib.pyplot as plt
 
 def simulation_ode_2(modelist, event, y0, T, stepsize, verbose=False, noise = 0):
     t_list = []
@@ -171,12 +172,12 @@ T = 50
 t_list, y_list = simulation_ode_2(mode2, event1, y0, T, stepsize,noise=0)
 
 ax = plt.axes()
-    for temp_y in y_list:
-        y0_list = temp_y.T[0]
-        y1_list = temp_y.T[1]
-        ax.scatter(y0_list, y1_list,c='b',s=5)
-    
-    ax.set_xlabel('x1')
-    ax.set_ylabel('x2')
-    plt.legend()
-    plt.show()
+for temp_y in y_list:
+    y0_list = temp_y.T[0]
+    y1_list = temp_y.T[1]
+    ax.scatter(y0_list, y1_list,c='b',s=5)
+
+ax.set_xlabel('x1')
+ax.set_ylabel('x2')
+plt.legend()
+plt.show()
