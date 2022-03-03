@@ -129,9 +129,12 @@ def get_mode2_kernels(kernel_list, Alphas, betas, X):
         x_dot1 = 0
 
         for i in range(N):
-            x_dot0 += Alphas[0][0][i] * kernel(x, X[i], kargs) + betas[0][0]
-            x_dot1 += Alphas[0][1][i] * kernel(x, X[i], kargs) + betas[0][1]
+            x_dot0 += Alphas[0][0][i] * kernel(x, X[i], kargs)
+            x_dot1 += Alphas[0][1][i] * kernel(x, X[i], kargs)
         
+        x_dot0 += betas[0][0]
+        x_dot1 += betas[0][1]
+
         return [x_dot0, x_dot1]
 
     # belongs to mode 1
@@ -145,8 +148,11 @@ def get_mode2_kernels(kernel_list, Alphas, betas, X):
         x_dot1 = 0
 
         for i in range(N):
-            x_dot0 += Alphas[1][0][i] * kernel(x, X[i], kargs) + betas[0][0]
-            x_dot1 += Alphas[1][1][i] * kernel(x, X[i], kargs) + betas[0][1]
+            x_dot0 += Alphas[1][0][i] * kernel(x, X[i], kargs)
+            x_dot1 += Alphas[1][1][i] * kernel(x, X[i], kargs) 
+        
+        x_dot0 += betas[1][0]
+        x_dot1 += betas[1][1]
         
         return [x_dot0, x_dot1]
     
@@ -172,7 +178,7 @@ event1 = get_event1(0)
 y0 = [[99.5, 80], [97.5, 100]]
 stepsize = 0.5
 T = 50
-t_list, y_list = simulation_ode_2(mode2, event1, y0, T, stepsize,noise=0)
+t_list, y_list = simulation_ode_2(mode2, event1, y0, T, stepsize,verbose=True,noise=0)
 
 ax = plt.axes()
 for temp_y in y_list:
