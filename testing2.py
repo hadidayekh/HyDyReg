@@ -112,7 +112,8 @@ def get_mode2(param_id):
         y0, y1 = y
         dydt = [a2 * (y0-y1), b2]
         return dydt
-    return [mode2_1,mode2_2]
+
+    return [mode2_1, mode2_2]
 
 def get_mode2_kernels(kernel_list, Alphas, betas, X):
     assert(len(kernel_list) == 2)
@@ -148,6 +149,8 @@ def get_mode2_kernels(kernel_list, Alphas, betas, X):
             x_dot1 += Alphas[1][1][i] * kernel(x, X[i], kargs) + betas[0][1]
         
         return [x_dot0, x_dot1]
+    
+    return [mode2_0, mode2_1]
 
 
 X = np.genfromtxt("input/final_X.csv", delimiter=',')
