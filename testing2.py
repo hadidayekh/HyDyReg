@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import solve_ivp
+import kernels
 from functools import wraps
 
 def simulation_ode_2(modelist, event, y0, T, stepsize, verbose=False, noise = 0):
@@ -155,6 +156,13 @@ betas0 = np.genfromtxt("output/betas0.csv", delimiter=',')
 Alpha1 = np.genfromtxt("output/Alphas1.csv", delimiter=',')
 betas1 = np.genfromtxt("output/betas1.csv", delimiter=',')
 
+Alphas = np.array([Alpha0, Alpha1])
+betas = np.array([betas0, betas1])
+
+lin_k = [kernels.linear, [0]]
+kernel_list = [lin_k, lin_k]
+
+mode2 = get_mode2_kernels(kernel_list, Alphas, betas, X)
 
 event1 = get_event1(0)
 y0 = [[99.5, 80], [97.5, 100]]
