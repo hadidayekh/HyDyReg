@@ -12,6 +12,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 t = np.genfromtxt('data/t_1.csv', delimiter=',')
 t_list = np.array([t, np.copy(t)])
 
@@ -32,7 +33,7 @@ ax.set_ylabel('x2')
 # plt.legend()
 # plt.show()
 
-from main import learn, get_modes
+from main import learn, get_modes, get_differences_learned
 import diff_methods
 import kernels
 
@@ -62,16 +63,10 @@ print(modes - modes_true1)
 
 
 print("\n\n\nNow printing differences:")
-for d in range(D):
-    difference = np.zeros(N)
-    differences = []
-    for j in range(n):
-        differences.append(X_dot.T[d] - kernel_mat_list[j] @ Alphas_sol[j][d] - betas_sol[j][d] * np.ones(N))
+differences = get_differences_learned(X_dot, kernel_mat_list, Alphas_sol, betas_sol, Chis_sol)
+print(differences)
 
-    for i in range(N):
-        difference[i] = differences[modes[i]][i]
-    
-    print(difference)
+
 
 # difference1 = X_dot.T[0] - kernel_mat_list[0] @ Alphas_sol[0][0] - betas_sol[0][0] * np.ones(N)
 # difference2 = X_dot.T[0] - kernel_mat_list[1] @ Alphas_sol[1][0] - betas_sol[1][0] * np.ones(N)
