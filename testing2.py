@@ -123,7 +123,7 @@ def get_mode2_kernels(kernel_list, Alphas, betas, X):
     def mode2_0(t, x):
         kernel = kernel_list[0][0]
         kargs = kernel_list[0][1]
-        x = np.array(x)
+        
 
         x_dot0 = 0
         x_dot1 = 0
@@ -142,7 +142,7 @@ def get_mode2_kernels(kernel_list, Alphas, betas, X):
         kernel = kernel_list[1][0]
         kargs = kernel_list[1][1]
 
-        x = np.array(x)
+        
 
         x_dot0 = 0
         x_dot1 = 0
@@ -153,7 +153,7 @@ def get_mode2_kernels(kernel_list, Alphas, betas, X):
         
         x_dot0 += betas[1][0]
         x_dot1 += betas[1][1]
-        
+
         return [x_dot0, x_dot1]
     
     return [mode2_0, mode2_1]

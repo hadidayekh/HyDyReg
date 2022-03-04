@@ -37,7 +37,7 @@ import diff_methods
 import kernels
 
 kernel_list = [[kernels.linear, [0], 2]]
-kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_central, kernel_list, 0.01, 1, print_on=True)
+kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.00001, 10, norm='L1', print_on=True)
 
 n = Alphas_sol.shape[0]
 D = Alphas_sol.shape[1]
@@ -45,7 +45,7 @@ N = Alphas_sol.shape[2]
 
 modes = get_modes(Chis_sol)
 
-X, X_dot = diff_methods.diff_method_central(t_list, x_list)
+X, X_dot = diff_methods.diff_method_fps(t_list, x_list)
 
 modes_true0 = np.zeros(N)
 modes_true1 = np.ones(N)
