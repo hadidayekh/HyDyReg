@@ -38,7 +38,7 @@ import diff_methods
 import kernels
 
 kernel_list = [[kernels.linear, [0], 2]]
-kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.00001, 10, norm='L1', print_on=True)
+kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.0001, 10, norm='L1', print_on=True)
 
 n = Alphas_sol.shape[0]
 D = Alphas_sol.shape[1]
@@ -66,7 +66,23 @@ print("\n\n\nNow printing differences:")
 differences = get_differences_learned(X_dot, kernel_mat_list, Alphas_sol, betas_sol, Chis_sol)
 print(differences)
 
+Alpha0 = np.genfromtxt("output/Alphas0.csv", delimiter=',')
+betas0 = np.genfromtxt("output/betas0.csv", delimiter=',')
+Alpha1 = np.genfromtxt("output/Alphas1.csv", delimiter=',')
+betas1 = np.genfromtxt("output/betas1.csv", delimiter=',')
+Chis0 = np.genfromtxt("output/Chis0.csv", delimiter=',')
+Chis1 = np.genfromtxt("output/Chis1.csv", delimiter=',')
 
+X_dot_file = np.genfromtxt("input/final_X_dot.csv", delimiter=',')
+
+Alphas = np.array([Alpha0, Alpha1])
+betas = np.array([betas0, betas1])
+Chis = np.array([Chis0, Chis1])
+
+
+differences_file = get_differences_learned(X_dot_file, kernel_mat_list, Alphas, betas, Chis)
+
+print(differences_file-differences)
 
 # difference1 = X_dot.T[0] - kernel_mat_list[0] @ Alphas_sol[0][0] - betas_sol[0][0] * np.ones(N)
 # difference2 = X_dot.T[0] - kernel_mat_list[1] @ Alphas_sol[1][0] - betas_sol[1][0] * np.ones(N)

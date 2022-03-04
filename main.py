@@ -2,7 +2,7 @@ import kernels
 from opti import optimizeL1, optimizeL2
 import diff_methods
 import numpy as np
-
+import os
 
 def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
@@ -24,7 +24,7 @@ def get_differences_learned(X_dot, kernel_mat_list, Alphas, betas, Chis):
         for i in range(N):
             difference[i] = differences[modes[i]][i]
 
-    return differences
+    return difference
 
 
 
@@ -48,6 +48,8 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, norm='L2', print_
     final_X, final_X_dot = diff_method(t_list, x_list)
 
     if write_on:
+        if(not os.path.exists("input")):
+            os.makedirs("input")
         np.savetxt("input/final_X.csv", final_X, delimiter=', ', fmt='%8f')
         np.savetxt("input/final_X_dot.csv", final_X_dot, delimiter=', ', fmt='%8f')
 
@@ -71,6 +73,8 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, norm='L2', print_
         sol, Alphas_sol, betas_sol, Chis_sol = optimizeL2(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
 
     if write_on:
+        if(not os.path.exists("output")):
+            os.makedirs("output")
         n = len(kernel_mat_list)
         for j in range(n):
             np.savetxt("output/Alphas" + str(j) + ".csv", Alphas_sol[j], delimiter=', ', fmt='%8f')
