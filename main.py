@@ -50,8 +50,8 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, norm='L2', print_
     if write_on:
         if(not os.path.exists("input")):
             os.makedirs("input")
-        np.savetxt("input/final_X.csv", final_X, delimiter=', ', fmt='%8f')
-        np.savetxt("input/final_X_dot.csv", final_X_dot, delimiter=', ', fmt='%8f')
+        np.savetxt("input/final_X.csv", final_X, delimiter=',', fmt='%.16f')
+        np.savetxt("input/final_X_dot.csv", final_X_dot, delimiter=',', fmt='%.16f')
 
     # computing kernels and adding them to list
     kernel_mat_list = []
@@ -77,7 +77,7 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, norm='L2', print_
             os.makedirs("output")
         n = len(kernel_mat_list)
         for j in range(n):
-            np.savetxt("output/Alphas" + str(j) + ".csv", Alphas_sol[j], delimiter=', ', fmt='%8f')
-            np.savetxt("output/betas" + str(j) + ".csv", betas_sol[j], delimiter=', ', fmt='%8f')
-            np.savetxt("output/Chis" + str(j) + ".csv", Chis_sol[j], delimiter=', ', fmt='%8f')
+            np.savetxt("output/Alphas" + str(j) + ".csv", Alphas_sol[j], delimiter=',', fmt='%.16f')
+            np.savetxt("output/betas" + str(j) + ".csv", betas_sol[j], delimiter=',', fmt='%.16f')
+            np.savetxt("output/Chis" + str(j) + ".csv", Chis_sol[j], delimiter=',', fmt='%.16f')
     return kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol
