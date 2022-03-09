@@ -38,8 +38,11 @@ import numpy as np
 X = np.genfromtxt("input/final_X.csv", delimiter=',')
 X_dot = np.genfromtxt("input/final_X_dot.csv", delimiter=',')
 
-Alpha0 = np.genfromtxt("output/Alphas0.csv", delimiter=',')
+Alphas0 = np.genfromtxt("output/Alphas0.csv", delimiter=',')
 betas0 = np.genfromtxt("output/betas0.csv", delimiter=',')
+
+Alphas1 = np.genfromtxt("output/Alphas1.csv", delimiter=',')
+betas1 = np.genfromtxt("output/betas1.csv", delimiter=',')
 
 from kernels import linear
 
@@ -48,9 +51,15 @@ K = linear(X, X, [0])
 print(betas0.shape)
 
 
-i_star = np.argmax(Alpha0[0])
-alpha = Alpha0[0][i_star]
-print(alpha * K[i_star] + betas0[0]*np.ones(194) - X_dot.T[0])
+i_star0 = np.argmax(Alphas0[0])
+alpha0 = Alphas0[0][i_star0]
+i_star1 = np.argmax(Alphas1[0])
+alpha1 = Alphas1[0][i_star1]
+# print(alpha * K[i_star] + betas0[0]*np.ones(194) - X_dot.T[0])
 
-print(alpha * X[i_star])
+print(alpha0 * X[i_star0])
 print(betas0[0])
+print(alpha1 * X[i_star1])
+print(betas1[0])
+
+print(betas0[1], betas1[1])
