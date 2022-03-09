@@ -1,3 +1,4 @@
+from cProfile import label
 import numpy as np
 from scipy.integrate import solve_ivp
 import kernels
@@ -33,6 +34,9 @@ def simulation_ode_2(modelist, event, y0, T, stepsize, verbose=False, noise = 0)
             y_object = solve_ivp(modelist[label], (t_start, t_end + 1.1*stepsize), yinitial,
                                  t_eval=t_points, method='RK45', rtol=1e-7, atol=1e-9,
                                  max_step=stepsize/10, events=[event], dense_output=True)
+
+            if (y_object.y == []):
+                break
 
             status = y_object.status
             if status == 1:
@@ -158,6 +162,14 @@ def get_mode2_kernels(kernel_list, Alphas, betas, X):
     
     return [mode2_0, mode2_1]
 
+def get_mode2_exp():
+    def mode2_1(t, x):
+        x0, x1 = x
+        return [0.02413883*x0 + 0.02618191*x1 -4.953842473812118, -0.9628159492994963]
+    def mode2_2(t, x):
+        x0, x1 = x
+        return [0.01895106*x0 + 0.02055505*x1 -3.798641102116914, 0.9841744795536129]
+    return [mode2_1, mode2_2]
 
 X = np.genfromtxt("input/final_X.csv", delimiter=',')
 
@@ -175,16 +187,38 @@ kernel_list = [lin_k, lin_k]
 mode2 = get_mode2_kernels(kernel_list, Alphas, betas, X)
 
 event1 = get_event1(0)
-y0 = [[99.5, 80], [97.5, 100]]
+y0 = [[105.5, 80], [97.5, 100]]
 stepsize = 0.5
 T = 50
-t_list, y_list = simulation_ode_2(mode2, event1, y0, T, stepsize,verbose=True,noise=0)
+t_list, y_list = simulation_ode_2(mode2, event1, y0, T, stepsize ,noise=0)
 
 ax = plt.axes()
+
+
+i = 0
 for temp_y in y_list:
     y0_list = temp_y.T[0]
     y1_list = temp_y.T[1]
-    ax.scatter(y0_list, y1_list,c='b',s=5)
+    ax.scatter(y0_list, y1_list,c='r',s=2,label="Simulated" if i == 0 else "")
+    i += 1
+
+t_list, y_list = simulation_ode_2(get_mode2_exp(), event1, y0, T, stepsize,noise=0)
+
+i = 0
+for temp_y in y_list:
+    y0_list = temp_y.T[0]
+    y1_list = temp_y.T[1]
+    ax.scatter(y0_list, y1_list,c='b',s=2,label="Predicted" if i == 0 else "")
+    i += 1
+
+t_list, y_list = simulation_ode_2(get_mode2(0), event1, y0, T, stepsize,noise=0)
+
+i = 0
+for temp_y in y_list:
+    y0_list = temp_y.T[0]
+    y1_list = temp_y.T[1]
+    #ax.scatter(y0_list, y1_list,c='g',s=2,label="SVMs" if i == 0 else "")
+    i += 1
 
 ax.set_xlabel('x1')
 ax.set_ylabel('x2')
