@@ -196,7 +196,9 @@ def optimizeL1(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
             opti.subject_to(-Alphas[j][d] <= As[j][d])
             opti.subject_to(As[j][d] <= Alphas[j][d])
 
-    opti.solver('ipopt')
+    options = {"print_time": False, "ipopt": {"max_iter": 10000}}
+    opti.solver('ipopt', options)
+    
 
     # Initiate the optimization
     sol = opti.solve()
