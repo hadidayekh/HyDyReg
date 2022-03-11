@@ -125,7 +125,7 @@ def case2_mod():
     y0 = [[-1,1],[1,4],[2,-3]]
     
     T = 5
-    stepsize = 0.02
+    stepsize = 0.05
     t_list, y_list = simulation_ode_3(modetr, event, labeltest, y0, T, stepsize)
     
 
