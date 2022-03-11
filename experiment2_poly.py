@@ -128,6 +128,11 @@ def case2_mod():
     stepsize = 0.02
     t_list, y_list = simulation_ode_3(modetr, event, labeltest, y0, T, stepsize)
     
+
+    np.savetxt("../inferdynamickernelsvr/data/t_2.csv", t_list[1], delimiter=', ', fmt='%8f')
+    np.savetxt("../inferdynamickernelsvr/data/x0_2.csv", y_list[0], delimiter=', ', fmt='%8f')
+    np.savetxt("../inferdynamickernelsvr/data/x1_2.csv", y_list[1], delimiter=', ', fmt='%8f')
+
     colors = ['r', 'm', 'b']
     for i, temp_y in enumerate(y_list):
         y0_list = temp_y.T[0]
