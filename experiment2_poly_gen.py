@@ -145,5 +145,6 @@ def case2_mod():
 
 
 
+if __name__ == "__main__":
 
-case2_mod()
+    case2_mod()
