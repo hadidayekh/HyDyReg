@@ -2,7 +2,28 @@ from scipy.integrate import solve_ivp
 import numpy as np
 from functools import wraps
 
+def simulation_ode(ode_func, y0, t_tuple, stepsize, noise_type=1, eps=0):
+    """ Given a ODE function, some initial state, stepsize, then return the points.
+        @ode_func: ODE function 
+        @y0: inital state
+        @t_tuple: 
+        @stepsize: step size
+        @eps: guass noise (defult 0)
+    """
+    t_start = t_tuple[0]
+    t_end = t_tuple[1]
+    t_points = np.arange(t_start, t_end + stepsize, stepsize)
+    y_list = []
 
+    for k in range(0,len(y0)):
+        y_object = solve_ivp(ode_func, (t_start, t_end+stepsize), y0[k], t_eval = t_points, rtol=1e-7, atol=1e-9)
+        y_points = y_object.y.T
+        if eps > 0:
+            for i in range(0,y_points.shape[0]):
+                for j in range(0,y_points.shape[1]):
+                    y_points[i][j] = y_points[i][j] + np.random.normal(0,eps)
+        y_list.append(y_points)
+    return t_points, y_list
 
 def simulation_ode_3(modelist, eventlist, labelfun, y0, T, stepsize):
     
