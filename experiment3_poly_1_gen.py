@@ -15,9 +15,12 @@ if __name__ == "__main__":
     t_tuple = (0,6)
     stepsize = 0.1
     t_points, y_list = simulation_ode(fvdp2_1, y0, t_tuple, stepsize, eps=0)
+    
 
     print(t_points)
-    print(y_list)
+    print(len(y_list))
+    print(y_list[0].shape)
+    print(y_list[1].shape)
 
 
     np.savetxt("data/t_3.csv", t_points, delimiter=', ', fmt='%8f')
@@ -32,4 +35,4 @@ if __name__ == "__main__":
     plt.xlabel('x1')
     plt.ylabel('x2')
     plt.legend()
-    plt.show()
+    #plt.show()
