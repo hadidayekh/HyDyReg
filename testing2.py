@@ -184,16 +184,19 @@ betas = np.array([betas0, betas1])
 lin_k = [kernels.linear, [0]]
 kernel_list = [lin_k, lin_k]
 
-mode2 = get_mode2_kernels(kernel_list, Alphas, betas, X)
 
 event1 = get_event1(0)
 y0 = [[105.5, 80], [97.5, 100]]
-stepsize = 0.5
-T = 50
-t_list, y_list = simulation_ode_2(mode2, event1, y0, T, stepsize ,noise=0)
+y0 = [[105.5, 80], [97.5, 100], [50, 50], [120, 65]]
+
+stepsize = 5
+T = 100
+
 
 ax = plt.axes()
 
+
+t_list, y_list = simulation_ode_2(get_mode2(0), event1, y0, T, stepsize,noise=0)
 
 i = 0
 for temp_y in y_list:
@@ -202,7 +205,8 @@ for temp_y in y_list:
     ax.scatter(y0_list, y1_list,c='r',s=2,label="Simulated" if i == 0 else "")
     i += 1
 
-t_list, y_list = simulation_ode_2(get_mode2_exp(), event1, y0, T, stepsize,noise=0)
+mode2 = get_mode2_kernels(kernel_list, Alphas, betas, X)
+t_list, y_list = simulation_ode_2(mode2, event1, y0, T, stepsize ,noise=0)
 
 i = 0
 for temp_y in y_list:
@@ -211,7 +215,9 @@ for temp_y in y_list:
     ax.scatter(y0_list, y1_list,c='b',s=2,label="Predicted" if i == 0 else "")
     i += 1
 
-t_list, y_list = simulation_ode_2(get_mode2(0), event1, y0, T, stepsize,noise=0)
+
+
+t_list, y_list = simulation_ode_2(get_mode2_exp(), event1, y0, T, stepsize,noise=0)
 
 i = 0
 for temp_y in y_list:

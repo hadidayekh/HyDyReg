@@ -57,9 +57,13 @@ i_star1 = np.argmax(Alphas1[0])
 alpha1 = Alphas1[0][i_star1]
 # print(alpha * K[i_star] + betas0[0]*np.ones(194) - X_dot.T[0])
 
-print(alpha0 * X[i_star0])
-print(betas0[0])
-print(alpha1 * X[i_star1])
-print(betas1[0])
+# print(alpha0 * X[i_star0])
+# print(betas0[0])
+# print(alpha1 * X[i_star1])
+# print(betas1[0])
 
 print(betas0[1], betas1[1])
+
+
+print(Alphas1[0] @ X.T[0])
+print(Alphas1[0] @ X.T[1])
