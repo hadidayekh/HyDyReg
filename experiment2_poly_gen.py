@@ -14,9 +14,9 @@ def case2_mod():
     t_list, y_list = simulation_ode_3(modetr, event, labeltest, y0, T, stepsize)
     
 
-    np.savetxt("../data/t_2.csv", t_list[1], delimiter=', ', fmt='%8f')
-    np.savetxt("../data/x0_2.csv", y_list[0], delimiter=', ', fmt='%8f')
-    np.savetxt("../data/x1_2.csv", y_list[1], delimiter=', ', fmt='%8f')
+    np.savetxt("data/t_2.csv", t_list[1], delimiter=', ', fmt='%8f')
+    np.savetxt("data/x0_2.csv", y_list[0], delimiter=', ', fmt='%8f')
+    np.savetxt("data/x1_2.csv", y_list[1], delimiter=', ', fmt='%8f')
 
     colors = ['r', 'm', 'b']
     for i, temp_y in enumerate(y_list):
