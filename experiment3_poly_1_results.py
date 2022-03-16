@@ -49,12 +49,12 @@ def print_eq(kernel_list, Alphas, betas, X):
     one_coef    = Alphas[0] @ np.ones(N)
 
     print("\nx1_dot\t=")
-    print(x1_squared, "\tx1**2\t+")
-    print(x2_squared, "\tx2**2\t+")
-    print(x1_x2, "\tx1x2\t+")
-    print(x1, "\tx1\t+")
-    print(x2, "\tx2\t+")
-    print(one_coef + betas[0])
+    print("% .8f" % x1_squared, "\tx1**2\t+")
+    print("% .8f" % x2_squared, "\tx2**2\t+")
+    print("% .8f" % x1_x2, "\tx1x2\t+")
+    print("% .8f" % x1, "\tx1\t+")
+    print("% .8f" % x2, "\tx2\t+")
+    print("% .8f" % (one_coef + betas[0]))
 
 
     x1_squared  = Alphas[1] @ (X.T[0]**2)
@@ -65,12 +65,12 @@ def print_eq(kernel_list, Alphas, betas, X):
     one_coef    = Alphas[1] @ np.ones(N)
 
     print("\nx2_dot\t=")
-    print(x1_squared, "\tx1**2\t+")
-    print(x2_squared, "\tx2**2\t+")
-    print(x1_x2, "\tx1x2\t+")
-    print(x1, "\tx1\t+")
-    print(x2, "\tx2\t+")
-    print(one_coef + betas[1])
+    print("% .8f" % x1_squared, "\tx1**2\t+")
+    print("% .8f" % x2_squared, "\tx2**2\t+")
+    print("% .8f" % x1_x2, "\tx1x2\t+")
+    print("% .8f" % x1, "\tx1\t+")
+    print("% .8f" % x2, "\tx2\t+")
+    print("% .8f" % (one_coef + betas[1]))
 
 if __name__ == "__main__":
     ax = plt.axes()
@@ -103,6 +103,6 @@ if __name__ == "__main__":
     ax.set_xlabel('x1')
     ax.set_ylabel('x2')
     plt.legend()
-    plt.show()
+    #plt.show()
 
     print_eq(kernel_list, Alphas, betas, X)
