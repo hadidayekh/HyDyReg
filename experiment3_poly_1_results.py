@@ -106,3 +106,4 @@ if __name__ == "__main__":
     #plt.show()
 
     print_eq(kernel_list, Alphas, betas, X)
+    print()
