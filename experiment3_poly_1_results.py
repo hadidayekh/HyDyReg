@@ -36,7 +36,41 @@ def get_derv(kernel_list, Alphas, betas, X):
 
     return mode0
 
+def print_eq(kernel_list, Alphas, betas, X):
+    K = kernel_list[0][0](X, X, kernel_list[0][1])
 
+    N = X.shape[0]
+
+    x1_squared  = Alphas[0] @ (X.T[0]**2)
+    x2_squared  = Alphas[0] @ (X.T[1]**2)
+    x1_x2       = Alphas[0] @ (X.T[0] * X.T[1]) * 2
+    x1          = Alphas[0] @ (X.T[0]) * 2
+    x2          = Alphas[0] @ (X.T[1]) * 2
+    one_coef    = Alphas[0] @ np.ones(N)
+
+    print("\nx1_dot\t=")
+    print(x1_squared, "\tx1**2\t+")
+    print(x2_squared, "\tx2**2\t+")
+    print(x1_x2, "\tx1x2\t+")
+    print(x1, "\tx1\t+")
+    print(x2, "\tx2\t+")
+    print(one_coef + betas[0])
+
+
+    x1_squared  = Alphas[1] @ (X.T[0]**2)
+    x2_squared  = Alphas[1] @ (X.T[1]**2)
+    x1_x2       = Alphas[1] @ (X.T[0] * X.T[1]) * 2
+    x1          = Alphas[1] @ (X.T[0]) * 2
+    x2          = Alphas[1] @ (X.T[1]) * 2
+    one_coef    = Alphas[1] @ np.ones(N)
+
+    print("\nx2_dot\t=")
+    print(x1_squared, "\tx1**2\t+")
+    print(x2_squared, "\tx2**2\t+")
+    print(x1_x2, "\tx1x2\t+")
+    print(x1, "\tx1\t+")
+    print(x2, "\tx2\t+")
+    print(one_coef + betas[1])
 
 if __name__ == "__main__":
     ax = plt.axes()
@@ -70,3 +104,5 @@ if __name__ == "__main__":
     ax.set_ylabel('x2')
     plt.legend()
     plt.show()
+
+    print_eq(kernel_list, Alphas, betas, X)
