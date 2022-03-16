@@ -1,3 +1,8 @@
+"""
+THIS CODE IS FROM INFERDYNAMIC GIT REPO
+"""
+
+
 from scipy.integrate import solve_ivp
 import numpy as np
 from functools import wraps
