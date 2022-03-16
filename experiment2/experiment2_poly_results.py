@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import kernels
 
-X = np.genfromtxt("input/final_X.csv", delimiter=',')
+X = np.genfromtxt("../input/final_X.csv", delimiter=',')
 
-Alpha0 = np.genfromtxt("output/Alphas0.csv", delimiter=',')
-betas0 = np.genfromtxt("output/betas0.csv", delimiter=',')
-Alpha1 = np.genfromtxt("output/Alphas1.csv", delimiter=',')
-betas1 = np.genfromtxt("output/betas1.csv", delimiter=',')
-Alpha2 = np.genfromtxt("output/Alphas2.csv", delimiter=',')
-betas2 = np.genfromtxt("output/betas2.csv", delimiter=',')
+Alpha0 = np.genfromtxt("../output/Alphas0.csv", delimiter=',')
+betas0 = np.genfromtxt("../output/betas0.csv", delimiter=',')
+Alpha1 = np.genfromtxt("../output/Alphas1.csv", delimiter=',')
+betas1 = np.genfromtxt("../output/betas1.csv", delimiter=',')
+Alpha2 = np.genfromtxt("../output/Alphas2.csv", delimiter=',')
+betas2 = np.genfromtxt("../output/betas2.csv", delimiter=',')
 
 Alphas = np.array([Alpha0, Alpha1, Alpha2])
 betas = np.array([betas0, betas1, betas2])

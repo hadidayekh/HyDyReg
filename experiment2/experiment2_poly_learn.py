@@ -2,12 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-t = np.genfromtxt('data/t_2.csv', delimiter=',')
+t = np.genfromtxt('../data/t_2.csv', delimiter=',')
 t_list = np.array([t, np.copy(t)])
 
 
-x0 = np.genfromtxt('data/x0_2.csv', delimiter=',')
-x1 = np.genfromtxt('data/x1_2.csv', delimiter=',')
+x0 = np.genfromtxt('../data/x0_2.csv', delimiter=',')
+x1 = np.genfromtxt('../data/x1_2.csv', delimiter=',')
 
 x_list = np.array([x0, x1])
 
