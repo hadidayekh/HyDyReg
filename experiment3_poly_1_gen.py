@@ -1,5 +1,5 @@
 
-import paper_utils
+from paper_utils import simulation_ode
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -11,8 +11,25 @@ def fvdp2_1(t,y):
     return dydt
 
 if __name__ == "__main__":
-    y0 = [[0]]#,[1],[2],[3],[0],[-1],[-2]]
-    t_tuple = (0,8)
-    stepsize = 1
-    order = 3
-    t_points, y_list = paper_utils.simulation_ode(fvdp2_1, y0, t_tuple, stepsize, eps=0)
+    y0 = [[0.1, 0.2], [-0.1, 0.9]]#,[1],[2],[3],[0],[-1],[-2]]
+    t_tuple = (0,6)
+    stepsize = 0.1
+    t_points, y_list = simulation_ode(fvdp2_1, y0, t_tuple, stepsize, eps=0)
+
+    print(t_points)
+    print(y_list)
+
+
+    np.savetxt("data/t_3.csv", t_points, delimiter=', ', fmt='%8f')
+    np.savetxt("data/x0_3.csv", y_list[0], delimiter=', ', fmt='%8f')
+    np.savetxt("data/x1_3.csv", y_list[1], delimiter=', ', fmt='%8f')
+
+
+    for i, temp_y in enumerate(y_list):
+        y0_list = temp_y.T[0]
+        y1_list = temp_y.T[1]
+        plt.scatter(y0_list,y1_list,c='b',s=1)
+    plt.xlabel('x1')
+    plt.ylabel('x2')
+    plt.legend()
+    plt.show()
