@@ -103,7 +103,7 @@ if __name__ == "__main__":
     ax.set_xlabel('x1')
     ax.set_ylabel('x2')
     plt.legend()
-    #plt.show()
+    plt.show()
 
     print_eq(kernel_list, Alphas, betas, X)
     print()

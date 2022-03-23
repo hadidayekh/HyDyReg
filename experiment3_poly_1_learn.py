@@ -26,7 +26,7 @@ import diff_methods
 import kernels
 
 kernel_list = [[kernels.polynomial, [2, 1, 1], 1]]
-kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.001, 50, norm='L2', print_on=True)
+kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.0001, 1, norm='L2', print_on=True)
 
 n = Alphas_sol.shape[0]
 D = Alphas_sol.shape[1]
