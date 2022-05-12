@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 
 
 t = np.genfromtxt('data/t_2.csv', delimiter=',')
-t_list = np.array([t, np.copy(t), np.copy(t)])
+t_list = np.array([t, np.copy(t)])#, np.copy(t)])
 
 
 x0 = np.genfromtxt('data/x0_2.csv', delimiter=',')
 x1 = np.genfromtxt('data/x1_2.csv', delimiter=',')
 x2 = np.genfromtxt('data/x2_2.csv', delimiter=',')
 
-x_list = np.array([x0, x1, x2])
+x_list = np.array([x0, x1])#, x2])
 
 ax = plt.axes()
 for temp_x in x_list:
@@ -20,7 +20,7 @@ for temp_x in x_list:
     
 ax.set_xlabel('x1')
 ax.set_ylabel('x2')
-# plt.legend()
+#plt.legend()
 #plt.show()
 #exit()
 
@@ -28,8 +28,8 @@ from main import learn, get_modes, get_differences_learned
 import diff_methods
 import kernels
 
-kernel_list = [[kernels.polynomial, [2, 1, 1], 3]]#, [kernels.linear, [0], 2]]
-kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.1, 10, norm='L2', print_on=True)
+kernel_list = [[kernels.polynomial, [2, 1, 1], 1], [kernels.linear, [0], 2]]
+kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.01, 10, norm='L2', print_on=True)
 
 n = Alphas_sol.shape[0]
 D = Alphas_sol.shape[1]

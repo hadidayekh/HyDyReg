@@ -1,4 +1,4 @@
-from experiment2_poly_gen import get_event, get_labeltest, get_modetr, simulation_ode_3, modetr_params
+from experiment2_poly_gen import get_event, get_labeltest, get_modetr, simulation_ode_3
 import matplotlib.pyplot as plt
 import numpy as np
 import kernels
@@ -17,7 +17,91 @@ betas = np.array([betas0, betas1, betas2])
 
 lin_k = [kernels.linear, [0]]
 poly_k = [kernels.polynomial, [2, 1, 1]]
-kernel_list = [lin_k, poly_k, lin_k]
+kernel_list = [poly_k, lin_k, lin_k]
+
+def print_eq(kernel_list, Alphas, betas, X):
+    # poly equation
+    print("First mode:")
+    K = kernel_list[0][0](X, X, kernel_list[0][1])
+
+    N = X.shape[0]
+    print("NUMBER OF POINTS IS "+str(N)+"\n")
+
+    x1_squared  = Alphas[0][0] @ (X.T[0]**2)
+    x2_squared  = Alphas[0][0] @ (X.T[1]**2)
+    x1_x2       = Alphas[0][0] @ (X.T[0] * X.T[1]) * 2
+    x1          = Alphas[0][0] @ (X.T[0]) * 2
+    x2          = Alphas[0][0] @ (X.T[1]) * 2
+    one_coef    = Alphas[0][0] @ np.ones(N)
+
+    print("\nx1_dot\t=")
+    print("% .8f" % x1_squared, "\tx1**2\t+")
+    print("% .8f" % x2_squared, "\tx2**2\t+")
+    print("% .8f" % x1_x2, "\tx1x2\t+")
+    print("% .8f" % x1, "\tx1\t+")
+    print("% .8f" % x2, "\tx2\t+")
+    print("% .8f" % (one_coef + betas[0][0]))
+
+
+    x1_squared  = Alphas[0][1] @ (X.T[0]**2)
+    x2_squared  = Alphas[0][1] @ (X.T[1]**2)
+    x1_x2       = Alphas[0][1] @ (X.T[0] * X.T[1]) * 2
+    x1          = Alphas[0][1] @ (X.T[0]) * 2
+    x2          = Alphas[0][1] @ (X.T[1]) * 2
+    one_coef    = Alphas[0][1] @ np.ones(N)
+
+    print("\nx2_dot\t=")
+    print("% .8f" % x1_squared, "\tx1**2\t+")
+    print("% .8f" % x2_squared, "\tx2**2\t+")
+    print("% .8f" % x1_x2, "\tx1x2\t+")
+    print("% .8f" % x1, "\tx1\t+")
+    print("% .8f" % x2, "\tx2\t+")
+    print("% .8f" % (one_coef + betas[0][1]))
+
+
+
+    # first linear equation
+    print("\nSecond mode:")
+    K = kernel_list[1][0](X, X, kernel_list[1][1])
+    x1          = Alphas[1][0] @ (X.T[0])
+    x2          = Alphas[1][0] @ (X.T[1])
+
+    print("\nx1_dot\t=")
+    print("% .8f" % x1, "\tx1\t+")
+    print("% .8f" % x2, "\tx2\t+")
+    print("% .8f" % (betas[1][0]))
+
+
+    x1          = Alphas[1][1] @ (X.T[0])
+    x2          = Alphas[1][1] @ (X.T[1])
+
+    print("\nx2_dot\t=")
+    print("% .8f" % x1, "\tx1\t+")
+    print("% .8f" % x2, "\tx2\t+")
+    print("% .8f" % (betas[1][1]))
+
+
+    # second linear equation
+    print("\nThird mode:")
+    K = kernel_list[2][0](X, X, kernel_list[2][1])
+    x1          = Alphas[2][0] @ (X.T[0])
+    x2          = Alphas[2][0] @ (X.T[1])
+
+    print("\nx1_dot\t=")
+    print("% .8f" % x1, "\tx1\t+")
+    print("% .8f" % x2, "\tx2\t+")
+    print("% .8f" % (betas[2][0]))
+
+
+    x1          = Alphas[2][1] @ (X.T[0])
+    x2          = Alphas[2][1] @ (X.T[1])
+
+    print("\nx2_dot\t=")
+    print("% .8f" % x1, "\tx1\t+")
+    print("% .8f" % x2, "\tx2\t+")
+    print("% .8f" % (betas[2][1]))
+
+
 
 def get_mode3_kernels(kernel_list, Alphas, betas, X):
     assert(len(kernel_list) == 3)
@@ -83,6 +167,8 @@ def get_mode3_kernels(kernel_list, Alphas, betas, X):
     return [mode3_0, mode3_1, mode3_2]
 
 
+print_eq(kernel_list, Alphas, betas, X)
+exit()
 
 
 modetr = get_modetr(0)
