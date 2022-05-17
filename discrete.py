@@ -24,11 +24,11 @@ def extract_from_trajectory(u_array, y_array, nc, na):
 
     X_array = np.zeros((N_new, nc * u_dim + na * y_dim))
 
-    print(u_dim)
-    print(y_dim)
-    print(u_array)
-    print(y_array)
-    print(X_array.shape)
+    # print(u_dim)
+    # print(y_dim)
+    # print(u_array)
+    # print(y_array)
+    # print(X_array.shape)
 
     for i in range(nc):
         i_inv = nc * u_dim - u_dim * i - u_dim
@@ -38,7 +38,6 @@ def extract_from_trajectory(u_array, y_array, nc, na):
             for j in range(u_dim):
                 X_array.T[i_inv + j] = u_array.T[nmax - i - 1: N - i - 1].T[j]
         
-    print(nmax, N)
     for i in range(na):
         i_inv = na * y_dim - y_dim * i - y_dim
         #X_array.T[i_inv + nc] = y_array[nmax - i - 1: N - i - 1]
@@ -48,5 +47,5 @@ def extract_from_trajectory(u_array, y_array, nc, na):
             for j in range(y_dim):
                 X_array.T[i_inv + nc * u_dim + j] = y_array.T[nmax - i - 1: N - i - 1].T[j]
 
-    y_output = y_array[nmax:]
+    y_output = y_array.T[nmax:].T
     return X_array, y_output
