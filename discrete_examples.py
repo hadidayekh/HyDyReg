@@ -1,7 +1,10 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-import yaml
+from discrete import extract_from_trajectory
+import kernels
+import opti
+from main import get_modes
 
 random.seed(10)
 
@@ -27,5 +30,34 @@ def generate_disc_hyb1(y0, noise=False):
 
 u,y = generate_disc_hyb1(0.6)
 
-plt.plot(range(101), y)
-plt.show()
+X, y_out = extract_from_trajectory(u,y,1,1)
+
+print(u.shape)
+print(y.shape)
+print(X.shape)
+print(y_out.shape)
+y_out = y_out.reshape(-1, 1)
+print(y_out.shape)
+
+kernel_list = [[kernels.linear, [0], 1], [kernels.polynomial, [2, 1, 1], 1]]
+
+# computing kernels and adding them to list
+kernel_mat_list = []
+# for every kernel type
+for k_list in kernel_list:
+    kernel = k_list[0]
+    k_args = k_list[1]
+    nb_replicas = k_list[2]
+    # calculate the kernel matrix
+    K  = kernel(X, X, k_args)
+    # add the kernel matrix to kernel_mat_list, nb_replicas of times
+    for i in range(nb_replicas):
+        kernel_mat_list.append(K)
+
+sol, Alphas_sol, betas_sol, Chis_sol = opti.optimizeL2(kernel_mat_list, y_out, 0.001, 1)
+
+print(Alphas_sol, betas_sol)
+print(get_modes(Chis_sol))
+Alphas = Alphas_sol
+betas = betas_sol
+N = X.shape[0]
