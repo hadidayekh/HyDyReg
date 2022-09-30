@@ -36,16 +36,20 @@ def simulation_ode_3(modelist, eventlist, labelfun, y0, T, stepsize):
     y_list = []
 
     for k in range(0,len(y0)):
+        #for each of the initial conditions do the simulation
+        # y initial is the kth intitial condition
         t_start = 0
         t_end = T
         yinitial = y0[k]
-
+        print("init", yinitial)
+        # t points is the individual time periods
         num = round((t_end - t_start)/stepsize + 1)
         t_points = np.linspace(t_start, t_end, num)
         T_points = np.linspace(t_start, t_end, num)
 
         status = 1
         label = labelfun(y0[k])
+        print(label)
 
         ite = 0
         while status == 1:
@@ -71,6 +75,8 @@ def simulation_ode_3(modelist, eventlist, labelfun, y0, T, stepsize):
                 sol = y_object.sol
                 yinitial = sol.__call__(t_start + stepsize/1000)
                 label = labelfun(yinitial)
+                print("init", yinitial)
+                print(label)
                 y_points = y_object.y.T
                 y_points = y_points[0:i]
             else: 
@@ -137,6 +143,12 @@ eventtr_1, eventtr_2= get_event(0)
 
 def get_labeltest(param_id):
     def labeltest(y):
+        if -eventtr_2(0,y)>=0:
+            return 2
+        elif -eventtr_1(0,y) >= 0:
+            return 0
+        else:
+            return 1
         if eventtr_1(0,y)<0 and eventtr_2(0,y)>0:
             return 0
         elif eventtr_1(0,y)>=0 and eventtr_2(0,y)>0:
