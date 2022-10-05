@@ -168,7 +168,7 @@ def get_mode3_kernels(kernel_list, Alphas, betas, X):
 
 
 print_eq(kernel_list, Alphas, betas, X)
-exit()
+#exit()
 
 
 modetr = get_modetr(0)
