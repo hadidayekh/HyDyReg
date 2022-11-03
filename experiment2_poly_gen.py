@@ -7,9 +7,9 @@ def case2_mod():
     modetr = get_modetr(0)
     event = get_event(0)
     labeltest = get_labeltest(0)
-    y0 = [[-1,1],[1,4]]#,[2,-3]]
+    y0 = [[-1,1],[1,4],[2,-3]]
     
-    T = 3
+    T = 5
     stepsize = 0.05
     t_list, y_list = simulation_ode_3(modetr, event, labeltest, y0, T, stepsize)
 

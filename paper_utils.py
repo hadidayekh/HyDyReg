@@ -49,7 +49,6 @@ def simulation_ode_3(modelist, eventlist, labelfun, y0, T, stepsize):
 
         status = 1
         label = labelfun(y0[k])
-        print(label)
 
         ite = 0
         while status == 1:
@@ -75,8 +74,8 @@ def simulation_ode_3(modelist, eventlist, labelfun, y0, T, stepsize):
                 sol = y_object.sol
                 yinitial = sol.__call__(t_start + stepsize/1000)
                 label = labelfun(yinitial)
-                print("init", yinitial)
-                print(label)
+                #print("init", yinitial)
+                #print(label)
                 y_points = y_object.y.T
                 y_points = y_points[0:i]
             else: 

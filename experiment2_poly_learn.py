@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 
 
 t = np.genfromtxt('data/t_2.csv', delimiter=',')
-t_list = np.array([t, np.copy(t)])#, np.copy(t)])
+t_list = np.array([t, np.copy(t), np.copy(t)])
 
 
 x0 = np.genfromtxt('data/x0_2.csv', delimiter=',')
 x1 = np.genfromtxt('data/x1_2.csv', delimiter=',')
 x2 = np.genfromtxt('data/x2_2.csv', delimiter=',')
 
-x_list = np.array([x0, x1])#, x2])
+x_list = np.array([x0, x1, x2])
 
 ax = plt.axes()
 for temp_x in x_list:

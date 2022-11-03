@@ -13,12 +13,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-t = np.genfromtxt('data/t_1.csv', delimiter=',')
+t = np.genfromtxt('data/t_2.csv', delimiter=',')
 t_list = np.array([t, np.copy(t)])
 
 
-x0 = np.genfromtxt('data/x0_1.csv', delimiter=',')
-x1 = np.genfromtxt('data/x1_1.csv', delimiter=',')
+x0 = np.genfromtxt('data/x0_2.csv', delimiter=',')
+x1 = np.genfromtxt('data/x1_2.csv', delimiter=',')
 
 x_list = np.array([x0, x1])
 
@@ -30,15 +30,15 @@ for temp_x in x_list:
     
 ax.set_xlabel('x1')
 ax.set_ylabel('x2')
-# plt.legend()
-# plt.show()
+plt.legend()
+plt.show()
 
 from main import learn, get_modes, get_differences_learned
 import diff_methods
 import kernels
 
 kernel_list = [[kernels.linear, [0], 2]]
-kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.0001, 10, norm='L1', print_on=True)
+kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.0001, 10, norm='L2', print_on=True)
 
 n = Alphas_sol.shape[0]
 D = Alphas_sol.shape[1]

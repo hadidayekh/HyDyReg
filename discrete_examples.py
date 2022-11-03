@@ -19,7 +19,7 @@ def generate_disc_hyb1(y0, noise=False):
 
     u[0] = random.random()
     for t in range(1, 101):
-        if t < 41:
+        if t < 61:
             y[t] = -0.905 * y[t-1]   + 0.9 * u[t-1]
         else:
             y[t] = -0.4 * y[t-1]**2 + 0.5 * u[t-1]
@@ -94,7 +94,7 @@ print("% .8f" % (betas[0][0]))
 
 
 
-u,y = generate_disc_hyb1(0.6)
+u,y = generate_disc_hyb1(1.5)
 
 X, y_out = extract_from_trajectory(u,y,1,1)
 

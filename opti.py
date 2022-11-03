@@ -41,13 +41,13 @@ def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, mode_guesses, print_on=F
     for j in range(n):
 
         Chis[j] = opti.variable(N)
-        opti.set_initial(Chis[j], np.ones(N) * 99999)
+        opti.set_initial(Chis[j], np.ones(N)*100)
 
         for d in range(D):
             Alphas[j][d] = opti.variable(N)
             betas[j][d] = opti.variable()
     
-    for i in range(N):
+    for i in range(0, int(N), 2):
         opti.set_initial(Chis[int(mode_guesses[i])][i], 0)
 
     C = opti.parameter()

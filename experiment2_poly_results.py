@@ -1,7 +1,11 @@
 from experiment2_poly_gen import get_event, get_labeltest, get_modetr, simulation_ode_3
+from main import get_modes
 import matplotlib.pyplot as plt
 import numpy as np
 import kernels
+from sklearn.linear_model import LogisticRegression
+import matplotlib.colors
+from sklearn.inspection import DecisionBoundaryDisplay
 
 X = np.genfromtxt("input/final_X.csv", delimiter=',')
 
@@ -12,8 +16,44 @@ betas1 = np.genfromtxt("output/betas1.csv", delimiter=',')
 Alpha2 = np.genfromtxt("output/Alphas2.csv", delimiter=',')
 betas2 = np.genfromtxt("output/betas2.csv", delimiter=',')
 
+Chis0 = np.genfromtxt("output/Chis0.csv", delimiter=',')
+Chis1 = np.genfromtxt("output/Chis1.csv", delimiter=',')
+Chis2 = np.genfromtxt("output/Chis2.csv", delimiter=',')
+
 Alphas = np.array([Alpha0, Alpha1, Alpha2])
 betas = np.array([betas0, betas1, betas2])
+Chis = np.array([Chis0, Chis1, Chis2])
+
+modes = get_modes(Chis)
+
+
+# define model
+model = LogisticRegression(multi_class='ovr')
+# fit model
+model.fit(X, modes)
+
+
+
+clf = model
+
+# Retrieve the model parameters.
+b = clf.intercept_
+w = clf.coef_
+
+# for i in range(3):
+#     w[i] = w[i] / np.linalg.norm(w[i])
+#     b[i] = b[i] / np.linalg.norm(w[i])
+
+w1, w2 = w.T
+
+# Calculate the intercept and gradient of the decision boundary.
+c = -b/w2
+m = -w1/w2
+
+
+colors = ['tab:blue', 'tab:orange', 'tab:green']
+cmap = matplotlib.colors.ListedColormap(colors)
+
 
 lin_k = [kernels.linear, [0]]
 poly_k = [kernels.polynomial, [2, 1, 1]]
@@ -175,7 +215,8 @@ modetr = get_modetr(0)
 event = get_event(0)
 labeltest = get_labeltest(0)
 y0 = [[-1,1],[1,4],[2,-3]]
-
+#y0 = [[1,-1],[-1,-4],[-2,3]]
+# y0 = [[-6, 5]]
 T = 5
 stepsize = 0.05
 t_list, y_list = simulation_ode_3(modetr, event, labeltest, y0, T, stepsize)
@@ -186,21 +227,31 @@ ax = plt.axes()
 for i, temp_y in enumerate(y_list):
     y0_list = temp_y.T[0]
     y1_list = temp_y.T[1]
-    ax.scatter(y0_list,y1_list,c='b',s=1,label="Original" if i==0 else "")
+    #ax.scatter(y0_list,y1_list,c='k',s=1,label="Original" if i==0 else "")
 
+print("hellohello")
+
+def labelfun(x):
+    return model.predict(np.array(x).reshape(1,-1))[0]
 
 mode3 = get_mode3_kernels(kernel_list, Alphas, betas, X)
-t_list, y_list = simulation_ode_3(mode3, event, labeltest, y0, T, stepsize)
+t_list, y_list = simulation_ode_3(mode3, event, labelfun, y0, T, stepsize)
 
 i = 0
 for temp_y in y_list:
     y0_list = temp_y.T[0]
     y1_list = temp_y.T[1]
-    ax.scatter(y0_list, y1_list,c='r',s=2,label="Predicted" if i == 0 else "")
+    y = np.array([y0_list, y1_list]).T
+    mode_pred = clf.predict(y)
+    print(mode_pred)
+    for j in range(3):
+        ax.scatter(y0_list[mode_pred==j],y1_list[mode_pred==j],c=colors[j],s=1,label="Predicted" if i==0 else "")
+    
     i += 1
 
 
 
+disp = DecisionBoundaryDisplay.from_estimator(clf, X, grid_resolution=1000, ax=ax, alpha=0.1, cmap=cmap)
 
 
 plt.xlabel('x1')
