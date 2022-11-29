@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.inspection import DecisionBoundaryDisplay
 import matplotlib.colors
-from sklearn.multiclass import OneVsRestClassifier
+from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier
 # define dataset
 nc=3
 X, y = make_classification(n_samples=1000, n_features=2, n_informative=2, n_clusters_per_class=1, n_redundant=0, n_classes=nc, random_state=1)
@@ -16,7 +16,7 @@ X, y = make_classification(n_samples=1000, n_features=2, n_informative=2, n_clus
 #model = LogisticRegression(multi_class='ovr')
 
 model = LogisticRegression()
-model = OneVsRestClassifier(model)
+model = OneVsOneClassifier(model)
 
 # fit model
 model.fit(X, y)
@@ -44,7 +44,7 @@ estis = model.estimators_
 colors = ['tab:blue', 'tab:orange', 'tab:green']
 cmap = matplotlib.colors.ListedColormap(colors)
 
-disp = DecisionBoundaryDisplay.from_estimator(model, X, grid_resolution=1000, alpha=0.3, cmap=cmap)
+disp = DecisionBoundaryDisplay.from_estimator(model, X, grid_resolution=10000, alpha=0.3, cmap=cmap)
 
 
 # Plot the data and the classification with the decision boundary.
