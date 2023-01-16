@@ -14,7 +14,7 @@ class SNDS:
         assert (n == len(eqs))
         self.number_of_modes = n
         self.dim = d
-        self.equations = eqs
+        self.eqs = eqs
         self.labelfun = labelfun
         self.eventlist = eventlist
 
