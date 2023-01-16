@@ -83,5 +83,4 @@ class SNDS:
 
             t_list.append(np.linspace(0, T, num))
             x_list.append(X_points)
-
-            print()
+        return (t_list, x_list)
