@@ -54,7 +54,6 @@ class SNDS:
                         # TODO : check if multiple events happened? -
                         if len(a) > 0:
                             t_start = a[0]
-                            break
 
                     # check where t_start occurs in the list t_points
                     # this is in order to keep t_eval consistent with what we want
@@ -70,7 +69,8 @@ class SNDS:
                     sol = x_object.sol
                     x0 = sol.__call__(t_start + step/1000)
                     label = self.labelfun(x0)
-
+                    if len(x_object.y) == 0:
+                        continue
                     x_points = x_object.y.T
                     x_points = x_points[0:i]
                 else:

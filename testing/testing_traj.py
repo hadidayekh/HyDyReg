@@ -1,14 +1,44 @@
 from scipy.integrate import solve_ivp
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+import os
+
+# setting path
+sys.path.append('./')
+sys.path.append('../')
+from snds import SNDS
+
+def labelfun(x):
+    x1, x2 = x
+    if x2 <= 3 and x1 <= -1:
+        return 1
+    else:
+        return 0
+
+def event_track1(t, x):
+    x1, x2 = x
+    return x1 + 1
+def event_track2(t, x):
+    x1, x2 = x
+    return x2 - 3
+
+
+event_track1.terminal = True
+event_track1.direction = 0
+event_track2.terminal = True
+event_track2.direction = 0
+eventlist = [event_track1, event_track2]
+
+
 
 y0 = [15,12]
 
-a = -0.5
+a = -3
 b = -2
 cons1 = 0
 c = 4
-d = 0
+d = 1
 cons2 = 0
 
 
@@ -16,6 +46,7 @@ if (a+d)**2 >= 4*(a*d-b*c):
     eig1 = (a+d)/2.0 + 0.5 * np.sqrt((a+d)**2 - 4*(a*d-b*c))
     eig2 = (a+d)/2.0 - 0.5 * np.sqrt((a+d)**2 - 4*(a*d-b*c))
     print("Solutions are real!")
+    exit()
     print("Eigenvalue 1:", eig1)
     print("Eigenvalue 2:", eig2)
     if(eig1*eig2 >= 0):
@@ -35,16 +66,37 @@ else:
         print("It is an attracting/stable focus!")
 
 
-def dy_dt(t, y):
+def eq1(t, y):
     return [a*y[0] + b*y[1] + cons1, c*y[0] + d*y[1] + cons2]
+def eq2(t,y):
+    return [3, -5]
 
-t_list = np.linspace(0, 10, 100)
+eqs = [eq1, eq2]
 
-y_obj = solve_ivp(dy_dt, (0,10), y0, t_eval=t_list)
 
-y = y_obj.y
+sul = SNDS(2, 2, eqs, eventlist, labelfun)
 
-plt.scatter(y[0], y[1], s=3,c='b')
-plt.scatter(y[0][0], y[1][0], s=3, c='r')
+t_list, x_list = sul.simulate_trajectory(0.1, 10, [[12,15]])
+
+
+
+
+for x in x_list:
+    x1 = x.T[0]
+    x2 = x.T[1]
+
+    plt.scatter(x1, x2, s=3,c='b')
+    plt.scatter(x1[0], x2[0], s=3, c='r')
+
+
+
+# t_list = np.linspace(0, 10, 100)
+
+# y_obj = solve_ivp(dy_dt, (0,10), y0, t_eval=t_list)
+
+# y = y_obj.y
+
+# plt.scatter(y[0], y[1], s=3,c='b')
+# plt.scatter(y[0][0], y[1][0], s=3, c='r')
 
 plt.show()
