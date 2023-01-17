@@ -31,14 +31,15 @@ class SNDS:
 
             # the mode of the initial condition
             label = self.labelfun(x0)
-
+            t_start = 0
+            t_end = T + 1.1*step
             status = 1
             ite = 0
             while status == 1:
                 ite = ite + 1
                 
                 # solve the ivp according to the label  of x0 while tracking events in eventlist
-                x_object = solve_ivp(self.eqs[label], (0, T + 1.1*step), x0,
+                x_object = solve_ivp(self.eqs[label], (t_start, t_end), x0,
                                     t_eval=t_points, method='RK45', rtol=1e-7, atol=1e-9,
                                     max_step=step/10, events=self.eventlist, dense_output=True)
                 

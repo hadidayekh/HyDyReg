@@ -32,7 +32,7 @@ eventlist = [event_track1, event_track2]
 
 
 
-y0 = [15,12]
+y0 = [-14,14]
 
 a = -3
 b = -2
@@ -69,14 +69,14 @@ else:
 def eq1(t, y):
     return [a*y[0] + b*y[1] + cons1, c*y[0] + d*y[1] + cons2]
 def eq2(t,y):
-    return [3, -5]
+    return [5, -5]
 
 eqs = [eq1, eq2]
 
 
 sul = SNDS(2, 2, eqs, eventlist, labelfun)
 
-t_list, x_list = sul.simulate_trajectory(0.1, 10, [[12,15]])
+t_list, x_list = sul.simulate_trajectory(0.03, 3, [y0])
 
 
 
