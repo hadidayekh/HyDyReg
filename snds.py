@@ -21,7 +21,6 @@ class SNDS:
 
     def simulate_trajectory(self, step, T, x0s):
         num = round(T/step + 1)
-        t_points = np.linspace(0, T, num)
 
         t_list = []
         x_list = []
@@ -29,11 +28,11 @@ class SNDS:
         for k in range(len(x0s)):
             # initial condition in list
             x0 = x0s[k]
-
             # the mode of the initial condition
             label = self.labelfun(x0)
             t_start = 0
             t_end = T + 1.1*step
+            t_points = np.linspace(0, T, num)
             status = 1
             ite = 0
             while status == 1:
@@ -75,6 +74,7 @@ class SNDS:
                         continue
                     x_points = x_object.y.T
                     x_points = x_points[0:i]
+                    print(x_points[0])
                 else:
                     x_points = x_object.y.T
 
@@ -85,7 +85,8 @@ class SNDS:
 
             t_list.append(np.linspace(0, T, num))
             x_list.append(X_points)
-        return Trajectories(t_list, x_list)
+        trajs = Trajectories(t_list, x_list)
+        return trajs
 
 class Trajectories:
     '''
@@ -94,18 +95,20 @@ class Trajectories:
     t_list = list of t point arrays
     x_list = list of x point arrays, each x point is of d dimensions
     '''
-    def __init___(self, t_list, x_list):
+    def __init__(self, t_list, x_list):
         assert len(x_list) > 0, "Empty trajectory."
         self.t_list = t_list
         self.x_list = x_list
         self.d = x_list[0].shape[1]
     
-    def draw_trajectories_2D(self):
+    def draw_trajectories_2D(self, mark_beginning=False):
         assert self.d == 2, "Cannot draw in 2D, the dimension is not 2."
-        colors = ['b','y','r','c','k','m']
+        colors = ['b','y','c','k','m']
         for i, x in enumerate(self.x_list):
             x0 = x.T[0]
             x1 = x.T[1]
             plt.scatter(x0, x1, c=colors[i], s=2)
+            if mark_beginning:
+                plt.scatter(x0[0], x1[0], c='r', s=6)
         plt.ylabel('x1')
         plt.xlabel('x0')
