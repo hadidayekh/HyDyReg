@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
 class SNDS:
     '''
     A switched nonlinear dynamical system.
@@ -84,4 +85,27 @@ class SNDS:
 
             t_list.append(np.linspace(0, T, num))
             x_list.append(X_points)
-        return (t_list, x_list)
+        return Trajectories(t_list, x_list)
+
+class Trajectories:
+    '''
+    A list of trajectories.
+
+    t_list = list of t point arrays
+    x_list = list of x point arrays, each x point is of d dimensions
+    '''
+    def __init___(self, t_list, x_list):
+        assert len(x_list) > 0, "Empty trajectory."
+        self.t_list = t_list
+        self.x_list = x_list
+        self.d = x_list[0].shape[1]
+    
+    def draw_trajectories_2D(self):
+        assert self.d == 2, "Cannot draw in 2D, the dimension is not 2."
+        colors = ['b','y','r','c','k','m']
+        for i, x in enumerate(self.x_list):
+            x0 = x.T[0]
+            x1 = x.T[1]
+            plt.scatter(x0, x1, c=colors[i], s=2)
+        plt.ylabel('x1')
+        plt.xlabel('x0')
