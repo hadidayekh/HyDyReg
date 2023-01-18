@@ -45,7 +45,7 @@ y0 = [-14, 14]
 
 
 k_learn = True
-x0s = [[-10, 11], [-13, 14]]
+x0s = [[-11, 11], [-14, 14]]
 
 
 a = -3
@@ -93,11 +93,12 @@ eqs = [eq1, eq2]
 
 sul = SNDS(2, 2, eqs, eventlist, labelfun)
 
-trajectories = sul.simulate_trajectory(0.05, 3, x0s)
+trajectories = sul.simulate_trajectory(0.05, 5, x0s)
 
 
-# trajectories.draw_trajectories_2D(mark_beginning=True)
+trajectories.draw_trajectories_2D(mark_beginning=True)
 
+plt.savefig('plot.pdf')
 
 # for x in x_list:
 #     x1 = x.T[0]
