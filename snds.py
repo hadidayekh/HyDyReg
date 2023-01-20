@@ -101,7 +101,7 @@ class Trajectories:
         self.x_list = x_list
         self.d = x_list[0].shape[1]
     
-    def draw_trajectories_2D(self, mark_beginning=False, plot_xt=False):
+    def draw_trajectories_2D(self, mark_beginning=False, plot_xt=False, segments=[]):
         if(plot_xt):
             fig,axs = plt.subplot_mosaic([['main', 'main'], ['x0', 'x1']], constrained_layout=False)
             ax = axs['main']
@@ -118,10 +118,19 @@ class Trajectories:
             ax.scatter(x0, x1, c=colors[i], s=2)
             if mark_beginning:
                 ax.scatter(x0[0], x1[0], c='r', s=6)
+            if len(segments) > 0:
+                for seg_index in segments[i]:
+                    ax.scatter(x0[seg_index], x1[seg_index], marker='|', c='r', linewidths=0.1)
+            
 
             if plot_xt:
                 axs['x0'].scatter(self.t_list[i], x0, c=colors[i], s=2)
                 axs['x1'].scatter(self.t_list[i], x1, c=colors[i], s=2)
+                if len(segments) > 0:
+                    for seg_index in segments[i]:
+                        axs['x0'].scatter(self.t_list[i][seg_index], x0[seg_index], marker='|', c='r', linewidths=0.1)
+                        axs['x1'].scatter(self.t_list[i][seg_index], x1[seg_index], marker='|', c='r', linewidths=0.1)
+        
         ax.set_ylabel('x1')
         ax.set_xlabel('x0')
 
@@ -173,7 +182,7 @@ class Trajectories:
                         i = i+n
                 i+=1
             # Add the final segment to the list of segments
-            # segments.append((current_start_index, l))
+            segments.append(l-1)
             Segments.append(segments)
             
         return Segments
