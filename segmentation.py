@@ -10,8 +10,7 @@ def segment_time_series(t_points, x_points, tol):
 
   n=3
   
-  # Iterate through the time points and x points and compute the forward
-  # and backward n-point derivatives
+  
   i = 0
   while i < l:
     if i >= n and i < l -n:
@@ -23,8 +22,6 @@ def segment_time_series(t_points, x_points, tol):
         backward_time_1, backward_value_1 = t_points[i-1], x_points[i-1]
         backward_time_2, backward_value_2 = t_points[i-2], x_points[i-2]
         
-        # Compute the forward and backward derivatives as the difference in
-        # value divided by the difference in time
         forward_derivative = (-3*current_value + 4*forward_value_1 - forward_value_2) / (forward_time_2 - current_time)
         backward_derivative = (3*current_value - 4*backward_value_1 + backward_value_2) / (current_time - backward_time_2)
         
@@ -33,9 +30,10 @@ def segment_time_series(t_points, x_points, tol):
             # greater than the tolerance, we start a new segment
             segments.append((current_start_index, i))
             current_start_index = i
+            # skip n points once we notice a change
             i = i+n
     i+=1
-  # Don't forget to add the final segment to the list of segments
+  # Add the final segment to the list of segments
   segments.append((current_start_index, l))
   
   return segments
@@ -62,7 +60,7 @@ for i, temp_y in enumerate(y_list):
 plt.xlabel('x1')
 plt.ylabel('x2')
 plt.legend()
-#plt.show()
+
 
 for i, temp_y in enumerate(y_list):
     segs = segment_time_series(t_list[i], y_list[i], 1)
