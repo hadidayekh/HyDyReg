@@ -101,14 +101,34 @@ class Trajectories:
         self.x_list = x_list
         self.d = x_list[0].shape[1]
     
-    def draw_trajectories_2D(self, mark_beginning=False):
+    def draw_trajectories_2D(self, mark_beginning=False, plot_xt=False):
+        if(plot_xt):
+            fig,axs = plt.subplot_mosaic([['main', 'main'], ['x0', 'x1']], constrained_layout=False)
+            ax = axs['main']
+        else:
+            fig,axs = plt.subplots()
+            ax = axs
+        
         assert self.d == 2, "Cannot draw in 2D, the dimension is not 2."
+        
         colors = ['b','y','c','k','m']
         for i, x in enumerate(self.x_list):
             x0 = x.T[0]
             x1 = x.T[1]
-            plt.scatter(x0, x1, c=colors[i], s=2)
+            ax.scatter(x0, x1, c=colors[i], s=2)
             if mark_beginning:
-                plt.scatter(x0[0], x1[0], c='r', s=6)
-        plt.ylabel('x1')
-        plt.xlabel('x0')
+                ax.scatter(x0[0], x1[0], c='r', s=6)
+
+            if plot_xt:
+                axs['x0'].scatter(self.t_list[i], x0, c=colors[i], s=2)
+                axs['x1'].scatter(self.t_list[i], x1, c=colors[i], s=2)
+        ax.set_ylabel('x1')
+        ax.set_xlabel('x0')
+
+        if plot_xt:
+            axs['x0'].set_xlabel('t')
+            axs['x0'].set_ylabel('x0')
+            axs['x1'].set_xlabel('t')
+            axs['x1'].set_ylabel('x1')
+        
+        return fig

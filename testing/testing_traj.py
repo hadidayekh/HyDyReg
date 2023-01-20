@@ -96,10 +96,10 @@ sul = SNDS(2, 2, eqs, eventlist, labelfun)
 trajectories = sul.simulate_trajectory(0.05, 5, x0s)
 
 
-trajectories.draw_trajectories_2D(mark_beginning=True)
+fig = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True)
 
-plt.savefig('plot.pdf')
-
+fig.savefig('plot.pdf')
+exit()
 # for x in x_list:
 #     x1 = x.T[0]
 #     x2 = x.T[1]
