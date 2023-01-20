@@ -85,21 +85,26 @@ def eq1(t, y):
 
 
 def eq2(t, y):
-    return [5, -5]
-
+    return [8,-6]
+    #return [5, -5]
+    # with [8,-6] the visual looks close
 
 eqs = [eq1, eq2]
 
 
 sul = SNDS(2, 2, eqs, eventlist, labelfun)
 
-trajectories = sul.simulate_trajectory(0.05, 5, x0s)
+trajectories = sul.simulate_trajectory(0.035, 3, x0s)
+segments = trajectories.segment_trajectories(0.5)
 
+fig,ax = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True, segments=segments)
 
-fig = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True)
+ax['main'].axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
+ax['main'].axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
+
 
 fig.savefig('plot.pdf')
-exit()
+#exit()
 # for x in x_list:
 #     x1 = x.T[0]
 #     x2 = x.T[1]
@@ -128,6 +133,7 @@ print(x_list.shape)
 kernel_list = [[kernels.linear, [0], 3]]
 
 if k_learn:
+    fig, ax = plt.subplots()
     X, X_dot = diff_methods.diff_method_fps(t_list, x_list)
     print(X.shape)
     kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(
@@ -141,7 +147,7 @@ if k_learn:
 
     colors = ['r', 'b', 'g']
     for i in range(X.shape[0]):
-        plt.scatter(X[i][0], X[i][1], c=colors[modes[i]], s=3)
+        ax.scatter(X[i][0], X[i][1], c=colors[modes[i]], s=3)
     print(modes)
 
     print("First mode:")
@@ -201,6 +207,7 @@ if k_learn:
         print("% .8f" % x2, "\tx2\t+")
         print("% .8f" % (betas_sol[2][1]))
 
+ax.axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
+ax.axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
 
-
-plt.savefig('plot.pdf')
+fig.savefig('plot3.pdf')

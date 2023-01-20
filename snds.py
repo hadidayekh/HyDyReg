@@ -140,7 +140,7 @@ class Trajectories:
             axs['x1'].set_xlabel('t')
             axs['x1'].set_ylabel('x1')
         
-        return fig
+        return fig,axs
 
     def segment_trajectories(self, tol):
         Segments = []
