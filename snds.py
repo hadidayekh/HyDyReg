@@ -177,7 +177,7 @@ class Trajectories:
                         # greater than the tolerance, we start a new segment
                         #segments.append((current_start_index, i))
                         # current_start_index = i
-                        segments.append(i)
+                        segments.append(i+2)
                         # skip n points once we notice a change
                         i = i+n
                 i+=1
