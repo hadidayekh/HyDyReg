@@ -5,3 +5,4 @@ input/*
 model_file
 model_file1
 data/*
+*.pdf
