@@ -46,7 +46,7 @@ y0 = [-14, 14]
 
 k_learn = True
 x0s = [[-11, 11], [-14, 14]]
-
+#x0s = [[-14,14]]
 
 a = -3
 b = -2
@@ -93,18 +93,39 @@ eqs = [eq1, eq2]
 
 
 sul = SNDS(2, 2, eqs, eventlist, labelfun)
-
-trajectories = sul.simulate_trajectory(0.035, 3, x0s)
+time_step = 0.035
+time_range = 3
+num_trajectories = len(x0s)
+trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
 segments = trajectories.segment_trajectories(0.5)
 
 fig,ax = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True, segments=segments)
 
-ax['main'].axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
-ax['main'].axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
+#ax['main'].axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
+#ax['main'].axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
+
+ax = ax['main']
+
+xmin, xmax = ax.get_xlim()
+ymin, ymax = ax.get_ylim()
+
+x = [xmin, -2]
+y1 = [ymin, ymin]
+y2 = [3, 3]
+
+ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
+
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin, ymax)
 
 
-fig.savefig('plot.pdf')
-#exit()
+title = 'traj=' + str(num_trajectories) + ' ts=' + str(time_step) + ' T=' + str(time_range)
+ax.set_title(title)
+
+
+fig.savefig('plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
+
+exit()
 # for x in x_list:
 #     x1 = x.T[0]
 #     x2 = x.T[1]
@@ -129,8 +150,9 @@ x_list = np.array(trajectories.x_list)
 print(t_list.shape)
 print(x_list.shape)
 
+num_modes = 3
 
-kernel_list = [[kernels.linear, [0], 3]]
+kernel_list = [[kernels.linear, [0], num_modes]]
 
 if k_learn:
     fig, ax = plt.subplots()
@@ -207,7 +229,21 @@ if k_learn:
         print("% .8f" % x2, "\tx2\t+")
         print("% .8f" % (betas_sol[2][1]))
 
-ax.axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
-ax.axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
+#ax.axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
+#ax.axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
 
-fig.savefig('plot3.pdf')
+xmin, xmax = ax.get_xlim()
+ymin, ymax = ax.get_ylim()
+
+x = [xmin, -2]
+y1 = [ymin, ymin]
+y2 = [3, 3]
+
+ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
+
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin, ymax)
+
+title = 'traj=' + str(num_trajectories) + ' n=' + str(num_modes) + ' ts=' + str(time_step) + ' T=' + str(time_range)
+ax.set_title(title)
+fig.savefig('plot_res_traj=' + str(num_trajectories) + '_n=' + str(num_modes) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
