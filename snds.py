@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
 class SNDS:
     '''
     A switched nonlinear dynamical system.
@@ -186,3 +187,20 @@ class Trajectories:
             Segments.append(segments)
             
         return Segments
+
+
+    def lin_reg(self, segments, diff_method):
+        x_list = self.x_list
+        t_list = self.t_list
+        models = []
+        for i in range(len(x_list)):
+            for s in range(len(segments[i])-1):
+                t_list_s = np.array([t_list[i][segments[i][s]:segments[i][s+1]]])
+                x_list_s = np.array([x_list[i][segments[i][s]:segments[i][s+1]]])
+                X, X_dot = diff_method(t_list_s, x_list_s)
+                model = LinearRegression().fit(X, X_dot)
+                models.append(model)
+
+                print('X dots', X_dot)
+                print('model', model.coef_)
+        return models
