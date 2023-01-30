@@ -2,6 +2,10 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+
+from tslearn.clustering import TimeSeriesKMeans
+from tslearn.utils import to_time_series_dataset
+
 class SNDS:
     '''
     A switched nonlinear dynamical system.
@@ -202,5 +206,30 @@ class Trajectories:
                 models.append(model)
 
                 print('X dots', X_dot)
+                print('diff', X_dot - model.predict(X))
                 print('model', model.coef_)
+                print('intercept', model.intercept_)
         return models
+
+    def cluster(self, segments, n_clusters, diff_method=None):
+        if not diff_method is None:
+            print('Clustering based on derivatives.')
+        else:
+            print('Clustering based on observable.')
+        dataset = []
+        x_list = self.x_list
+        t_list = self.t_list
+        for i in range(len(x_list)):
+            for s in range(len(segments[i])-1):
+                t_list_s = t_list[i][segments[i][s]:segments[i][s+1]]
+                x_list_s = x_list[i][segments[i][s]:segments[i][s+1]]
+                if diff_method is None:
+                    dataset.append(x_list_s)
+                else:
+                    _, X_dot = diff_method(np.array([t_list_s]), np.array([x_list_s]))
+                    dataset.append(X_dot)
+        
+        dataset = to_time_series_dataset(dataset)
+        km = TimeSeriesKMeans(n_clusters=n_clusters, metric='dtw')
+        clusters = km.fit_predict(dataset)
+        return (km, clusters)

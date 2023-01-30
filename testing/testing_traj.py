@@ -11,7 +11,7 @@ from scipy.integrate import solve_ivp
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
+from sklearn.linear_model import LinearRegression
 
 
 
@@ -44,9 +44,6 @@ eventlist = [event_track1, event_track2]
 y0 = [-14, 14]
 
 
-k_learn = True
-x0s = [[-11, 11], [-14, 14]]
-#x0s = [[-14,14]]
 
 a = -3
 b = -2
@@ -91,6 +88,9 @@ def eq2(t, y):
 
 eqs = [eq1, eq2]
 
+k_learn = True
+x0s = [[-11, 11], [-14, 14]]
+#x0s = [[-14,14]]
 
 sul = SNDS(2, 2, eqs, eventlist, labelfun)
 time_step = 0.035
@@ -124,6 +124,14 @@ ax.set_title(title)
 
 
 fig.savefig('plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
+
+
+#lr_models = trajectories.lin_reg(segments, diff_methods.diff_method_fps)
+
+km, clusters = trajectories.cluster(segments, 3)
+print(clusters)
+km, clusters = trajectories.cluster(segments, 3, diff_method=diff_methods.diff_method_fps)
+print(clusters)
 
 exit()
 # for x in x_list:
