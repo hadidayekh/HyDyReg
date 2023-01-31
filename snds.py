@@ -205,8 +205,6 @@ class Trajectories:
                 model = LinearRegression().fit(X, X_dot)
                 models.append(model)
 
-                print('X dots', X_dot)
-                print('diff', X_dot - model.predict(X))
                 print('model', model.coef_)
                 print('intercept', model.intercept_)
         return models
@@ -233,3 +231,34 @@ class Trajectories:
         km = TimeSeriesKMeans(n_clusters=n_clusters, metric='dtw')
         clusters = km.fit_predict(dataset)
         return (km, clusters)
+
+
+class SNDS_linear(SNDS):
+    def __init__(self,  params, eventlist, labelfun):
+        n = params.shape[0]
+        d = params.shape[1]
+        assert d+1 == params.shape[2], "Linear systems' parameters are d+1 per equation."
+        eqs = []
+
+        # we need one equation function per mode
+        for i in range(n):
+            # append the function to eqs which is a list of functions
+            # cf. https://stackoverflow.com/questions/3431676/creating-functions-or-lambdas-in-a-loop-or-comprehension (i=i)
+            eqs.append(lambda t, x, i=i: SNDS_linear.eq(t,x,i,params))
+
+        # call super class constructor
+        super().__init__(n, d, eqs, eventlist, labelfun)
+
+    @staticmethod 
+    def eq(t, x, i, params):
+        n = params.shape[0]
+        d = params.shape[1]
+        # returns a list of dimension d, one for each dimension of x
+        eqs_per_mode = []
+        for j in range(d):
+            res = params[i][j][d]
+            for k in range(d):
+                res += params[i][j][k] * x[k]
+            eqs_per_mode.append(res)
+        return eqs_per_mode
+        

@@ -6,7 +6,7 @@ sys.path.append('../')
 import kernels
 import diff_methods
 from main import learn, get_modes, get_differences_learned
-from snds import SNDS
+from snds import SNDS, SNDS_linear
 from scipy.integrate import solve_ivp
 import numpy as np
 import matplotlib.pyplot as plt
@@ -93,6 +93,13 @@ x0s = [[-11, 11], [-14, 14]]
 #x0s = [[-14,14]]
 
 sul = SNDS(2, 2, eqs, eventlist, labelfun)
+
+params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 8], [0,0,-6]]])
+print(params.shape)
+
+sul = SNDS_linear(params, eventlist, labelfun)
+#exit()
+
 time_step = 0.035
 time_range = 3
 num_trajectories = len(x0s)
@@ -126,11 +133,11 @@ ax.set_title(title)
 fig.savefig('plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
 
 
-#lr_models = trajectories.lin_reg(segments, diff_methods.diff_method_fps)
+lr_models = trajectories.lin_reg(segments, diff_methods.diff_method_fps)
 
-km, clusters = trajectories.cluster(segments, 3)
+km, clusters = trajectories.cluster(segments, 2)
 print(clusters)
-km, clusters = trajectories.cluster(segments, 3, diff_method=diff_methods.diff_method_fps)
+km, clusters = trajectories.cluster(segments, 2, diff_method=diff_methods.diff_method_fps)
 print(clusters)
 
 exit()
