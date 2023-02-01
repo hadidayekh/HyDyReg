@@ -243,22 +243,24 @@ class SNDS_linear(SNDS):
         # we need one equation function per mode
         for i in range(n):
             # append the function to eqs which is a list of functions
-            # cf. https://stackoverflow.com/questions/3431676/creating-functions-or-lambdas-in-a-loop-or-comprehension (i=i)
-            eqs.append(lambda t, x, i=i: SNDS_linear.eq(t,x,i,params))
+            # cf. https://stackoverflow.com/questions/3431676/creating-functions-or-lambdas-in-a-loop-or-comprehension 
+            eqs.append(SNDS_linear.make_eq(i, params))
 
         # call super class constructor
         super().__init__(n, d, eqs, eventlist, labelfun)
 
     @staticmethod 
-    def eq(t, x, i, params):
-        n = params.shape[0]
-        d = params.shape[1]
-        # returns a list of dimension d, one for each dimension of x
-        eqs_per_mode = []
-        for j in range(d):
-            res = params[i][j][d]
-            for k in range(d):
-                res += params[i][j][k] * x[k]
-            eqs_per_mode.append(res)
-        return eqs_per_mode
+    def make_eq(i, params):
+        def eq(t,x):
+            n = params.shape[0]
+            d = params.shape[1]
+            # returns a list of dimension d, one for each dimension of x
+            eqs_per_mode = []
+            for j in range(d):
+                res = params[i][j][d]
+                for k in range(d):
+                    res += params[i][j][k] * x[k]
+                eqs_per_mode.append(res)
+            return eqs_per_mode
+        return eq
         
