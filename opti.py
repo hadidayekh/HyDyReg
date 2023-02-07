@@ -17,7 +17,7 @@ x_dot.T is DxN
 
 # Optimization for identifying Hybrid Systems by minimizing the L2 norm
 # We will assume the kernel matrices are passed as arguments in a list
-def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, mode_guesses, print_on=False):
+def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     # the number of kernel matrices is the number of modes
     n = len(kernel_mat_list)
 
@@ -30,7 +30,7 @@ def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, mode_guesses, print_on=F
 
     N = x_dot.shape[0]  # nb of points
     D = x_dot.shape[1]  # dimension of each vector
-    assert(len(mode_guesses) == N)
+    #assert(len(mode_guesses) == N)
     opti = casadi.Opti()
 
     # variable declaration arrays
@@ -47,8 +47,8 @@ def optimizeL2(kernel_mat_list, x_dot, deltas, C_param, mode_guesses, print_on=F
             Alphas[j][d] = opti.variable(N)
             betas[j][d] = opti.variable()
     
-    for i in range(0, int(N), 2):
-        opti.set_initial(Chis[int(mode_guesses[i])][i], 0)
+    #for i in range(0, int(N), 2):
+    #    opti.set_initial(Chis[int(mode_guesses[i])][i], 0)
 
     C = opti.parameter()
     opti.set_value(C, C_param)
