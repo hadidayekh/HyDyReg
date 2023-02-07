@@ -79,7 +79,6 @@ class SNDS:
                         continue
                     x_points = x_object.y.T
                     x_points = x_points[0:i]
-                    print(x_points[0])
                 else:
                     x_points = x_object.y.T
 
@@ -120,7 +119,7 @@ class Trajectories:
         for i, x in enumerate(self.x_list):
             x0 = x.T[0]
             x1 = x.T[1]
-            ax.scatter(x0, x1, c=colors[i], s=2)
+            ax.scatter(x0, x1, c=colors[i % len(colors)], s=2)
             if mark_beginning:
                 ax.scatter(x0[0], x1[0], c='r', s=6)
             if len(segments) > 0:
@@ -205,8 +204,8 @@ class Trajectories:
                 model = LinearRegression().fit(X, X_dot)
                 models.append(model)
 
-                print('model', model.coef_)
-                print('intercept', model.intercept_)
+                # print('model', model.coef_)
+                # print('intercept', model.intercept_)
         return models
 
     def cluster(self, segments, n_clusters, diff_method=None):
