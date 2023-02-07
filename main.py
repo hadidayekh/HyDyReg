@@ -78,7 +78,7 @@ def learn(t_list, x_list, diff_method, kernel_list, deltas, C, norm='L2', print_
     if norm == 'L1':
         sol, Alphas_sol, betas_sol, Chis_sol = optimizeL1(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
     else:
-        sol, Alphas_sol, betas_sol, Chis_sol = optimizeL2(kernel_mat_list, final_X_dot, deltas, C, modes_guess, print_on=print_on)
+        sol, Alphas_sol, betas_sol, Chis_sol = optimizeL2(kernel_mat_list, final_X_dot, deltas, C, print_on=print_on)
 
     if write_on:
         if(not os.path.exists("output")):
