@@ -1,5 +1,10 @@
 import casadi
 import numpy as np
+import kernels
+
+kernel_dic = {'linear' : kernels.linear, 
+              'polynomial' : kernels.polynomial,
+              'rbf' : kernels.rbf }
 
 """
 Some notation:
@@ -231,3 +236,139 @@ def optimizeL1(kernel_mat_list, x_dot, deltas, C_param, print_on=False):
     
     return sol, Alphas_sol, betas_sol, Chis_sol
 
+
+class HybridKernelRegressor:
+    def __init__(self, kernels_list, kargs_list):
+        self.kernels_list = kernels_list
+        self.kargs_list = kargs_list
+        self.n = len(kernels_list)
+        assert len(kernels_list) == len(kargs_list)
+
+    def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segments=[], print_on=False):
+        self.X_ = X
+        self.X_dot_ = X_dot
+        kernel_mat_list = []
+        for j in len(self.kernels_list):
+            if isinstance(self.kernels_list[j], str):
+                kernel = kernels[self.kernels_list[j]]
+            else:
+                kernel = self.kernels_list[j]
+            
+            kernel_mat_list.append(kernel(X, X, self.kargs_list[j]))
+
+        n = self.n
+        
+        # deltas could be a scalar or defined per mode
+        if (np.isscalar(deltas)):
+            temp = np.ones(n)
+            deltas = deltas*temp
+        else:
+            assert(len(deltas) == n)
+
+        N = X_dot.shape[0]  # nb of points
+        D = X_dot.shape[1]  # dimension of each vector
+
+        opti = casadi.Opti()
+
+        # variable declaration arrays
+        Alphas = np.ndarray((n, D), dtype=object)
+        betas = np.ndarray((n, D), dtype=object)
+        Chis = np.ndarray((n,), dtype=object)
+
+        if norm == 'L1':
+            As = np.ndarray((n, D), dtype=object)
+        
+        for j in range(n):
+
+            Chis[j] = opti.variable(N)
+            opti.set_initial(Chis[j], np.ones(N)*100)
+
+            for d in range(D):
+                Alphas[j][d] = opti.variable(N)
+                betas[j][d] = opti.variable()
+                if norm == 'L1':
+                    As[j][d] = opti.variable(N)
+
+        C_param = opti.parameter()
+        opti.set_value(C_param, C)
+
+        # First part of the optimization objective function:
+        # the sum of products of Chis
+        # This forces one Chi per data point to be ~0, which dictates the mode
+
+        sum_products_chis = 0
+        for i in range(N):
+            temp = 1
+            for j in range(n):
+                temp *= Chis[j][i]
+            sum_products_chis += temp
+        
+        sum_products_chis *= C_param
+
+        # Second part of the optimization objective function:
+        # The sum of norms of alphas
+        # Here we use the L1 norm
+        if norm == 'L1':
+            eye = np.ones(N)
+            sum_norms_a = 0
+            for j in range(n):
+                for d in range(D):
+                    sum_norms_a += (As[j][d].T @ eye)
+            to_minimize = sum_norms_a + sum_products_chis
+        elif norm == 'L2':
+            sum_norms_alpha = 0
+            for j in range(n):
+                for d in range(D):
+                    sum_norms_alpha += (Alphas[j][d].T @ Alphas[j][d])
+            to_minimize = sum_norms_alpha + sum_products_chis
+        else:
+            raise Exception("The norm parameter has to be 'L1' or 'L2'.")
+        
+        # Setting the objective function
+        opti.minimize(to_minimize)
+
+        # CONSTRAINTS
+
+        # all chis must be positive
+        for j in range(n):
+            opti.subject_to(Chis[j] >= 0)
+
+        x_dotT = X_dot.T    # d by N
+        eye = np.ones(N)
+        for d in range(D):
+            for j in range(n):
+                # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
+                opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
+                opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+
+        opti.solver('ipopt')
+
+        # Initiate the optimization
+        sol = opti.solve()
+
+        # Printing the results if print is on
+        if print_on:
+            for j in range(n):
+                print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
+            for j in range(n):
+                for d in range(D):
+                    print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
+                    print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
+
+        # Saving the results in proper arrays
+        Alphas_sol = np.ndarray((n, D, N))
+        betas_sol  = np.ndarray((n, D))
+        Chis_sol   = np.ndarray((n, N))
+
+        for j in range(n):
+                Chis_sol[j] = sol.value(Chis[j])
+        for j in range(n):
+            for d in range(D):
+                Alphas_sol[j][d] = sol.value(Alphas[j][d])
+                betas_sol[j][d]  = sol.value(betas[j][d])
+        
+        self.sol_ = sol
+        self.Alphas_ = Alphas_sol
+        self.betas_ = betas_sol
+        self.Chis_ = Chis_sol
+        self.Xfit_ = X
