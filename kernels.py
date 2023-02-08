@@ -21,13 +21,15 @@ def polynomial(X, Y, args):
     gamma = args[2]
     return (gamma * np.dot(X, Y.T) + c)**d
 
-
 def rbf(X, Y, args):
     # Check if X=Y
     sym = isinstance(Y, type(None))
     if sym:
         Y = X
-
+    if X.ndim == 1:
+        X = X.reshape(1, X.size)
+    if Y.ndim == 1:
+        Y = Y.reshape(1, Y.size)
     sigma = args[0]
 
     X_norms = np.mat([np.mat(np.dot(v, v.T))[0, 0] for v in X]).T
