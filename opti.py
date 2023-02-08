@@ -1,3 +1,4 @@
+from asyncio.proactor_events import _ProactorBaseWritePipeTransport
 import casadi
 import numpy as np
 import kernels
@@ -372,3 +373,48 @@ class HybridKernelRegressor:
         self.betas_ = betas_sol
         self.Chis_ = Chis_sol
         self.Xfit_ = X
+
+        def predict(self, X, labelfun=None):
+            # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION
+            # Things to check:
+            # 1) Regressor has already been fit (can do that by vars(self) and _ elements)
+            # 2) X has correct dimensions (X.shape[1] == Xfit_.shape[1])
+            if labelfun == None:
+                labelfun = self.labelfun_
+
+            kernels_list = self.kernels_list
+            Alphas = self.Alphas_
+            betas = self.betas_
+            X_fit = self.Xfit_
+
+            # Dimensions of X
+            M = X.shape[0]
+            D = X.shape[1]
+
+            # Assert that X has correct dimensions
+            if D != self.X_fit_.shape[1]:
+                raise Exception("Given X does not have the right dimensions.")
+            
+            X_dot_res = np.zeros(M,D)
+
+            # For each data point
+            for i in range(M):
+                # Find the mode of the data point
+                j = labelfun(X[i])
+                # Calculate based on the correct kernel
+                if isinstance(kernels_list[j], str):
+                    kernel = kernel_dic[kernels_list[j]]
+                else:
+                    kernel = kernels_list[j]
+                
+                K_X_x = kernel(X_fit, X[i])
+                for d in range(D):
+                    X_dot_res[i][d] = Alphas[j][d].T @ K_X_x + betas[j][d]
+
+            return X_dot_res
+
+        def fit_predict(self, X, X_dot, C=100, deltas=0.01, norm='L2', segments=[], print_on=False, labelfun=None):
+            self.fit(X, X_dot, C=100, deltas=0.01, norm=norm, segments=segments, print_on=print_on)
+            if labelfun == None:
+                labelfun = self.labelfun_
+            return self.predict(X)
