@@ -78,11 +78,33 @@ else:
 
 
 def eq1(t, y):
-    return [a*y[0] + b*y[1] + cons1, c*y[0] + d*y[1] + cons2]
+    #return [a*y[0] + b*y[1] + cons1, c*y[0] + d*y[1] + cons2]
+    return [ 3 * y[0]**2
+            + 4 * y[1]**2
+            +     y[0]
+            +     y[1]
+            + 3,
+              5 * y[0]**2
+            - 2 * y[1]**2
+            -     y[0]
+            -     y[1]
+            - 2]
 
 
 def eq2(t, y):
-    return [8,-6]
+    return [  2 * y[0]**2
+            + 2 * y[1]**2
+            +     y[0]*y[1]
+            -     y[0]
+            -     y[1]
+            - 16,
+            -     y[0]**2
+            +     y[1]**2
+            - 3 * y[0]*y[1]
+            +     y[0]
+            -     y[1]
+            + 3 ]
+    #return [8,-6]
     #return [5, -5]
     # with [8,-6] the visual looks close
 
@@ -95,18 +117,21 @@ x0s = [[-11, 11], [-14, 14]]
 sul = SNDS(2, 2, eqs, eventlist, labelfun)
 
 params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 8], [0,0,-6]]])
-print(params.shape)
 
-sul = SNDS_linear(params, eventlist, labelfun)
+#sul = SNDS_linear(params, eventlist, labelfun)
 #exit()
 
 time_step = 0.035
-time_range = 3
+time_range = 5
 num_trajectories = len(x0s)
 trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
-segments = trajectories.segment_trajectories(0.5)
-
-fig,ax = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True, segments=segments)
+#segments = trajectories.segment_trajectories(0.5)
+print(trajectories.t_list[0].shape)
+print(trajectories.t_list[1].shape)
+print(trajectories.x_list[0].shape)
+print(trajectories.x_list[1].shape)
+print(trajectories.x_list)
+fig,ax = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True)#, segments=segments)
 
 #ax['main'].axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
 #ax['main'].axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
@@ -132,14 +157,38 @@ ax.set_title(title)
 
 fig.savefig('plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
 
-
+exit()
 lr_models = trajectories.lin_reg(segments, diff_methods.diff_method_fps)
 
-km, clusters = trajectories.cluster(segments, 2)
-print(clusters)
-km, clusters = trajectories.cluster(segments, 2, diff_method=diff_methods.diff_method_fps)
-print(clusters)
+coefs1 = lr_models[1].coef_
+coefs2 = lr_models[4].coef_
 
+inter1 = lr_models[1].intercept_
+inter2 = lr_models[4].intercept_
+
+params1 = np.insert(coefs1, [2], [[inter1[0]], [inter1[1]]], axis=1)
+params2 = np.insert(coefs2, [2], [[inter2[0]], [inter2[1]]], axis=1)
+
+params1 = np.array([params1])
+params2 = np.array([params2])
+
+x0s = [[-11, 11], [-14, 14], [-20, 5], [2,3], [10,4]]#, [-10, -3], [-20,-20], [-20, 10], [-30,10], [-30,-10], [20, 0], [40,20], [-60,-40], [-60,-60]]
+
+
+sul = SNDS_linear(params1, [], lambda x : 0)
+traj = sul.simulate_trajectory(time_step, time_range, x0s)
+fig,ax = traj.draw_trajectories_2D(mark_beginning=True, plot_xt=False)
+#ax = ax['main']
+xmin, xmax = ax.get_xlim()
+ymin, ymax = ax.get_ylim()
+
+x = [xmin, -2]
+y1 = [ymin, ymin]
+y2 = [3, 3]
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin, ymax)
+ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
+fig.savefig("fig.pdf")
 exit()
 # for x in x_list:
 #     x1 = x.T[0]
