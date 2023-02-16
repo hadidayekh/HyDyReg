@@ -47,7 +47,8 @@ eventlist = [event_track1, event_track2]
 y0 = [-14, 14]
 
 eventlist = lambda t, x : x[1] + 0.2*x[0]**2
-
+eventlist.terminal = True
+eventlist.direction = 0
 
 a = -3
 b = -2
@@ -141,8 +142,8 @@ d = np.arange(xmin, xmax, 0.01)
 x0,x1 = np.meshgrid(d,d)
 
 #ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
-im = ax.imshow( (x0 < -0.2 * x1**2).astype(int) , 
-                extent=(x0.min(),x0.max(),x1.min(),x1.max()),origin="lower", cmap='Greys',alpha=0.2)
+im = ax.imshow( (x1 < -0.2 * x0**2).astype(int) , 
+                extent=(x0.min(),x0.max(),x1.min(),x1.max()),origin="lower", cmap='Purples',alpha=0.1)
 
 ax.set_xlim(xmin,xmax)
 ax.set_ylim(ymin, ymax)
@@ -150,6 +151,8 @@ ax.set_ylim(ymin, ymax)
 
 title = 'traj=' + str(num_trajectories) + ' ts=' + str(time_step) + ' T=' + str(time_range)
 ax.set_title(title)
+ax.minorticks_on()
+ax.grid(which='both', lw=0.1)
 
 
 fig.savefig('plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
