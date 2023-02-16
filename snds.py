@@ -107,7 +107,8 @@ class Trajectories:
     
     def draw_trajectories_2D(self, mark_beginning=False, plot_xt=False, segments=[]):
         if(plot_xt):
-            fig,axs = plt.subplot_mosaic([['main', 'main'], ['x0', 'x1']], constrained_layout=False)
+            fig = plt.figure(constrained_layout=True)
+            axs = fig.subplot_mosaic([['main', 'main'], ['x0', 'x1']], gridspec_kw={'height_ratios': [2, 1]})
             ax = axs['main']
         else:
             fig,axs = plt.subplots()
@@ -135,14 +136,14 @@ class Trajectories:
                         axs['x0'].scatter(self.t_list[i][seg_index], x0[seg_index], marker='|', c='r', linewidths=0.1)
                         axs['x1'].scatter(self.t_list[i][seg_index], x1[seg_index], marker='|', c='r', linewidths=0.1)
         
-        ax.set_ylabel('x1')
-        ax.set_xlabel('x0')
+        ax.set_ylabel('$x_1$')
+        ax.set_xlabel('$x_0$')
 
         if plot_xt:
-            axs['x0'].set_xlabel('t')
-            axs['x0'].set_ylabel('x0')
-            axs['x1'].set_xlabel('t')
-            axs['x1'].set_ylabel('x1')
+            axs['x0'].set_xlabel('$t$')
+            axs['x0'].set_ylabel('$x_0$')
+            axs['x1'].set_xlabel('$t$')
+            axs['x1'].set_ylabel('$x_1$')
         
         return fig,axs
 
