@@ -12,14 +12,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from sklearn.linear_model import LinearRegression
-
+from matplotlib.colors import ListedColormap
 
 
 
 def labelfun(x):
     x1, x2 = x
-    if x2 <= 3 and x1 <= -2:
+    if x[1] >= -0.2*x[0]**2:
+        return 0
+    else:
         return 1
+    if x2 <= 3 and x1 <= -2:
+        return 0
     else:
         return 0
 
@@ -40,9 +44,9 @@ event_track2.terminal = True
 event_track2.direction = 0
 eventlist = [event_track1, event_track2]
 
-
 y0 = [-14, 14]
 
+eventlist = lambda t, x : x[1] + 0.2*x[0]**2
 
 
 a = -3
@@ -76,34 +80,22 @@ else:
     else:
         print("It is an attracting/stable focus!")
 
+a1 = 0.1
+a2 = 0.04
+a3 = -0.9
+b1 = -0.1
+b2 = 0.06
+b3 = -0.7
 
 def eq1(t, y):
     #return [a*y[0] + b*y[1] + cons1, c*y[0] + d*y[1] + cons2]
-    return [ 3 * y[0]**2
-            + 4 * y[1]**2
-            +     y[0]
-            +     y[1]
-            + 3,
-              5 * y[0]**2
-            - 2 * y[1]**2
-            -     y[0]
-            -     y[1]
-            - 2]
+    return [ a1 * y[0]**2 + a2 * y[1]**3,
+            a3 * y[0]]
 
 
 def eq2(t, y):
-    return [  2 * y[0]**2
-            + 2 * y[1]**2
-            +     y[0]*y[1]
-            -     y[0]
-            -     y[1]
-            - 16,
-            -     y[0]**2
-            +     y[1]**2
-            - 3 * y[0]*y[1]
-            +     y[0]
-            -     y[1]
-            + 3 ]
+    return [ b1 * y[0]**2 + b2 * y[1]**3,
+            b3 * y[0]]
     #return [8,-6]
     #return [5, -5]
     # with [8,-6] the visual looks close
@@ -112,7 +104,7 @@ eqs = [eq1, eq2]
 
 k_learn = True
 x0s = [[-11, 11], [-14, 14]]
-#x0s = [[-14,14]]
+x0s = [[0,1],[0,2],[0,3],[0,4],[0,5]]
 
 sul = SNDS(2, 2, eqs, eventlist, labelfun)
 
@@ -121,8 +113,8 @@ params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 8], [0,0,-6]]])
 #sul = SNDS_linear(params, eventlist, labelfun)
 #exit()
 
-time_step = 0.035
-time_range = 5
+time_step = 0.05
+time_range = 15
 num_trajectories = len(x0s)
 trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
 #segments = trajectories.segment_trajectories(0.5)
@@ -145,7 +137,12 @@ x = [xmin, -2]
 y1 = [ymin, ymin]
 y2 = [3, 3]
 
-ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
+d = np.arange(xmin, xmax, 0.01)
+x0,x1 = np.meshgrid(d,d)
+
+#ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
+im = ax.imshow( (x0 < -0.2 * x1**2).astype(int) , 
+                extent=(x0.min(),x0.max(),x1.min(),x1.max()),origin="lower", cmap='Greys',alpha=0.2)
 
 ax.set_xlim(xmin,xmax)
 ax.set_ylim(ymin, ymax)
