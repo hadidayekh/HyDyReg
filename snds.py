@@ -252,7 +252,7 @@ class Trajectories:
                 data.append(x_points[d])
                 index.append('x' + str(d))
             df = pd.DataFrame(data, index=index)
-            df.to_csv(dir_name+'/'+dir_name+'_'+str(i), sep=sep)
+            df.to_csv(dir_name+'/'+dir_name+'_'+str(i)+'.csv', sep=sep)
 
 
 class SNDS_linear(SNDS):
