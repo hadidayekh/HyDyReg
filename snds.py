@@ -1,8 +1,10 @@
+from posixpath import dirname
 import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
-
+import pandas as pd
+import os
 from tslearn.clustering import TimeSeriesKMeans
 from tslearn.utils import to_time_series_dataset
 
@@ -103,6 +105,7 @@ class Trajectories:
         assert len(x_list) > 0, "Empty trajectory."
         self.t_list = t_list
         self.x_list = x_list
+        self.num_trajectories = len(x_list)
         self.d = x_list[0].shape[1]
     
     def draw_trajectories_2D(self, mark_beginning=False, plot_xt=False, segments=[]):
@@ -231,6 +234,25 @@ class Trajectories:
         km = TimeSeriesKMeans(n_clusters=n_clusters, metric='dtw')
         clusters = km.fit_predict(dataset)
         return (km, clusters)
+    
+    def write_to_file(self, filename, sep=','):
+        if not filename.endswith('.csv'):
+            raise Exception("File name must end with .csv.")
+
+        dir_name = filename[:filename.index('.csv')]
+        dir_exists = os.path.exists(dir_name)
+        if not dir_exists:
+            os.makedirs(dir_name)
+        
+        for i in range(self.num_trajectories):
+            data = [self.t_list[i]]
+            x_points = self.x_list[i].T
+            index = ['t']
+            for d in range(self.d):
+                data.append(x_points[d])
+                index.append('x' + str(d))
+            df = pd.DataFrame(data, index=index)
+            df.to_csv(dir_name+'/'+dir_name+'_'+str(i), sep=sep)
 
 
 class SNDS_linear(SNDS):
