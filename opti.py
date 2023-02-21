@@ -379,7 +379,7 @@ class HybridKernelRegressor:
             # Things to check:
             # 1) Regressor has already been fit (can do that by vars(self) and _ elements)
             # 2) X has correct dimensions (X.shape[1] == Xfit_.shape[1])
-            if labelfun == None:
+            if labelfun is None:
                 labelfun = self.labelfun_
 
             kernels_list = self.kernels_list
@@ -414,7 +414,7 @@ class HybridKernelRegressor:
             return X_dot_res
 
         def fit_predict(self, X, X_dot, C=100, deltas=0.01, norm='L2', segments=[], print_on=False, labelfun=None):
-            self.fit(X, X_dot, C=100, deltas=0.01, norm=norm, segments=segments, print_on=print_on)
+            self.fit(X, X_dot, C=C, deltas=deltas, norm=norm, segments=segments, print_on=print_on)
             if labelfun == None:
                 labelfun = self.labelfun_
             return self.predict(X)
