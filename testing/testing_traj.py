@@ -17,15 +17,16 @@ from matplotlib.colors import ListedColormap
 
 
 def labelfun(x):
-    x1, x2 = x
+    if x[1] <= 3 and x[0] <= -2:
+        return 1
+    else:
+        return 0
+
+def labelfun2(x):
     if x[1] >= -0.2*x[0]**2:
         return 0
     else:
         return 1
-    if x2 <= 3 and x1 <= -2:
-        return 0
-    else:
-        return 0
 
 
 def event_track1(t, x):
@@ -44,11 +45,11 @@ event_track2.terminal = True
 event_track2.direction = 0
 eventlist = [event_track1, event_track2]
 
-y0 = [-14, 14]
 
-eventlist = lambda t, x : x[1] + 0.2*x[0]**2
-eventlist.terminal = True
-eventlist.direction = 0
+
+eventlist2 = lambda t, x : x[1] + 0.2*x[0]**2
+eventlist2.terminal = True
+eventlist2.direction = 0
 
 a = -3
 b = -2
@@ -89,7 +90,6 @@ b2 = 0.06
 b3 = -0.7
 
 def eq1(t, y):
-    #return [a*y[0] + b*y[1] + cons1, c*y[0] + d*y[1] + cons2]
     return [ a1 * y[0]**2 + a2 * y[1]**3,
             a3 * y[0]]
 
@@ -97,25 +97,21 @@ def eq1(t, y):
 def eq2(t, y):
     return [ b1 * y[0]**2 + b2 * y[1]**3,
             b3 * y[0]]
-    #return [8,-6]
-    #return [5, -5]
-    # with [8,-6] the visual looks close
 
-eqs = [eq1, eq2]
+eqs2 = [eq1, eq2]
 
-k_learn = True
-x0s = [[-11, 11], [-14, 14]]
-x0s = [[0,1],[0,2],[0,3],[0,4],[0,5]]
+k_learn = False
 
-sul = SNDS(2, 2, eqs, eventlist, labelfun)
-
+sul = SNDS(2, 2, eqs2, eventlist2, labelfun2)
 params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 8], [0,0,-6]]])
-
-#sul = SNDS_linear(params, eventlist, labelfun)
+sul = SNDS_linear(params, eventlist, labelfun)
 #exit()
 
-time_step = 0.05
-time_range = 15
+time_step = 0.035
+time_range = 3.1
+
+x0s = [[-11, 11], [-14, 14]]
+#x0s = [[0,1],[0,2],[0,3],[0,4],[0,5]]
 num_trajectories = len(x0s)
 trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
 #segments = trajectories.segment_trajectories(0.5)
@@ -138,11 +134,14 @@ x = [xmin, -2]
 y1 = [ymin, ymin]
 y2 = [3, 3]
 
-d = np.arange(xmin, xmax, 0.01)
-x0,x1 = np.meshgrid(d,d)
+nx0 = np.arange(xmin, xmax, 0.01)
+nx1 = np.arange(ymin, ymax, 0.01)
+x0,x1 = np.meshgrid(nx0, nx1)
+
+label_result = [[labelfun([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
 
 #ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
-im = ax.imshow( (x1 < -0.2 * x0**2).astype(int) , 
+im = ax.imshow( label_result , 
                 extent=(x0.min(),x0.max(),x1.min(),x1.max()),origin="lower", cmap='Purples',alpha=0.1)
 
 ax.set_xlim(xmin,xmax)
@@ -155,9 +154,25 @@ ax.minorticks_on()
 ax.grid(which='both', lw=0.1)
 
 
+
+# def draw_boundaries(ax, labelfun):
+#     xmin, xmax = ax.get_xlim()
+#     ymin, ymax = ax.get_ylim()
+
+#     d = np.arange(xmin, xmax, 0.01)
+#     x0, x1 = np.meshgrid(d, d)
+
+#     im = ax.imshow( labelfun((x0, x1)) , 
+#                 extent=(x0.min(),x0.max(),x1.min(),x1.max()),origin="lower", cmap='Purples',alpha=0.1)
+    
+#     ax.set_xlim(xmin,xmax)
+#     ax.set_ylim(ymin, ymax)
+
+
 fig.savefig('plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
 
-exit()
+#trajectories.write_to_file("poly_for_bernstein.csv")
+'''
 lr_models = trajectories.lin_reg(segments, diff_methods.diff_method_fps)
 
 coefs1 = lr_models[1].coef_
@@ -190,6 +205,7 @@ ax.set_ylim(ymin, ymax)
 ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
 fig.savefig("fig.pdf")
 exit()
+'''
 # for x in x_list:
 #     x1 = x.T[0]
 #     x2 = x.T[1]
@@ -214,10 +230,10 @@ x_list = np.array(trajectories.x_list)
 print(t_list.shape)
 print(x_list.shape)
 
-num_modes = 3
+num_modes = 2
 
 kernel_list = [[kernels.linear, [0], num_modes]]
-
+kernel_list2 = [[kernels.polynomial, [3, 1, 1], num_modes]]
 if k_learn:
     fig, ax = plt.subplots()
     X, X_dot = diff_methods.diff_method_fps(t_list, x_list)
@@ -293,21 +309,21 @@ if k_learn:
         print("% .8f" % x2, "\tx2\t+")
         print("% .8f" % (betas_sol[2][1]))
 
-#ax.axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
-#ax.axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
+    #ax.axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
+    #ax.axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
 
-xmin, xmax = ax.get_xlim()
-ymin, ymax = ax.get_ylim()
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
 
-x = [xmin, -2]
-y1 = [ymin, ymin]
-y2 = [3, 3]
+    x = [xmin, -2]
+    y1 = [ymin, ymin]
+    y2 = [3, 3]
 
-ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
+    ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
 
-ax.set_xlim(xmin,xmax)
-ax.set_ylim(ymin, ymax)
+    ax.set_xlim(xmin,xmax)
+    ax.set_ylim(ymin, ymax)
 
-title = 'traj=' + str(num_trajectories) + ' n=' + str(num_modes) + ' ts=' + str(time_step) + ' T=' + str(time_range)
-ax.set_title(title)
-fig.savefig('plot_res_traj=' + str(num_trajectories) + '_n=' + str(num_modes) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
+    title = 'traj=' + str(num_trajectories) + ' n=' + str(num_modes) + ' ts=' + str(time_step) + ' T=' + str(time_range)
+    ax.set_title(title)
+    fig.savefig('plot_res_traj=' + str(num_trajectories) + '_n=' + str(num_modes) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
