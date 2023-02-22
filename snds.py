@@ -235,7 +235,7 @@ class Trajectories:
         clusters = km.fit_predict(dataset)
         return (km, clusters)
     
-    def write_to_file(self, filename, sep=','):
+    def write_to_file(self, filename, sep=',', labelfun=None):
         if not filename.endswith('.csv'):
             raise Exception("File name must end with .csv.")
 
@@ -248,6 +248,9 @@ class Trajectories:
             data = [self.t_list[i]]
             x_points = self.x_list[i].T
             index = ['t']
+            if not labelfun is None:
+                data.append(np.array([labelfun(x) for x in x_points.T]))
+                index.append('label')
             for d in range(self.d):
                 data.append(x_points[d])
                 index.append('x' + str(d))

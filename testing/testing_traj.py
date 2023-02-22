@@ -1,4 +1,6 @@
 import sys
+
+
 # setting path
 sys.path.append('./')
 sys.path.append('../')
@@ -13,7 +15,7 @@ import matplotlib.pyplot as plt
 import os
 from sklearn.linear_model import LinearRegression
 from matplotlib.colors import ListedColormap
-
+from opti import HybridKernelRegressor
 
 
 def labelfun(x):
@@ -104,14 +106,14 @@ k_learn = False
 
 sul = SNDS(2, 2, eqs2, eventlist2, labelfun2)
 params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 8], [0,0,-6]]])
-sul = SNDS_linear(params, eventlist, labelfun)
+#sul = SNDS_linear(params, eventlist, labelfun)
 #exit()
 
-time_step = 0.035
-time_range = 3.1
+time_step = 0.05
+time_range = 15
 
 x0s = [[-11, 11], [-14, 14]]
-#x0s = [[0,1],[0,2],[0,3],[0,4],[0,5]]
+x0s = [[0,1],[0,2],[0,3],[0,4],[0,5]]
 num_trajectories = len(x0s)
 trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
 #segments = trajectories.segment_trajectories(0.5)
@@ -138,11 +140,12 @@ nx0 = np.arange(xmin, xmax, 0.01)
 nx1 = np.arange(ymin, ymax, 0.01)
 x0,x1 = np.meshgrid(nx0, nx1)
 
-label_result = [[labelfun([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
+label_result = [[labelfun2([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
 
 #ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
-im = ax.imshow( label_result , 
-                extent=(x0.min(),x0.max(),x1.min(),x1.max()),origin="lower", cmap='Purples',alpha=0.1)
+# im = ax.imshow( label_result , 
+#                 extent=(x0.min(),x0.max(),x1.min(),x1.max()),origin="lower", cmap='Purples',alpha=0.1)
+ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
 
 ax.set_xlim(xmin,xmax)
 ax.set_ylim(ymin, ymax)
@@ -151,7 +154,7 @@ ax.set_ylim(ymin, ymax)
 title = 'traj=' + str(num_trajectories) + ' ts=' + str(time_step) + ' T=' + str(time_range)
 ax.set_title(title)
 ax.minorticks_on()
-ax.grid(which='both', lw=0.1)
+#ax.grid(which='both', lw=0.1)
 
 
 
@@ -170,8 +173,8 @@ ax.grid(which='both', lw=0.1)
 
 
 fig.savefig('plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
-
-#trajectories.write_to_file("poly_for_bernstein.csv")
+print('time heh')
+trajectories.write_to_file("poly_for_bernstein.csv", labelfun=labelfun2)
 '''
 lr_models = trajectories.lin_reg(segments, diff_methods.diff_method_fps)
 
@@ -235,6 +238,12 @@ num_modes = 2
 kernel_list = [[kernels.linear, [0], num_modes]]
 kernel_list2 = [[kernels.polynomial, [3, 1, 1], num_modes]]
 if k_learn:
+    model = HybridKernelRegressor(['linear', 'linear'], [[0], [0]])
+    X, X_dot = diff_methods.diff_method_fps(t_list, x_list)
+    model.fit(X, X_dot)
+    X_dot_pred = model.predict(X, labelfun=labelfun)
+    print(X_dot - X_dot_pred)
+    exit()
     fig, ax = plt.subplots()
     X, X_dot = diff_methods.diff_method_fps(t_list, x_list)
     print(X.shape)
