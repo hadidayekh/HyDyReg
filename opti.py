@@ -419,3 +419,6 @@ class HybridKernelRegressor:
         if labelfun == None:
             labelfun = self.labelfun_
         return self.predict(X)
+
+    def get_modes(self):
+        return np.argmin(self.Chis_, axis=0)
