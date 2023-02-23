@@ -2,7 +2,7 @@ from asyncio.proactor_events import _ProactorBaseWritePipeTransport
 import casadi
 import numpy as np
 import kernels
-
+from snds import SNDS
 kernel_dic = {'linear' : kernels.linear, 
               'polynomial' : kernels.polynomial,
               'rbf' : kernels.rbf }
@@ -416,9 +416,39 @@ class HybridKernelRegressor:
 
     def fit_predict(self, X, X_dot, C=100, deltas=0.01, norm='L2', segments=[], print_on=False, labelfun=None):
         self.fit(X, X_dot, C=C, deltas=deltas, norm=norm, segments=segments, print_on=print_on)
-        if labelfun == None:
+        if labelfun is None:
             labelfun = self.labelfun_
         return self.predict(X)
 
     def get_modes(self):
         return np.argmin(self.Chis_, axis=0)
+    
+    def to_SNDS(self, labelfun=None, eventlist=None):
+        if labelfun is None:
+            labelfun = self.labelfun_
+        if eventlist is None:
+            eventlist = self.eventlist_
+
+        n = self.n
+        d = self.Xfit_.shape[1]
+
+        eqs = []
+        for j in range(n):
+            eqs.append(self.make_eq(j))
+
+        return SNDS(n, d, eqs, eventlist, labelfun)
+
+        
+    def make_eq(self, j):
+        def eq(t, x):
+            if isinstance(self.kernels_list[j], str):
+                kernel = kernel_dic[self.kernels_list[j]]
+            else:
+                kernel = self.kernels_list[j]
+            k_x_x = kernel(self.Xfit_, x, self.kargs_list[j])
+            D = self.Xfit_.shape[1]
+            res = np.zeros(D)
+            for d in range(D):
+                res[d] = self.Alphas_[j][d].T @ k_x_x + self.betas_[j][d]
+            return res
+        return eq

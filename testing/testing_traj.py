@@ -102,18 +102,18 @@ def eq2(t, y):
 
 eqs2 = [eq1, eq2]
 
-k_learn = False
+k_learn = True
 
 sul = SNDS(2, 2, eqs2, eventlist2, labelfun2)
 params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 8], [0,0,-6]]])
-#sul = SNDS_linear(params, eventlist, labelfun)
+sul = SNDS_linear(params, eventlist, labelfun)
 #exit()
 
-time_step = 0.05
-time_range = 15
+time_step = 0.035
+time_range = 3
 
 x0s = [[-11, 11], [-14, 14]]
-x0s = [[0,1],[0,2],[0,3],[0,4],[0,5]]
+#x0s = [[0,1],[0,2],[0,3],[0,4],[0,5]]
 num_trajectories = len(x0s)
 trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
 #segments = trajectories.segment_trajectories(0.5)
@@ -140,7 +140,7 @@ nx0 = np.arange(xmin, xmax, 0.01)
 nx1 = np.arange(ymin, ymax, 0.01)
 x0,x1 = np.meshgrid(nx0, nx1)
 
-label_result = [[labelfun2([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
+label_result = [[labelfun([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
 
 #ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
 # im = ax.imshow( label_result , 
@@ -174,7 +174,7 @@ ax.minorticks_on()
 
 fig.savefig('plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
 print('time heh')
-trajectories.write_to_file("poly_for_bernstein.csv", labelfun=labelfun2)
+# trajectories.write_to_file("poly_for_bernstein.csv", labelfun=labelfun2)
 '''
 lr_models = trajectories.lin_reg(segments, diff_methods.diff_method_fps)
 
@@ -243,6 +243,10 @@ if k_learn:
     model.fit(X, X_dot)
     X_dot_pred = model.predict(X, labelfun=labelfun)
     print(X_dot - X_dot_pred)
+    new_snds = model.to_SNDS(labelfun=labelfun, eventlist=eventlist)
+    trajs = new_snds.simulate_trajectory(time_step, time_range, x0s)
+    fig,ax = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True)
+    plt.show()
     exit()
     fig, ax = plt.subplots()
     X, X_dot = diff_methods.diff_method_fps(t_list, x_list)
