@@ -379,6 +379,9 @@ class HybridKernelRegressor:
         # Things to check:
         # 1) Regressor has already been fit (can do that by vars(self) and _ elements)
         # 2) X has correct dimensions (X.shape[1] == Xfit_.shape[1])
+
+        self.check_if_fitted()
+
         if labelfun is None:
             labelfun = self.labelfun_
 
@@ -421,9 +424,11 @@ class HybridKernelRegressor:
         return self.predict(X)
 
     def get_modes(self):
+        self.check_if_fitted()
         return np.argmin(self.Chis_, axis=0)
     
     def to_SNDS(self, labelfun=None, eventlist=None):
+        self.check_if_fitted()
         if labelfun is None:
             labelfun = self.labelfun_
         if eventlist is None:
@@ -452,3 +457,12 @@ class HybridKernelRegressor:
                 res[d] = self.Alphas_[j][d].T @ k_x_x + self.betas_[j][d]
             return res
         return eq
+
+    def check_if_fitted(self):
+        variables = vars(self)
+        fitted = False
+        for v in variables:
+            if v.endswith('_'):
+                fitted = True
+        if not fitted:
+            raise Exception("Estimator not fitted.")
