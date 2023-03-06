@@ -81,7 +81,7 @@ def diff_method_central(t_list, x_list, segments=[]):
             for j in range(1, len(seg_curr) - 1):
                 seg_res.append(begin_index + seg_curr[j] - 1)
     
-    if len(segments > 0):
+    if len(segments) > 0:
         return final_X, final_X_dot, seg_res
     else:
         return final_X, final_X_dot
@@ -126,7 +126,7 @@ def diff_method_fps(t_list, x_list, segments=[]):
             seg_res.append(begin_index)
             for j in range(1, len(seg_curr) - 1):
                 seg_res.append(begin_index + seg_curr[j] - 2)
-    if len(segments > 0):
+    if len(segments) > 0:
         return final_X, final_X_dot, seg_res
     else:
         return final_X, final_X_dot
