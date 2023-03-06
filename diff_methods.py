@@ -41,10 +41,11 @@ def diff_method_paper(t_list, x_list):
     return final_X, final_X_dot
 
 # Central differentiation method that uses one point from back and one point from the front
-def diff_method_central(t_list, x_list):
+def diff_method_central(t_list, x_list, segments=[]):
     nb_traj = t_list.shape[0] # number of arrays of t-points in t_list
     assert(nb_traj == x_list.shape[0]) # should be equal to number of x-points in x_list
     x_dim = x_list[0][0].shape[0] # dimension of each data point x
+    seg_res = []
     for i in range(nb_traj):
         t_points = t_list[i]
         x_points = x_list[i]
@@ -70,14 +71,27 @@ def diff_method_central(t_list, x_list):
             # if multiple trajectories, concatenate them
             final_X = np.r_[final_X, X]
             final_X_dot = np.r_[final_X_dot, X_dot]
+
+        if len(segments) > 0:
+            seg_curr = segments[i]
+            begin_index = 0
+            for j in range(0, i):
+                begin_index += segments[j][-1] - 1
+            seg_res.append(begin_index)
+            for j in range(1, len(seg_curr) - 1):
+                seg_res.append(begin_index + seg_curr[j] - 1)
     
-    return final_X, final_X_dot
+    if len(segments > 0):
+        return final_X, final_X_dot, seg_res
+    else:
+        return final_X, final_X_dot
 
 # Five point stencil differentiation method, using two points from the back and two from the front
-def diff_method_fps(t_list, x_list):
+def diff_method_fps(t_list, x_list, segments=[]):
     nb_traj = t_list.shape[0] # number of arrays of t-points in t_list
     assert(nb_traj == x_list.shape[0]) # should be equal to number of x-points in x_list
     x_dim = x_list[0][0].shape[0] # dimension of each data point x
+    seg_res = []
     for i in range(nb_traj):
         t_points = t_list[i]
         x_points = x_list[i]
@@ -103,5 +117,16 @@ def diff_method_fps(t_list, x_list):
             # if multiple trajectories, concatenate them
             final_X = np.r_[final_X, X]
             final_X_dot = np.r_[final_X_dot, X_dot]
-    
-    return final_X, final_X_dot
+
+        if len(segments) > 0:
+            seg_curr = segments[i]
+            begin_index = 0
+            for j in range(0, i):
+                begin_index += segments[j][-1] - 3
+            seg_res.append(begin_index)
+            for j in range(1, len(seg_curr) - 1):
+                seg_res.append(begin_index + seg_curr[j] - 2)
+    if len(segments > 0):
+        return final_X, final_X_dot, seg_res
+    else:
+        return final_X, final_X_dot
