@@ -466,3 +466,14 @@ class HybridKernelRegressor:
                 fitted = True
         if not fitted:
             raise Exception("Estimator not fitted.")
+
+    def print_coefs_linear(self):
+        self.check_if_fitted()
+        n, D, N = self.Alphas_.shape
+        for j in range(n):
+            print("Mode " + str(j) + ":")
+            for d in range(D):
+                print("x" + str(d) + "_dot:")
+                coefs = self.Xfit_.T @ self.Alphas_[j][d]
+                print(coefs.T, " ", self.betas_[j][d])
+            print("\n")
