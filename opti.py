@@ -3,6 +3,7 @@ import casadi
 import numpy as np
 import kernels
 from snds import SNDS
+from utils import which_segment
 kernel_dic = {'linear' : kernels.linear, 
               'polynomial' : kernels.polynomial,
               'rbf' : kernels.rbf }
@@ -245,9 +246,18 @@ class HybridKernelRegressor:
         self.n = len(kernels_list)
         assert len(kernels_list) == len(kargs_list)
 
-    def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segments=[], print_on=False):
-        self.X_ = X
-        self.X_dot_ = X_dot
+    # For segmentation, will introduce variable segmentation which can belong to
+    # {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}
+    def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation='none', segments=[], print_on=False):
+        if segmentation not in ['none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict']:
+            raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
+        if not segmentation == 'none' and len(segments) == 0:
+            raise Exception("The parameter segments must be provided or non-empty when segmentation is not none.")
+        for s in segments:
+            assert s < X.shape[0], "At least one index in segments is out of range."
+
+
+        
         kernel_mat_list = []
         for j in range(self.n):
             if isinstance(self.kernels_list[j], str):
@@ -268,7 +278,8 @@ class HybridKernelRegressor:
 
         N = X_dot.shape[0]  # nb of points
         D = X_dot.shape[1]  # dimension of each vector
-
+        S = len(segments)   # Number of segments
+        
         opti = casadi.Opti()
 
         # variable declaration arrays
@@ -280,15 +291,20 @@ class HybridKernelRegressor:
             As = np.ndarray((n, D), dtype=object)
         
         for j in range(n):
-
-            Chis[j] = opti.variable(N)
-            opti.set_initial(Chis[j], np.ones(N)*100)
-
+            if segmentation == 'strict':
+                chi_size_per_mode = S
+            else:
+                chi_size_per_mode = N
+            
+            Chis[j] = opti.variable(chi_size_per_mode)
+            #opti.set_initial(Chis[j], np.ones(chi_size_per_mode)*100)
+            
             for d in range(D):
                 Alphas[j][d] = opti.variable(N)
                 betas[j][d] = opti.variable()
                 if norm == 'L1':
                     As[j][d] = opti.variable(N)
+        print(chi_size_per_mode)
 
         C_param = opti.parameter()
         opti.set_value(C_param, C)
@@ -298,7 +314,7 @@ class HybridKernelRegressor:
         # This forces one Chi per data point to be ~0, which dictates the mode
 
         sum_products_chis = 0
-        for i in range(N):
+        for i in range(chi_size_per_mode):
             temp = 1
             for j in range(n):
                 temp *= Chis[j][i]
@@ -333,14 +349,27 @@ class HybridKernelRegressor:
         # all chis must be positive
         for j in range(n):
             opti.subject_to(Chis[j] >= 0)
-
+        
         x_dotT = X_dot.T    # d by N
         eye = np.ones(N)
         for d in range(D):
             for j in range(n):
-                # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
-                opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
-                opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                if segmentation == 'strict':
+                    # # Here we need to transform each Chi[j], which is currently an S by 1 matrix into an N by 1 matrix
+                    # # We do this by constructing a transformation matrix that assigns the correct chi according to which segment the point is in
+                    # trans_mat = np.zeros((N, S))
+                    # for i in range(N):
+                    #     seg_index = which_segment(i, segments)
+                    #     trans_mat[i][seg_index] = 1
+                    # Chis[j] = casadi.vec(trans_mat @ Chis[j])
+                    for i in range(N):
+                        seg_index = which_segment(i, segments)
+                        opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
+                        opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                else:
+                    # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
+                    opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
+                    opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
 
         opti.solver('ipopt')
 
@@ -359,7 +388,7 @@ class HybridKernelRegressor:
         # Saving the results in proper arrays
         Alphas_sol = np.ndarray((n, D, N))
         betas_sol  = np.ndarray((n, D))
-        Chis_sol   = np.ndarray((n, N))
+        Chis_sol   = np.ndarray((n, chi_size_per_mode))
 
         for j in range(n):
                 Chis_sol[j] = sol.value(Chis[j])
@@ -368,10 +397,20 @@ class HybridKernelRegressor:
                 Alphas_sol[j][d] = sol.value(Alphas[j][d])
                 betas_sol[j][d]  = sol.value(betas[j][d])
         
+        if segmentation == 'strict':
+            final_Chis = np.ndarray((n, N))
+            for j in range(n):
+                for i in range(N):
+                    final_Chis[j][i] = Chis_sol[j][which_segment(i, segments)]
+
+            self.Chis_ = final_Chis
+        else: 
+            self.Chis_ = Chis_sol
+
         self.sol_ = sol
         self.Alphas_ = Alphas_sol
         self.betas_ = betas_sol
-        self.Chis_ = Chis_sol
+        # self.Chis_ = Chis_sol
         self.Xfit_ = X
 
     def predict(self, X, labelfun=None):
