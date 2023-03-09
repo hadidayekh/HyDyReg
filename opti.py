@@ -247,12 +247,12 @@ class HybridKernelRegressor:
         assert len(kernels_list) == len(kargs_list)
 
     # For segmentation, will introduce variable segmentation which can belong to
-    # {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}
-    def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation='none', segments=[], print_on=False):
-        if segmentation not in ['none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict']:
+    # {'squared_diff', 'strict'} or be None
+    def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
+        if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
             raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
-        if not segmentation == 'none' and len(segments) == 0:
-            raise Exception("The parameter segments must be provided or non-empty when segmentation is not none.")
+        if not segmentation is None and len(segments) == 0:
+            raise Exception("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
         for s in segments:
             assert s < X.shape[0], "At least one index in segments is out of range."
 
@@ -317,10 +317,13 @@ class HybridKernelRegressor:
         # This forces one Chi per data point to be ~0, which dictates the mode
 
         sum_products_chis = 0
-        for i in range(chi_size_per_mode):
+        for i in range(N):
             temp = 1
             for j in range(n):
-                temp *= Chis[j][i]
+                if segmentation == 'strict':
+                    temp *= Chis[j][which_segment(i, segments)]
+                else:
+                    temp *= Chis[j][i]
             sum_products_chis += temp
         
         sum_products_chis *= C_param
@@ -344,8 +347,19 @@ class HybridKernelRegressor:
         else:
             raise Exception("The norm parameter has to be 'L1' or 'L2'.")
         
+
+        if segmentation == 'squared_diff':
+            sum_diff_chis = 0
+            for r in range(len(segments)-1):
+                for i in range(segments[r], segments[r+1] - 1):
+                    for j in range(n):
+                        sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
+            for i in range(segments[-1], N-1):
+                for j in range(n):
+                    sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
+
         # Setting the objective function
-        opti.minimize(to_minimize)
+        opti.minimize(to_minimize + C/100*sum_diff_chis)
 
         # CONSTRAINTS
 
@@ -373,9 +387,9 @@ class HybridKernelRegressor:
                     # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
                     opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
                     opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
-
+        
         opti.solver('ipopt')
-
+        
         # Initiate the optimization
         sol = opti.solve()
 
