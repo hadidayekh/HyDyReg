@@ -357,9 +357,11 @@ class HybridKernelRegressor:
             for i in range(segments[-1], N-1):
                 for j in range(n):
                     sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
+            
+            to_minimize += C/100*sum_diff_chis
 
         # Setting the objective function
-        opti.minimize(to_minimize + C/100*sum_diff_chis)
+        opti.minimize(to_minimize)
 
         # CONSTRAINTS
 
@@ -429,6 +431,9 @@ class HybridKernelRegressor:
         self.betas_ = betas_sol
         # self.Chis_ = Chis_sol
         self.Xfit_ = X
+
+    def fit_scipy(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
+        pass
 
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION
@@ -520,6 +525,7 @@ class HybridKernelRegressor:
         for v in variables:
             if v.endswith('_'):
                 fitted = True
+                break
         if not fitted:
             raise Exception("Estimator not fitted.")
 
