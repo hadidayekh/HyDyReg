@@ -297,13 +297,16 @@ class HybridKernelRegressor:
                 chi_size_per_mode = N
             
             Chis[j] = opti.variable(chi_size_per_mode)
-            #opti.set_initial(Chis[j], np.ones(chi_size_per_mode)*100)
+            opti.set_initial(Chis[j], np.random.rand(chi_size_per_mode))
             
             for d in range(D):
                 Alphas[j][d] = opti.variable(N)
                 betas[j][d] = opti.variable()
+                opti.set_initial(Alphas[j][d], np.random.rand(N))
+                opti.set_initial(betas[j][d], np.random.rand())
                 if norm == 'L1':
                     As[j][d] = opti.variable(N)
+                    opti.set_initial(As[j][d], np.random.rand(N))
         print(chi_size_per_mode)
 
         C_param = opti.parameter()
