@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 def draw_trajectories_2D(trajectories, fig=None, axs=None, color='b', label=None, mark_beginning=False, plot_xt=False, segments=[]):
         if fig is None or axs is None:
             if(plot_xt):
@@ -48,3 +49,32 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, color='b', label=None
             axs['x1'].set_xlabel('$t$')
             axs['x1'].set_ylabel('$x_1$')
         return fig,axs
+
+def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m']):
+    n = np.max(modes) + 1
+    if n >= len(colors):
+        raise Exception("The number of modes is greater than the number of colors provided. Aborting to avoid confusion.")
+    
+    if fig is None or ax is None:
+        fig,ax = plt.subplots()
+    
+    labeled = [False] * n
+
+    N = X.shape[0]
+    for i in range(N):
+        x = X[i]
+        mode = modes[i]
+
+        if labeled[mode]:
+            label = None
+        else:
+            label = 'Mode ' + str(mode)
+            labeled[mode] = True
+        
+        ax.scatter(x[0], x[1], c = colors[mode % len(colors)], label=label)
+    
+    ax.legend()
+
+    return fig,ax
+
+            
