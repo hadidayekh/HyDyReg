@@ -77,6 +77,9 @@ class SNDS:
                     sol = x_object.sol
                     x0 = sol.__call__(t_start + step/1000)
                     label = self.labelfun(x0)
+                    # TODO:
+                    # Something is wrong in the logic here, as x_object.y is tereated as a list with len
+                    # then it is treated as an array with .T operator
                     if len(x_object.y) == 0:
                         continue
                     x_points = x_object.y.T
