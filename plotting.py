@@ -25,8 +25,7 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, color='b', label=None
                 for seg_index in segments[i]:
                     ax.scatter(x0[seg_index], x1[seg_index], marker='|', c='r', linewidths=0.1)
             
-            if not label is None:
-                ax.legend()
+
 
             if plot_xt:
                 axs['x0'].scatter(trajectories.t_list[i], x0, c=color, s=1)
@@ -35,17 +34,17 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, color='b', label=None
                     for seg_index in segments[i]:
                         axs['x0'].scatter(trajectories.t_list[i][seg_index], x0[seg_index], marker='|', c='r', linewidths=0.1)
                         axs['x1'].scatter(trajectories.t_list[i][seg_index], x1[seg_index], marker='|', c='r', linewidths=0.1)
-                if not label is None:
-                    axs['x0'].legend()
-                    axs['x1'].legend()
+
+                    
         
         ax.set_ylabel('$x_1$')
         ax.set_xlabel('$x_0$')
+        if not label is None:
+            ax.legend()
 
         if plot_xt:
             axs['x0'].set_xlabel('$t$')
             axs['x0'].set_ylabel('$x_0$')
             axs['x1'].set_xlabel('$t$')
             axs['x1'].set_ylabel('$x_1$')
-        
         return fig,axs
