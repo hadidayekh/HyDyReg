@@ -594,3 +594,23 @@ class HybridKernelRegressor:
 
         return sum_norms_alpha + C * sum_products_chi
         
+    @staticmethod
+    def scipy_opti_cons(j, d, N, n, D, X_dotT_d, K_j, delta_j):
+        
+        eye = np.ones(N)
+
+        def constraint_1(opti_x):
+            alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
+            beta_j_d = opti_x[D*N*n + D*j + d]
+            chi_j = opti_x[D*n*(N+1) + N*j : D*n*(N+1) + N*(j+1)]
+
+            return -X_dotT_d + K_j @ alphas_j_d + beta_j_d*eye + delta_j*eye + chi_j
+
+        def constraint_2(opti_x):
+            alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
+            beta_j_d = opti_x[D*N*n + D*j + d]
+            chi_j = opti_x[D*n*(N+1) + N*j : D*n*(N+1) + N*(j+1)]
+
+            return X_dotT_d - K_j @ alphas_j_d - beta_j_d*eye + delta_j*eye + chi_j
+
+        return [constraint_1, constraint_2]
