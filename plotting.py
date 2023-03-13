@@ -71,7 +71,7 @@ def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m']
             label = 'Mode ' + str(mode)
             labeled[mode] = True
         
-        ax.scatter(x[0], x[1], c = colors[mode % len(colors)], label=label)
+        ax.scatter(x[0], x[1], c = colors[mode % len(colors)], label=label, s=2)
     
     ax.legend()
 
