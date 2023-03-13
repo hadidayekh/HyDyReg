@@ -390,7 +390,7 @@ class HybridKernelRegressor:
                     opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
                     opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
         
-        opti.solver('ipopt')
+        opti.solver('ipopt', dict(), dict(max_iter = 10000))
         
         # Initiate the optimization
         sol = opti.solve()
@@ -433,7 +433,37 @@ class HybridKernelRegressor:
         self.Xfit_ = X
 
     def fit_scipy(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
-        pass
+        if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
+            raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
+        if not segmentation is None and len(segments) == 0:
+            raise Exception("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
+        for s in segments:
+            assert s < X.shape[0], "At least one index in segments is out of range."
+
+
+        
+        kernel_mat_list = []
+        for j in range(self.n):
+            if isinstance(self.kernels_list[j], str):
+                kernel = kernel_dic[self.kernels_list[j]]
+            else:
+                kernel = self.kernels_list[j]
+            
+            kernel_mat_list.append(kernel(X, X, self.kargs_list[j]))
+
+        n = self.n
+        
+        # deltas could be a scalar or defined per mode
+        if (np.isscalar(deltas)):
+            temp = np.ones(n)
+            deltas = deltas*temp
+        else:
+            assert(len(deltas) == n)
+
+        N = X_dot.shape[0]  # nb of points
+        D = X_dot.shape[1]  # dimension of each vector
+        S = len(segments)   # Number of segments
+        
 
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION
