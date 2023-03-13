@@ -588,7 +588,7 @@ class HybridKernelRegressor:
         for i in range(N):
             prod_i = 1
             for j in range(n):
-                chi_i_j = opti_x(D*n*(N+1) + N*j + i)
+                chi_i_j = opti_x[D*n*(N+1) + N*j + i]
                 prod_i *= chi_i_j
             sum_products_chi += prod_i
 
