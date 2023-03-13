@@ -569,3 +569,28 @@ class HybridKernelRegressor:
                 coefs = self.Xfit_.T @ self.Alphas_[j][d]
                 print(coefs.T, " ", self.betas_[j][d])
             print("\n")
+
+    @staticmethod
+    def scipy_opti_fun(opti_x, N, n, D, C):
+        # Here the optimization decision variable opti_x is of length
+        # D.N.n + D.n + N.n
+        # denoting respectively the lengths of alphas, betas and chis
+
+        # First calculate the norms of alphas (L2 for now)
+        sum_norms_alpha = 0
+        for j in range(n):
+            for d in range(D):
+                alpha_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
+                sum_norms_alpha += np.linalg.norm(alpha_j_d)
+
+        # Second calculate the sum of products of chis
+        sum_products_chi = 0
+        for i in range(N):
+            prod_i = 1
+            for j in range(n):
+                chi_i_j = opti_x(D*n*(N+1) + N*j + i)
+                prod_i *= chi_i_j
+            sum_products_chi += prod_i
+
+        return sum_norms_alpha + C * sum_products_chi
+        
