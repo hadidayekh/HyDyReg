@@ -1,9 +1,11 @@
 from asyncio.proactor_events import _ProactorBaseWritePipeTransport
+import re
 import casadi
 import numpy as np
 import kernels
 from snds import SNDS
 from utils import which_segment
+from scipy.optimize import minimize
 kernel_dic = {'linear' : kernels.linear, 
               'polynomial' : kernels.polynomial,
               'rbf' : kernels.rbf }
@@ -440,8 +442,6 @@ class HybridKernelRegressor:
         for s in segments:
             assert s < X.shape[0], "At least one index in segments is out of range."
 
-
-        
         kernel_mat_list = []
         for j in range(self.n):
             if isinstance(self.kernels_list[j], str):
@@ -463,6 +463,33 @@ class HybridKernelRegressor:
         N = X_dot.shape[0]  # nb of points
         D = X_dot.shape[1]  # dimension of each vector
         S = len(segments)   # Number of segments
+
+
+        # Defining the set of constraints
+        cons = []
+
+        # All chis must be positive
+        cons.append({'type': 'ineq', 'fun': lambda x : x[D*n*(N+1):]})
+        # Remaining constraints
+        for j in range(n):
+            for d in range(D):
+                cons_j_d = HybridKernelRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
+                cons.append({'type': 'ineq', 'fun': cons_j_d[0]})
+                cons.append({'type': 'ineq', 'fun': cons_j_d[1]})
+
+        x0 = np.random.rand(n * (D * (N + 1) + N))
+
+        res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C), x0, method='SLSQP', constraints=cons)
+
+        res_x = res.x
+
+        self.Alphas_ = res_x[:D*n*N].reshape(n, D, N)
+        self.betas_  = res_x[D*n*N:D*n*(N+1)].reshape(n, D)
+        self.Chis_   = res_x[D*n*(N+1):].reshape(n, N)
+        self.Xfit_ = X
+
+        
+
         
 
     def predict(self, X, labelfun=None):
@@ -593,7 +620,7 @@ class HybridKernelRegressor:
             sum_products_chi += prod_i
 
         return sum_norms_alpha + C * sum_products_chi
-        
+
     @staticmethod
     def scipy_opti_cons(j, d, N, n, D, X_dotT_d, K_j, delta_j):
         
