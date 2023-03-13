@@ -580,8 +580,8 @@ class HybridKernelRegressor:
         sum_norms_alpha = 0
         for j in range(n):
             for d in range(D):
-                alpha_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
-                sum_norms_alpha += np.linalg.norm(alpha_j_d)
+                alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
+                sum_norms_alpha += np.linalg.norm(alphas_j_d)
 
         # Second calculate the sum of products of chis
         sum_products_chi = 0
