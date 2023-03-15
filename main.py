@@ -1,5 +1,4 @@
 import kernels
-from opti import optimizeL1, optimizeL2
 import diff_methods
 import numpy as np
 import os
