@@ -71,7 +71,7 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
         return fig,axs
 
-def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m']):
+def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m'], labelfun=None):
     n = np.max(modes) + 1
     if n >= len(colors):
         raise Exception("The number of modes is greater than the number of colors provided. Aborting to avoid confusion.")
@@ -95,6 +95,23 @@ def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m']
         ax.scatter(x[0], x[1], c = colors[mode % len(colors)], label=label, s=2)
     
     ax.legend()
+
+    # ADDING LABEL CONTROUR
+    if not labelfun is None:
+        xmin, xmax = ax.get_xlim()
+        ymin, ymax = ax.get_ylim()
+        nx0 = np.arange(xmin, xmax, 0.1)
+        nx1 = np.arange(ymin, ymax, 0.1)
+        x0,x1 = np.meshgrid(nx0, nx1)
+
+        label_result = [[labelfun([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
+
+        #TODO revisit
+        #ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
+        ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.2, aspect='auto')
+        
+        ax.set_xlim(xmin,xmax)
+        ax.set_ylim(ymin, ymax)
 
     return fig,ax
 
