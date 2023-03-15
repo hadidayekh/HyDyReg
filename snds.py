@@ -38,7 +38,7 @@ class SNDS:
             # the mode of the initial condition
             label = self.labelfun(x0)
             t_start = 0
-            t_end = T + 1.1*step
+            t_end = T + 2*step
             t_points = np.linspace(0, T, num)
             status = 1
             ite = 0
@@ -85,12 +85,17 @@ class SNDS:
                     x_points = x_object.y.T
                     x_points = x_points[0:i]
                 else:
+                    if len(x_object.y) == 0:
+                        continue
                     x_points = x_object.y.T
 
                 if ite == 1:
                     X_points = x_points
                 else:
                     X_points = np.r_[X_points, x_points]
+
+                if t_points.size == 1:
+                    status = 0
 
             t_list.append(np.linspace(0, T, num))
             x_list.append(X_points)
