@@ -479,7 +479,7 @@ class HybridKernelRegressor:
 
         x0 = np.random.rand(n * (D * (N + 1) + N))
 
-        res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C), x0, method='SLSQP', constraints=cons)
+        res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C), x0, method='SLSQP', constraints=cons, options={'disp':True})
 
         res_x = res.x
 
