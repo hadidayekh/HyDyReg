@@ -2,8 +2,6 @@ import kernels
 import diff_methods
 import numpy as np
 import os
-from paper_utils import get_labeltest
-label_test = get_labeltest(0)
 
 def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
