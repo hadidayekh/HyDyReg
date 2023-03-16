@@ -256,20 +256,38 @@ class HybridKernelRegressor:
         # Remaining constraints
         for j in range(n):
             for d in range(D):
-                cons_j_d = HybridKernelRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
-                cons.append({'type': 'ineq', 'fun': cons_j_d[0]})
-                cons.append({'type': 'ineq', 'fun': cons_j_d[1]})
+                if segmentation != 'strict':
+                    cons_j_d = HybridKernelRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
+                    cons.append({'type': 'ineq', 'fun': cons_j_d[0]})
+                    cons.append({'type': 'ineq', 'fun': cons_j_d[1]})
+                else:
+                    for i in range(N):
+                        cons_i_j_d = HybridKernelRegressor.scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j], segments)
+                        cons.append({'type': 'ineq', 'fun': cons_i_j_d[0]})
+                        cons.append({'type': 'ineq', 'fun': cons_i_j_d[1]})
 
-        x0 = np.random.rand(n * (D * (N + 1) + N))
+        chi_size_per_mode = N if segmentation != 'strict' else S
 
-        res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C), x0, method='SLSQP', constraints=cons, options={'disp':True})
+        x0 = np.random.rand(n * (D * (N + 1) + chi_size_per_mode))
+
+        res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
 
         res_x = res.x
 
+        Chis = res_x[D*n*(N+1):].reshape(n, chi_size_per_mode)
+        
+        if segmentation != 'strict':
+            final_Chis = Chis
+        else:
+            final_Chis = np.ndarray((n, N))
+            for j in range(n):
+                for i in range(N):
+                    final_Chis[j][i] = Chis[j][which_segment(i, segments)]
+
         self.Alphas_ = res_x[:D*n*N].reshape(n, D, N)
         self.betas_  = res_x[D*n*N:D*n*(N+1)].reshape(n, D)
-        self.Chis_   = res_x[D*n*(N+1):].reshape(n, N)
-        self.Xfit_ = X
+        self.Chis_   = final_Chis
+        self.Xfit_   = X
 
         
 
@@ -381,7 +399,7 @@ class HybridKernelRegressor:
             print("\n")
 
     @staticmethod
-    def scipy_opti_fun(opti_x, N, n, D, C):
+    def scipy_opti_fun(opti_x, N, n, D, C, segmentation, segments):
         # Here the optimization decision variable opti_x is of length
         # D.N.n + D.n + N.n
         # denoting respectively the lengths of alphas, betas and chis
@@ -398,7 +416,10 @@ class HybridKernelRegressor:
         for i in range(N):
             prod_i = 1
             for j in range(n):
-                chi_i_j = opti_x[D*n*(N+1) + N*j + i]
+                if segmentation != 'strict':
+                    chi_i_j = opti_x[D*n*(N+1) + N*j + i]
+                else:
+                    chi_i_j = opti_x[D*n*(N+1) + len(segments)*j + which_segment(i, segments)]
                 prod_i *= chi_i_j
             sum_products_chi += prod_i
 
@@ -422,5 +443,24 @@ class HybridKernelRegressor:
             chi_j = opti_x[D*n*(N+1) + N*j : D*n*(N+1) + N*(j+1)]
 
             return X_dotT_d - K_j @ alphas_j_d - beta_j_d*eye + delta_j*eye + chi_j
+
+        return [constraint_1, constraint_2]
+
+    @staticmethod
+    def scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dotT_d, K_j, delta_j, segments):
+        S = len(segments)
+        def constraint_1(opti_x):
+            alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
+            beta_j_d = opti_x[D*N*n + D*j + d]
+            chi_Si_j = opti_x[D*n*(N+1) + S*j + which_segment(i, segments)]
+
+            return -X_dotT_d[i] + K_j[i].T @ alphas_j_d + beta_j_d + delta_j + chi_Si_j
+
+        def constraint_2(opti_x):
+            alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
+            beta_j_d = opti_x[D*N*n + D*j + d]
+            chi_Si_j = opti_x[D*n*(N+1) + S*j + which_segment(i, segments)]
+
+            return X_dotT_d[i] - K_j[i].T @ alphas_j_d - beta_j_d + delta_j + chi_Si_j
 
         return [constraint_1, constraint_2]
