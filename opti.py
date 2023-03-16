@@ -268,7 +268,7 @@ class HybridKernelRegressor:
 
         chi_size_per_mode = N if segmentation != 'strict' else S
 
-        x0 = np.random.rand(n * (D * (N + 1) + chi_size_per_mode))
+        x0 = np.zeros(n * (D * (N + 1) + chi_size_per_mode))
 
         res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
 
@@ -423,7 +423,21 @@ class HybridKernelRegressor:
                 prod_i *= chi_i_j
             sum_products_chi += prod_i
 
-        return sum_norms_alpha + C * sum_products_chi
+        to_minimize = sum_norms_alpha + C * sum_products_chi
+
+        if segmentation == 'squared_diff':
+            sum_diff_chis = 0
+            for r in range(len(segments) - 1):
+                for i in range(segments[r], segments[r+1] - 1):
+                    for j in range(n):
+                        sum_diff_chis += (opti_x[D*n*(N+1) + N*j + i] - opti_x[D*n*(N+1) + N*j + (i+1)])**2
+            for i in range(segments[-1], N-1):
+                for j in range(n):
+                    sum_diff_chis += (opti_x[D*n*(N+1) + N*j + i] - opti_x[D*n*(N+1) + N*j + (i+1)])**2
+            to_minimize += (C) * sum_diff_chis
+
+
+        return to_minimize
 
     @staticmethod
     def scipy_opti_cons(j, d, N, n, D, X_dotT_d, K_j, delta_j):
