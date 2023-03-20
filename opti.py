@@ -6,6 +6,8 @@ import kernels
 from snds import SNDS
 from utils import which_segment
 from scipy.optimize import minimize
+from sklearn.linear_model import LogisticRegression
+from sklearn.multiclass import OneVsRestClassifier
 kernel_dic = {'linear' : kernels.linear, 
               'polynomial' : kernels.polynomial,
               'rbf' : kernels.rbf }
@@ -202,6 +204,7 @@ class HybridKernelRegressor:
                 betas_sol[j][d]  = sol.value(betas[j][d])
         
         if segmentation == 'strict':
+            print("CHIS", Chis_sol)
             final_Chis = np.ndarray((n, N))
             for j in range(n):
                 for i in range(N):
@@ -268,7 +271,7 @@ class HybridKernelRegressor:
 
         chi_size_per_mode = N if segmentation != 'strict' else S
 
-        x0 = np.zeros(n * (D * (N + 1) + chi_size_per_mode))
+        x0 = np.random.rand(n * (D * (N + 1) + chi_size_per_mode))
 
         res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
 
@@ -290,7 +293,14 @@ class HybridKernelRegressor:
         self.Xfit_   = X
 
         
+    def classify_modes(self, binaryclassifier=LogisticRegression()):
+        self.check_if_fitted()
+        model = OneVsRestClassifier(binaryclassifier)
+        model.fit(self.Xfit_, self.get_modes())
 
+        self.classifier_ = model
+        self.labelfun_ = lambda x : self.classifier_.predict([x])[0]
+        self.eventlist_ = [lambda t, x : self.classifier_boundary([x])]
         
 
     def predict(self, X, labelfun=None):
@@ -478,3 +488,23 @@ class HybridKernelRegressor:
             return X_dotT_d[i] - K_j[i].T @ alphas_j_d - beta_j_d + delta_j + chi_Si_j
 
         return [constraint_1, constraint_2]
+
+    def classifier_boundary(self, x):
+        self.check_if_fitted()
+        decs = self.classifier_.decision_function(x)[0]
+        i1, i2 = 0, 0
+        max1, max2 = 0, 0
+
+        for i in range(len(decs)):
+            if decs[i] > max1:
+                max1 = decs[i]
+                i1 = i
+        for i in range(len(decs)):
+            if decs[i] > max2 and decs[i] < max1:
+                max2 = decs[i]
+                i2 = i
+
+        if i1 < i2:
+            return decs[i1] - decs[i2]
+        else:
+            return decs[i2] - decs[i1]
