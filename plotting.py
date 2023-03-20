@@ -54,8 +54,8 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
         if not labelfun is None:
             xmin, xmax = ax.get_xlim()
             ymin, ymax = ax.get_ylim()
-            nx0 = np.arange(xmin, xmax, 0.1)
-            nx1 = np.arange(ymin, ymax, 0.1)
+            nx0 = np.linspace(xmin, xmax, 1000)
+            nx1 = np.linspace(ymin, ymax, 1000)
             x0,x1 = np.meshgrid(nx0, nx1)
 
             label_result = [[labelfun([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
