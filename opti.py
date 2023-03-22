@@ -1,5 +1,4 @@
 from asyncio.proactor_events import _ProactorBaseWritePipeTransport
-import re
 import casadi
 import numpy as np
 import kernels
@@ -214,7 +213,7 @@ class HybridKernelRegressor:
         else: 
             self.Chis_ = Chis_sol
 
-        self.sol_ = sol
+        #self.sol_ = sol
         self.Alphas_ = Alphas_sol
         self.betas_ = betas_sol
         # self.Chis_ = Chis_sol
@@ -298,9 +297,14 @@ class HybridKernelRegressor:
         model = OneVsRestClassifier(binaryclassifier)
         model.fit(self.Xfit_, self.get_modes())
 
+        def event(t, x):
+            return self.classifier_boundary([x])
+        event.direction = 0
+        event.terminal = True
+
         self.classifier_ = model
         self.labelfun_ = lambda x : self.classifier_.predict([x])[0]
-        self.eventlist_ = [lambda t, x : self.classifier_boundary([x])]
+        self.eventlist_ = event
         
 
     def predict(self, X, labelfun=None):
@@ -491,7 +495,7 @@ class HybridKernelRegressor:
 
     def classifier_boundary(self, x):
         self.check_if_fitted()
-        decs = self.classifier_.decision_function(x)[0]
+        decs = self.classifier_.predict_proba(x)[0]
         i1, i2 = 0, 0
         max1, max2 = 0, 0
 
