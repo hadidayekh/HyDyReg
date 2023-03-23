@@ -2,7 +2,7 @@ from asyncio.proactor_events import _ProactorBaseWritePipeTransport
 import casadi
 import numpy as np
 import kernels
-from snds import SNDS
+from snds import SNDS, SNDS_linear
 from utils import which_segment
 from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
@@ -26,11 +26,16 @@ x_dot.T is DxN
 """
 
 class HybridKernelRegressor:
-    def __init__(self, kernels_list, kargs_list):
-        self.kernels_list = kernels_list
-        self.kargs_list = kargs_list
-        self.n = len(kernels_list)
-        assert len(kernels_list) == len(kargs_list)
+    def __init__(self, train_coefs, n, kernels_list=None, kargs_list=None):
+        self.train_coefs = train_coefs
+        self.n = n
+        if not train_coefs and (kernels_list is None or kargs_list is None):
+            raise Exception("When train_coefs is False, kernels_list and kargs_list must be provided.")
+        if not train_coefs:
+            self.kernels_list = kernels_list
+            self.kargs_list = kargs_list
+            assert len(kernels_list) == n
+            assert len(kernels_list) == len(kargs_list)
 
     # For segmentation, will introduce variable segmentation which can belong to
     # {'squared_diff', 'strict'} or be None
@@ -42,18 +47,18 @@ class HybridKernelRegressor:
         for s in segments:
             assert s < X.shape[0], "At least one index in segments is out of range."
 
-
-        
-        kernel_mat_list = []
-        for j in range(self.n):
-            if isinstance(self.kernels_list[j], str):
-                kernel = kernel_dic[self.kernels_list[j]]
-            else:
-                kernel = self.kernels_list[j]
-            
-            kernel_mat_list.append(kernel(X, X, self.kargs_list[j]))
-
+        tc = self.train_coefs
         n = self.n
+        if not tc:
+            kernel_mat_list = []
+            for j in range(n):
+                if isinstance(self.kernels_list[j], str):
+                    kernel = kernel_dic[self.kernels_list[j]]
+                else:
+                    kernel = self.kernels_list[j]
+                
+                kernel_mat_list.append(kernel(X, X, self.kargs_list[j]))
+
         
         # deltas could be a scalar or defined per mode
         if (np.isscalar(deltas)):
@@ -69,11 +74,16 @@ class HybridKernelRegressor:
         opti = casadi.Opti()
 
         # variable declaration arrays
-        Alphas = np.ndarray((n, D), dtype=object)
+        if tc:
+            Kappas = np.ndarray((n, D), dtype=object)
+        else:
+            Alphas = np.ndarray((n, D), dtype=object)
         betas = np.ndarray((n, D), dtype=object)
         Chis = np.ndarray((n,), dtype=object)
 
         if norm == 'L1':
+            if tc:
+                raise Exception("Fitting to train coefficients with L1 norm is not supported yet.")
             As = np.ndarray((n, D), dtype=object)
         
         for j in range(n):
@@ -86,10 +96,16 @@ class HybridKernelRegressor:
             opti.set_initial(Chis[j], np.random.rand(chi_size_per_mode))
             
             for d in range(D):
-                Alphas[j][d] = opti.variable(N)
+                if tc:
+                    Kappas[j][d] = opti.variable(D)
+                    opti.set_initial(Kappas[j][d], np.random.rand(D))
+                else:
+                    Alphas[j][d] = opti.variable(N)
+                    opti.set_initial(Alphas[j][d], np.random.rand(N))
+
                 betas[j][d] = opti.variable()
-                opti.set_initial(Alphas[j][d], np.random.rand(N))
                 opti.set_initial(betas[j][d], np.random.rand())
+
                 if norm == 'L1':
                     As[j][d] = opti.variable(N)
                     opti.set_initial(As[j][d], np.random.rand(N))
@@ -115,7 +131,7 @@ class HybridKernelRegressor:
         sum_products_chis *= C_param
 
         # Second part of the optimization objective function:
-        # The sum of norms of alphas
+        # The sum of norms of alphas/kappas
         # Here we use the L1 norm
         if norm == 'L1':
             eye = np.ones(N)
@@ -125,11 +141,14 @@ class HybridKernelRegressor:
                     sum_norms_a += (As[j][d].T @ eye)
             to_minimize = sum_norms_a + sum_products_chis
         elif norm == 'L2':
-            sum_norms_alpha = 0
+            sum_norms = 0
             for j in range(n):
                 for d in range(D):
-                    sum_norms_alpha += (Alphas[j][d].T @ Alphas[j][d])
-            to_minimize = sum_norms_alpha + sum_products_chis
+                    if tc:
+                        sum_norms += (Kappas[j][d].T @ Kappas[j][d])
+                    else:
+                        sum_norms += (Alphas[j][d].T @ Alphas[j][d])
+            to_minimize = sum_norms + sum_products_chis
         else:
             raise Exception("The norm parameter has to be 'L1' or 'L2'.")
         
@@ -169,12 +188,20 @@ class HybridKernelRegressor:
                     # Chis[j] = casadi.vec(trans_mat @ Chis[j])
                     for i in range(N):
                         seg_index = which_segment(i, segments)
-                        opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
-                        opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                        if not tc:
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                        else:
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X[i].T, Kappas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X[i].T, Kappas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
                 else:
                     # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
-                    opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
-                    opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                    if not tc:
+                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                    else:
+                        opti.subject_to(x_dotT[d] - casadi.vec(X @ Kappas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(X @ Kappas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
         
         opti.solver('ipopt', dict(), dict(max_iter = 10000))
         
@@ -187,11 +214,17 @@ class HybridKernelRegressor:
                 print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
             for j in range(n):
                 for d in range(D):
-                    print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
+                    if not tc:
+                        print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
+                    else:
+                        print("Kappa_" + str(j) + "_" + str(d) + ": " + str(sol.value(Kappas[j][d])))
                     print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
 
         # Saving the results in proper arrays
-        Alphas_sol = np.ndarray((n, D, N))
+        if not tc:
+            Alphas_sol = np.ndarray((n, D, N))
+        else:
+            Kappas_sol = np.ndarray((n, D, D))
         betas_sol  = np.ndarray((n, D))
         Chis_sol   = np.ndarray((n, chi_size_per_mode))
 
@@ -199,7 +232,10 @@ class HybridKernelRegressor:
                 Chis_sol[j] = sol.value(Chis[j])
         for j in range(n):
             for d in range(D):
-                Alphas_sol[j][d] = sol.value(Alphas[j][d])
+                if not tc:
+                    Alphas_sol[j][d] = sol.value(Alphas[j][d])
+                else:
+                    Kappas_sol[j][d] = sol.value(Kappas[j][d])
                 betas_sol[j][d]  = sol.value(betas[j][d])
         
         if segmentation == 'strict':
@@ -214,12 +250,17 @@ class HybridKernelRegressor:
             self.Chis_ = Chis_sol
 
         #self.sol_ = sol
-        self.Alphas_ = Alphas_sol
+        if not tc:
+            self.Alphas_ = Alphas_sol
+        else:
+            self.Kappas_ = Kappas_sol
         self.betas_ = betas_sol
         # self.Chis_ = Chis_sol
         self.Xfit_ = X
 
     def fit_scipy(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
+        if self.train_coefs:
+            raise Exception("Fitting to train coefficients is not yet implemented with SciPy. Please use fit() instead.")
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
             raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
         if not segmentation is None and len(segments) == 0:
@@ -312,13 +353,17 @@ class HybridKernelRegressor:
         # 2) X has correct dimensions (X.shape[1] == Xfit_.shape[1])
 
         self.check_if_fitted()
+        tc = self.train_coefs
 
         if labelfun is None:
             labelfun = self.labelfun_
 
-        kernels_list = self.kernels_list
-        kargs_list = self.kargs_list
-        Alphas = self.Alphas_
+        if not tc:
+            kernels_list = self.kernels_list
+            kargs_list = self.kargs_list
+            Alphas = self.Alphas_
+        else:
+            Kappas = self.Kappas_
         betas = self.betas_
         Xfit = self.Xfit_
 
@@ -336,15 +381,18 @@ class HybridKernelRegressor:
         for i in range(M):
             # Find the mode of the data point
             j = labelfun(X[i])
-            # Calculate based on the correct kernel
-            if isinstance(kernels_list[j], str):
-                kernel = kernel_dic[kernels_list[j]]
+            if not tc:
+                # Calculate based on the correct kernel
+                if isinstance(kernels_list[j], str):
+                    kernel = kernel_dic[kernels_list[j]]
+                else:
+                    kernel = kernels_list[j]
+                
+                K_X_x = kernel(Xfit, X[i], kargs_list[j])
+                for d in range(D):
+                    X_dot_res[i][d] = Alphas[j][d].T @ K_X_x + betas[j][d]
             else:
-                kernel = kernels_list[j]
-            
-            K_X_x = kernel(Xfit, X[i], kargs_list[j])
-            for d in range(D):
-                X_dot_res[i][d] = Alphas[j][d].T @ K_X_x + betas[j][d]
+                X_dot_res[i] = (Kappas[j] @ X[i] + betas[j]).reshape(-1)
 
         return X_dot_res
 
@@ -366,13 +414,23 @@ class HybridKernelRegressor:
             eventlist = self.eventlist_
 
         n = self.n
-        d = self.Xfit_.shape[1]
+        D = self.Xfit_.shape[1]
 
-        eqs = []
-        for j in range(n):
-            eqs.append(self.make_eq(j))
+        if not self.train_coefs:
+            eqs = []
+            for j in range(n):
+                eqs.append(self.make_eq(j))
 
-        return SNDS(n, d, eqs, eventlist, labelfun)
+            return SNDS(n, D, eqs, eventlist, labelfun)
+        else:
+            params = np.ndarray((n, D, D+1))
+            for j in range(n):
+                for d in range(D):
+                    for l in range(D):
+                        params[j][d][l] = self.Kappas_[j][d][l]
+                    params[j][d][D] = self.betas_[j][d]
+            return SNDS_linear(params, eventlist, labelfun)
+
         
     def make_eq(self, j):
         def eq(t, x):
@@ -400,14 +458,23 @@ class HybridKernelRegressor:
 
     def print_coefs_linear(self):
         self.check_if_fitted()
-        n, D, N = self.Alphas_.shape
-        for j in range(n):
-            print("Mode " + str(j) + ":")
-            for d in range(D):
-                print("x" + str(d) + "_dot:")
-                coefs = self.Xfit_.T @ self.Alphas_[j][d]
-                print(coefs.T, " ", self.betas_[j][d])
-            print("\n")
+        if not self.train_coefs:
+            n, D, N = self.Alphas_.shape
+            for j in range(n):
+                print("Mode " + str(j) + ":")
+                for d in range(D):
+                    print("x" + str(d) + "_dot:")
+                    coefs = self.Xfit_.T @ self.Alphas_[j][d]
+                    print(coefs.T, " ", self.betas_[j][d])
+                print("\n")
+        else:
+            n, D = self.betas_.shape
+            for j in range(n):
+                print("Mode " + str(j) + ":")
+                for d in range(D):
+                    print("x" + str(d) + "_dot:")
+                    coefs = self.Kappas_[j][d]
+                    print(coefs.T, " ", self.betas_[j][d])
 
     @staticmethod
     def scipy_opti_fun(opti_x, N, n, D, C, segmentation, segments):

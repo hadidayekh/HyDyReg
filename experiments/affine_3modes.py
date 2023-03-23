@@ -19,7 +19,7 @@ exp_title = "affine_3modes"
 k_learn = True
 save_plots = True
 save_pickle = True
-load_pickle = True
+load_pickle = False
 seg_tol = 0.5
 
 '''
@@ -132,10 +132,10 @@ if k_learn:
         file.close()
     else:
         # Defining the model
-        model = HybridKernelRegressor(['linear', 'linear', 'linear'], [[0], [0], [0]])
+        model = HybridKernelRegressor(train_coefs=True, n=3, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
 
         # Fitting the model with its corresponding derivatives
-        model.fit(X, X_dot, deltas=0.1, C=1000)#, segmentation='strict', segments=seg_res)
+        model.fit(X, X_dot, deltas=0.001, C=1000)#, segmentation='strict', segments=seg_res)
 
         if save_pickle:
             file = open(exp_title + '.model', 'wb')
