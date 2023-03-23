@@ -1,4 +1,5 @@
 import sys
+from sklearn.linear_model import LogisticRegression
 
 # setting path to access parent directory files
 sys.path.append('./')
@@ -12,6 +13,7 @@ import plotting
 import numpy as np
 import matplotlib.pyplot as plt
 import dill as pickle
+from sklearn.svm import SVC
 
 exp_title = "affine_3modes"
 k_learn = True
@@ -141,7 +143,7 @@ if k_learn:
             file.close()
 
     # Classify modes
-    model.classify_modes()
+    model.classify_modes(LogisticRegression(penalty='none'))
 
     # Comparing modes to each other
     modes = model.get_modes()
