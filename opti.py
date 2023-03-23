@@ -291,21 +291,19 @@ class HybridKernelRegressor:
         self.Chis_   = final_Chis
         self.Xfit_   = X
 
-        
-    def classify_modes(self, binaryclassifier=LogisticRegression()):
+    def classify_modes(self, classifier=LogisticRegression()):
         self.check_if_fitted()
-        model = OneVsRestClassifier(binaryclassifier)
-        model.fit(self.Xfit_, self.get_modes())
+        classifier = OneVsRestClassifier(classifier)
+        classifier.fit(self.Xfit_, self.get_modes())
 
         def event(t, x):
             return self.classifier_boundary([x])
         event.direction = 0
         event.terminal = True
 
-        self.classifier_ = model
+        self.classifier_ = classifier
         self.labelfun_ = lambda x : self.classifier_.predict([x])[0]
         self.eventlist_ = event
-        
 
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION
@@ -375,7 +373,6 @@ class HybridKernelRegressor:
             eqs.append(self.make_eq(j))
 
         return SNDS(n, d, eqs, eventlist, labelfun)
-
         
     def make_eq(self, j):
         def eq(t, x):
