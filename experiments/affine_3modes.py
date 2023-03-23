@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import dill as pickle
 from sklearn.svm import SVC
+import textwrap
 
 exp_title = "affine_3modes"
 k_learn = True
@@ -45,8 +46,8 @@ if (b00+b11)**2 < 4*(b00*b11-b01*b10):
 else:
     exit()
 
-c00, c01, c03 =  0, 0, 1
-c10, c11, c13 =  0, 0, -2
+c00, c01, c03 =  0.1, 0.1, 1
+c10, c11, c13 =  -0.3, 0.2, -2
 
 r = 1
 
@@ -110,8 +111,9 @@ print(trajectories.t_list[0].shape)
 segments = trajectories.segment_trajectories(seg_tol)
 
 # Plotting results
-plot_title = exp_title + 'trajs=' + str(len(x0s)) + ' ts=' + str(time_step) + ' T=' + str(time_range)
+plot_title = exp_title + ' trajs=' + str(len(x0s)) + ' ts=' + str(time_step) + ' T=' + str(time_range)
 fig1, ax1 = plotting.draw_trajectories_2D(trajectories, mark_beginning=True, plot_xt=True, segments=segments, labelfun=labelfun)
+ax1['main'].set_title(plot_title)
 
 # Saving figure into a file
 if save_plots:
@@ -135,7 +137,7 @@ if k_learn:
         model = HybridKernelRegressor(train_coefs=True, n=3, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
 
         # Fitting the model with its corresponding derivatives
-        model.fit(X, X_dot, deltas=0.001, C=1000)#, segmentation='strict', segments=seg_res)
+        model.fit(X, X_dot, deltas=0.001, C=1000, segmentation='squared_diff', segments=seg_res)
 
         if save_pickle:
             file = open(exp_title + '.model', 'wb')
@@ -172,11 +174,13 @@ if k_learn:
     fig2, ax2 = plotting.draw_trajectories_2D(trajs_learned, fig=fig2, axs=ax2, colors=['m'], label='Learned trajectories', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
     ax2['main'].minorticks_on()
     ax2['main'].grid(which='both', lw=0.1)
+    ax2['main'].set_title(textwrap.fill('Training data versus trajectories simulated from the learning model with the same intial conditions as the training data, as well as the mode state space partitioning.', width=60))
+
 
 
     
-
     fig3, ax3 = plotting.plot_with_modes_2D(model.Xfit_, modes, labelfun=model.labelfun_)
+    ax3.set_title(textwrap.fill("Training data and their corresponding learned modes, as well as the result of classification.", width=60))
 
     if save_plots:
         try:
