@@ -7,6 +7,7 @@ from utils import which_segment
 from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.preprocessing import PolynomialFeatures
 kernel_dic = {'linear' : kernels.linear, 
               'polynomial' : kernels.polynomial,
               'rbf' : kernels.rbf }
@@ -26,9 +27,10 @@ x_dot.T is DxN
 """
 
 class HybridKernelRegressor:
-    def __init__(self, train_coefs, n, kernels_list=None, kargs_list=None):
+    def __init__(self, train_coefs, n, deg=1, kernels_list=None, kargs_list=None):
         self.train_coefs = train_coefs
         self.n = n
+        self.deg = deg
         if not train_coefs and (kernels_list is None or kargs_list is None):
             raise Exception("When train_coefs is False, kernels_list and kargs_list must be provided.")
         if not train_coefs:
@@ -49,6 +51,7 @@ class HybridKernelRegressor:
 
         tc = self.train_coefs
         n = self.n
+        deg = self.deg
         if not tc:
             kernel_mat_list = []
             for j in range(n):
@@ -59,7 +62,13 @@ class HybridKernelRegressor:
                 
                 kernel_mat_list.append(kernel(X, X, self.kargs_list[j]))
 
-        
+        if tc and deg > 1:
+            poly = PolynomialFeatures(degree=deg, include_bias=False)
+            X_trans = poly.fit_transform(X)
+            self.poly = poly
+        else:
+            X_trans = X
+
         # deltas could be a scalar or defined per mode
         if (np.isscalar(deltas)):
             temp = np.ones(n)
@@ -69,6 +78,7 @@ class HybridKernelRegressor:
 
         N = X_dot.shape[0]  # nb of points
         D = X_dot.shape[1]  # dimension of each vector
+        Q = X_trans.shape[1]
         S = len(segments)   # Number of segments
         
         opti = casadi.Opti()
@@ -97,8 +107,8 @@ class HybridKernelRegressor:
             
             for d in range(D):
                 if tc:
-                    Omegas[j][d] = opti.variable(D)
-                    opti.set_initial(Omegas[j][d], np.random.rand(D))
+                    Omegas[j][d] = opti.variable(Q)
+                    opti.set_initial(Omegas[j][d], np.random.rand(Q))
                 else:
                     Alphas[j][d] = opti.variable(N)
                     opti.set_initial(Alphas[j][d], np.random.rand(N))
@@ -192,16 +202,16 @@ class HybridKernelRegressor:
                             opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
                             opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
                         else:
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(X[i].T, Omegas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(X[i].T, Omegas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
                 else:
                     # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
                     if not tc:
                         opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
                         opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
                     else:
-                        opti.subject_to(x_dotT[d] - casadi.vec(X @ Omegas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
-                        opti.subject_to(x_dotT[d] - casadi.vec(X @ Omegas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
         
         opti.solver('ipopt', dict(), dict(max_iter = 10000))
         
@@ -224,7 +234,7 @@ class HybridKernelRegressor:
         if not tc:
             Alphas_sol = np.ndarray((n, D, N))
         else:
-            Omegas_sol = np.ndarray((n, D, D))
+            Omegas_sol = np.ndarray((n, D, Q))
         betas_sol  = np.ndarray((n, D))
         Chis_sol   = np.ndarray((n, chi_size_per_mode))
 
@@ -257,6 +267,7 @@ class HybridKernelRegressor:
         self.betas_ = betas_sol
         # self.Chis_ = Chis_sol
         self.Xfit_ = X
+        self.Xfit_trans_ = X_trans
 
     def fit_scipy(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
         if self.train_coefs:
@@ -366,15 +377,22 @@ class HybridKernelRegressor:
             Omegas = self.Omegas_
         betas = self.betas_
         Xfit = self.Xfit_
+        Xfit_trans = self.Xfit_trans_
 
         # Dimensions of X
         M = X.shape[0]
         D = X.shape[1]
+        Q = Xfit_trans.shape[1]
 
         # Assert that X has correct dimensions
-        if D != Xfit.shape[1]:
+        if D != Q and ((tc and self.deg == 1) or not tc):
             raise Exception("Given X does not have the right dimensions.")
-        
+        if tc and self.deg > 1:
+            poly = PolynomialFeatures(degree = self.deg, include_bias=False)
+            X_trans = poly.fit_transform(X)
+        else:
+            X_trans = X
+
         X_dot_res = np.zeros((M,D))
 
         # For each data point
@@ -392,7 +410,7 @@ class HybridKernelRegressor:
                 for d in range(D):
                     X_dot_res[i][d] = Alphas[j][d].T @ K_X_x + betas[j][d]
             else:
-                X_dot_res[i] = (Omegas[j] @ X[i] + betas[j]).reshape(-1)
+                X_dot_res[i] = (Omegas[j] @ X_trans[i] + betas[j]).reshape(-1)
 
         return X_dot_res
 
@@ -422,7 +440,7 @@ class HybridKernelRegressor:
                 eqs.append(self.make_eq(j))
 
             return SNDS(n, D, eqs, eventlist, labelfun)
-        else:
+        elif self.deg == 1:
             params = np.ndarray((n, D, D+1))
             for j in range(n):
                 for d in range(D):
@@ -430,6 +448,12 @@ class HybridKernelRegressor:
                         params[j][d][l] = self.Omegas_[j][d][l]
                     params[j][d][D] = self.betas_[j][d]
             return SNDS_linear(params, eventlist, labelfun)
+        else:
+            eqs = []
+            for j in range(n):
+                eqs.append(self.make_eq_predict(j))
+
+            return SNDS(n, D, eqs, eventlist, labelfun)
 
         
     def make_eq(self, j):
@@ -444,6 +468,11 @@ class HybridKernelRegressor:
             for d in range(D):
                 res[d] = self.Alphas_[j][d].T @ k_x_x + self.betas_[j][d]
             return res
+        return eq
+
+    def make_eq_predict(self, j):
+        def eq(t, x):
+            return self.predict(np.array([x]), lambda x : j)[0]
         return eq
 
     def check_if_fitted(self):
@@ -469,6 +498,8 @@ class HybridKernelRegressor:
                 print("\n")
         else:
             n, D = self.betas_.shape
+            if self.deg > 1:
+                print(self.poly.get_feature_names_out())
             for j in range(n):
                 print("Mode " + str(j) + ":")
                 for d in range(D):
