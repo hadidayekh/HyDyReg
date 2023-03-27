@@ -75,7 +75,7 @@ class HybridKernelRegressor:
 
         # variable declaration arrays
         if tc:
-            Kappas = np.ndarray((n, D), dtype=object)
+            Omegas = np.ndarray((n, D), dtype=object)
         else:
             Alphas = np.ndarray((n, D), dtype=object)
         betas = np.ndarray((n, D), dtype=object)
@@ -97,8 +97,8 @@ class HybridKernelRegressor:
             
             for d in range(D):
                 if tc:
-                    Kappas[j][d] = opti.variable(D)
-                    opti.set_initial(Kappas[j][d], np.random.rand(D))
+                    Omegas[j][d] = opti.variable(D)
+                    opti.set_initial(Omegas[j][d], np.random.rand(D))
                 else:
                     Alphas[j][d] = opti.variable(N)
                     opti.set_initial(Alphas[j][d], np.random.rand(N))
@@ -131,7 +131,7 @@ class HybridKernelRegressor:
         sum_products_chis *= C_param
 
         # Second part of the optimization objective function:
-        # The sum of norms of alphas/kappas
+        # The sum of norms of alphas/Omegas
         # Here we use the L1 norm
         if norm == 'L1':
             eye = np.ones(N)
@@ -145,7 +145,7 @@ class HybridKernelRegressor:
             for j in range(n):
                 for d in range(D):
                     if tc:
-                        sum_norms += (Kappas[j][d].T @ Kappas[j][d])
+                        sum_norms += (Omegas[j][d].T @ Omegas[j][d])
                     else:
                         sum_norms += (Alphas[j][d].T @ Alphas[j][d])
             to_minimize = sum_norms + sum_products_chis
@@ -192,16 +192,16 @@ class HybridKernelRegressor:
                             opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
                             opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
                         else:
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(X[i].T, Kappas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(X[i].T, Kappas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X[i].T, Omegas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X[i].T, Omegas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
                 else:
                     # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
                     if not tc:
                         opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
                         opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
                     else:
-                        opti.subject_to(x_dotT[d] - casadi.vec(X @ Kappas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
-                        opti.subject_to(x_dotT[d] - casadi.vec(X @ Kappas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(X @ Omegas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(X @ Omegas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
         
         opti.solver('ipopt', dict(), dict(max_iter = 10000))
         
@@ -217,14 +217,14 @@ class HybridKernelRegressor:
                     if not tc:
                         print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
                     else:
-                        print("Kappa_" + str(j) + "_" + str(d) + ": " + str(sol.value(Kappas[j][d])))
+                        print("Omega_" + str(j) + "_" + str(d) + ": " + str(sol.value(Omegas[j][d])))
                     print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
 
         # Saving the results in proper arrays
         if not tc:
             Alphas_sol = np.ndarray((n, D, N))
         else:
-            Kappas_sol = np.ndarray((n, D, D))
+            Omegas_sol = np.ndarray((n, D, D))
         betas_sol  = np.ndarray((n, D))
         Chis_sol   = np.ndarray((n, chi_size_per_mode))
 
@@ -235,7 +235,7 @@ class HybridKernelRegressor:
                 if not tc:
                     Alphas_sol[j][d] = sol.value(Alphas[j][d])
                 else:
-                    Kappas_sol[j][d] = sol.value(Kappas[j][d])
+                    Omegas_sol[j][d] = sol.value(Omegas[j][d])
                 betas_sol[j][d]  = sol.value(betas[j][d])
         
         if segmentation == 'strict':
@@ -253,7 +253,7 @@ class HybridKernelRegressor:
         if not tc:
             self.Alphas_ = Alphas_sol
         else:
-            self.Kappas_ = Kappas_sol
+            self.Omegas_ = Omegas_sol
         self.betas_ = betas_sol
         # self.Chis_ = Chis_sol
         self.Xfit_ = X
@@ -363,7 +363,7 @@ class HybridKernelRegressor:
             kargs_list = self.kargs_list
             Alphas = self.Alphas_
         else:
-            Kappas = self.Kappas_
+            Omegas = self.Omegas_
         betas = self.betas_
         Xfit = self.Xfit_
 
@@ -392,7 +392,7 @@ class HybridKernelRegressor:
                 for d in range(D):
                     X_dot_res[i][d] = Alphas[j][d].T @ K_X_x + betas[j][d]
             else:
-                X_dot_res[i] = (Kappas[j] @ X[i] + betas[j]).reshape(-1)
+                X_dot_res[i] = (Omegas[j] @ X[i] + betas[j]).reshape(-1)
 
         return X_dot_res
 
@@ -427,7 +427,7 @@ class HybridKernelRegressor:
             for j in range(n):
                 for d in range(D):
                     for l in range(D):
-                        params[j][d][l] = self.Kappas_[j][d][l]
+                        params[j][d][l] = self.Omegas_[j][d][l]
                     params[j][d][D] = self.betas_[j][d]
             return SNDS_linear(params, eventlist, labelfun)
 
@@ -473,7 +473,7 @@ class HybridKernelRegressor:
                 print("Mode " + str(j) + ":")
                 for d in range(D):
                     print("x" + str(d) + "_dot:")
-                    coefs = self.Kappas_[j][d]
+                    coefs = self.Omegas_[j][d]
                     print(coefs.T, " ", self.betas_[j][d])
 
     @staticmethod
