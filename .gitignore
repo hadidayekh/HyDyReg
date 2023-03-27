@@ -8,3 +8,5 @@ data/*
 *.pdf
 *.csv
 poly_for_bernstein.zip
+*.model
+*.trajectories
