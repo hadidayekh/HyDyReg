@@ -92,8 +92,6 @@ class HybridKernelRegressor:
         Chis = np.ndarray((n,), dtype=object)
 
         if norm == 'L1':
-            if tc:
-                raise Exception("Fitting to train coefficients with L1 norm is not supported yet.")
             As = np.ndarray((n, D), dtype=object)
         
         for j in range(n):
@@ -117,8 +115,12 @@ class HybridKernelRegressor:
                 opti.set_initial(betas[j][d], np.random.rand())
 
                 if norm == 'L1':
-                    As[j][d] = opti.variable(N)
-                    opti.set_initial(As[j][d], np.random.rand(N))
+                    if not tc:
+                        As[j][d] = opti.variable(N)
+                        opti.set_initial(As[j][d], np.random.rand(N))
+                    else:
+                        As[j][d] = opti.variable(Q)
+                        opti.set_initial(As[j][d], np.random.rand(Q))
         print(chi_size_per_mode)
 
         C_param = opti.parameter()
@@ -129,13 +131,10 @@ class HybridKernelRegressor:
         # This forces one Chi per data point to be ~0, which dictates the mode
 
         sum_products_chis = 0
-        for i in range(N):
+        for i in range(chi_size_per_mode):
             temp = 1
             for j in range(n):
-                if segmentation == 'strict':
-                    temp *= Chis[j][which_segment(i, segments)]
-                else:
-                    temp *= Chis[j][i]
+                temp *= Chis[j][i]
             sum_products_chis += temp
         
         sum_products_chis *= C_param
@@ -144,7 +143,10 @@ class HybridKernelRegressor:
         # The sum of norms of alphas/Omegas
         # Here we use the L1 norm
         if norm == 'L1':
-            eye = np.ones(N)
+            if not tc:
+                eye = np.ones(N)
+            else:
+                eye = np.ones(Q)
             sum_norms_a = 0
             for j in range(n):
                 for d in range(D):
@@ -212,6 +214,16 @@ class HybridKernelRegressor:
                     else:
                         opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
                         opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                if norm=='L1':
+                    if not tc:
+                        # As are bounded by [-alpha, +alpha]
+                        opti.subject_to(-Alphas[j][d] <= As[j][d])
+                        opti.subject_to(As[j][d] <= Alphas[j][d])
+                    else:
+                        # As are bounded by [-omega, +omega]
+                        opti.subject_to(-Omegas[j][d] <= As[j][d])
+                        opti.subject_to(As[j][d] <= Omegas[j][d])
+
         
         opti.solver('ipopt', dict(), dict(max_iter = 10000))
         
