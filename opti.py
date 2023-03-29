@@ -175,7 +175,7 @@ class HybridKernelRegressor:
                 for j in range(n):
                     sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
             
-            to_minimize += C/100*sum_diff_chis
+            to_minimize += C*sum_diff_chis
 
         # Setting the objective function
         opti.minimize(to_minimize)
@@ -282,8 +282,6 @@ class HybridKernelRegressor:
         self.Xfit_trans_ = X_trans
 
     def fit_scipy(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
-        if self.train_coefs:
-            raise Exception("Fitting to train coefficients is not yet implemented with SciPy. Please use fit() instead.")
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
             raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
         if not segmentation is None and len(segments) == 0:
@@ -291,16 +289,26 @@ class HybridKernelRegressor:
         for s in segments:
             assert s < X.shape[0], "At least one index in segments is out of range."
 
-        kernel_mat_list = []
-        for j in range(self.n):
-            if isinstance(self.kernels_list[j], str):
-                kernel = kernel_dic[self.kernels_list[j]]
-            else:
-                kernel = self.kernels_list[j]
-            
-            kernel_mat_list.append(kernel(X, X, self.kargs_list[j]))
-
+        tc = self.train_coefs
         n = self.n
+        deg = self.deg
+        if not tc:
+            kernel_mat_list = []
+            for j in range(n):
+                if isinstance(self.kernels_list[j], str):
+                    kernel = kernel_dic[self.kernels_list[j]]
+                else:
+                    kernel = self.kernels_list[j]
+                
+                kernel_mat_list.append(kernel(X, X, self.kargs_list[j]))
+
+        if tc and deg > 1:
+            poly = PolynomialFeatures(degree=deg, include_bias=False)
+            X_trans = poly.fit_transform(X)
+            self.poly = poly
+        else:
+            X_trans = X
+        kernel_mat_list = []
         
         # deltas could be a scalar or defined per mode
         if (np.isscalar(deltas)):
@@ -311,6 +319,7 @@ class HybridKernelRegressor:
 
         N = X_dot.shape[0]  # nb of points
         D = X_dot.shape[1]  # dimension of each vector
+        Q = X_trans.shape[1]
         S = len(segments)   # Number of segments
 
 
@@ -318,30 +327,48 @@ class HybridKernelRegressor:
         cons = []
 
         # All chis must be positive
-        cons.append({'type': 'ineq', 'fun': lambda x : x[D*n*(N+1):]})
+        if tc:
+            cons.append({'type': 'ineq', 'fun': lambda x : x[D*n*(Q+1):]})
+        else:
+            cons.append({'type': 'ineq', 'fun': lambda x : x[D*n*(N+1):]})
         # Remaining constraints
         for j in range(n):
             for d in range(D):
                 if segmentation != 'strict':
-                    cons_j_d = HybridKernelRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
+                    if not tc:
+                        cons_j_d = HybridKernelRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
+                    else:
+                        cons_j_d = HybridKernelRegressor.scipy_opti_cons_tc(j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j])
                     cons.append({'type': 'ineq', 'fun': cons_j_d[0]})
                     cons.append({'type': 'ineq', 'fun': cons_j_d[1]})
                 else:
                     for i in range(N):
-                        cons_i_j_d = HybridKernelRegressor.scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j], segments)
+                        if not tc:
+                            cons_i_j_d = HybridKernelRegressor.scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j], segments)
+                        else:
+                            cons_i_j_d = HybridKernelRegressor.scipy_opti_cons_strict_seg_tc(i, j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j], segments)
                         cons.append({'type': 'ineq', 'fun': cons_i_j_d[0]})
                         cons.append({'type': 'ineq', 'fun': cons_i_j_d[1]})
 
         chi_size_per_mode = N if segmentation != 'strict' else S
 
-        x0 = np.random.rand(n * (D * (N + 1) + chi_size_per_mode))
+        if not tc:
+            x0 = np.random.rand(n * (D * (N + 1) + chi_size_per_mode))
+        else:
+            x0 = np.random.rand(n * (D * (Q + 1) + chi_size_per_mode))
 
-        res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
+        if not tc:
+            res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
+        else:
+            res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun_tc(x, N, n, D, Q, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
 
         res_x = res.x
 
-        Chis = res_x[D*n*(N+1):].reshape(n, chi_size_per_mode)
-        
+        if not tc:
+            Chis = res_x[D*n*(N+1):].reshape(n, chi_size_per_mode)
+        else:
+            Chis = res_x[D*n*(Q+1):].reshape(n, chi_size_per_mode)
+
         if segmentation != 'strict':
             final_Chis = Chis
         else:
@@ -349,11 +376,15 @@ class HybridKernelRegressor:
             for j in range(n):
                 for i in range(N):
                     final_Chis[j][i] = Chis[j][which_segment(i, segments)]
-
-        self.Alphas_ = res_x[:D*n*N].reshape(n, D, N)
-        self.betas_  = res_x[D*n*N:D*n*(N+1)].reshape(n, D)
+        if not tc:
+            self.Alphas_ = res_x[:D*n*N].reshape(n, D, N)
+            self.betas_  = res_x[D*n*N:D*n*(N+1)].reshape(n, D)
+        else:
+            self.Omegas_ = res_x[:D*n*Q].reshape(n, D, Q)
+            self.betas_  = res_x[D*n*Q:D*n*(Q+1)].reshape(n, D)
         self.Chis_   = final_Chis
         self.Xfit_   = X
+        self.Xfit_trans_ = X_trans
 
     def classify_modes(self, classifier=LogisticRegression()):
         self.check_if_fitted()
@@ -561,6 +592,47 @@ class HybridKernelRegressor:
         return to_minimize
 
     @staticmethod
+    def scipy_opti_fun_tc(opti_x, N, n, D, Q, C, segmentation, segments):
+        # Here the optimization decision variable opti_x is of length
+        # D.N.n + D.n + N.n
+        # denoting respectively the lengths of alphas, betas and chis
+
+        # First calculate the norms of alphas (L2 for now)
+        sum_norms_omega = 0
+        for j in range(n):
+            for d in range(D):
+                omegas_j_d = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
+                sum_norms_omega += np.linalg.norm(omegas_j_d)
+
+        # Second calculate the sum of products of chis
+        sum_products_chi = 0
+        for i in range(N):
+            prod_i = 1
+            for j in range(n):
+                if segmentation != 'strict':
+                    chi_i_j = opti_x[D*n*(Q+1) + N*j + i]
+                else:
+                    chi_i_j = opti_x[D*n*(Q+1) + len(segments)*j + which_segment(i, segments)]
+                prod_i *= chi_i_j
+            sum_products_chi += prod_i
+
+        to_minimize = sum_norms_omega + C * sum_products_chi
+
+        if segmentation == 'squared_diff':
+            sum_diff_chis = 0
+            for r in range(len(segments) - 1):
+                for i in range(segments[r], segments[r+1] - 1):
+                    for j in range(n):
+                        sum_diff_chis += (opti_x[D*n*(Q+1) + N*j + i] - opti_x[D*n*(Q+1) + N*j + (i+1)])**2
+            for i in range(segments[-1], N-1):
+                for j in range(n):
+                    sum_diff_chis += (opti_x[D*n*(Q+1) + N*j + i] - opti_x[D*n*(Q+1) + N*j + (i+1)])**2
+            to_minimize += (C/100) * sum_diff_chis
+
+
+        return to_minimize
+    
+    @staticmethod
     def scipy_opti_cons(j, d, N, n, D, X_dotT_d, K_j, delta_j):
         
         eye = np.ones(N)
@@ -582,6 +654,27 @@ class HybridKernelRegressor:
         return [constraint_1, constraint_2]
 
     @staticmethod
+    def scipy_opti_cons_tc(j, d, N, n, D, Q, X_dotT_d, X_trans, delta_j):
+        
+        eye = np.ones(N)
+
+        def constraint_1(opti_x):
+            omega_jd = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
+            beta_j_d = opti_x[D*Q*n + D*j + d]
+            chi_j = opti_x[D*n*(Q+1) + N*j : D*n*(Q+1) + N*(j+1)]
+
+            return -X_dotT_d + X_trans @ omega_jd + beta_j_d*eye + delta_j*eye + chi_j
+
+        def constraint_2(opti_x):
+            omega_jd = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
+            beta_j_d = opti_x[D*Q*n + D*j + d]
+            chi_j = opti_x[D*n*(Q+1) + N*j : D*n*(Q+1) + N*(j+1)]
+
+            return X_dotT_d - X_trans @ omega_jd - beta_j_d*eye + delta_j*eye + chi_j
+
+        return [constraint_1, constraint_2]
+
+    @staticmethod
     def scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dotT_d, K_j, delta_j, segments):
         S = len(segments)
         def constraint_1(opti_x):
@@ -597,6 +690,25 @@ class HybridKernelRegressor:
             chi_Si_j = opti_x[D*n*(N+1) + S*j + which_segment(i, segments)]
 
             return X_dotT_d[i] - K_j[i].T @ alphas_j_d - beta_j_d + delta_j + chi_Si_j
+
+        return [constraint_1, constraint_2]
+
+    @staticmethod
+    def scipy_opti_cons_strict_seg_tc(i, j, d, N, n, D, Q, X_dotT_d, X_trans, delta_j, segments):
+        S = len(segments)
+        def constraint_1(opti_x):
+            omega_jd = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
+            beta_j_d = opti_x[D*Q*n + D*j + d]
+            chi_Si_j = opti_x[D*n*(Q+1) + S*j + which_segment(i, segments)]
+
+            return -X_dotT_d[i] + X_trans[i].T @ omega_jd + beta_j_d + delta_j + chi_Si_j
+
+        def constraint_2(opti_x):
+            omega_jd = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
+            beta_j_d = opti_x[D*Q*n + D*j + d]
+            chi_Si_j = opti_x[D*n*(Q+1) + S*j + which_segment(i, segments)]
+
+            return X_dotT_d[i] - X_trans[i].T @ omega_jd - beta_j_d + delta_j + chi_Si_j
 
         return [constraint_1, constraint_2]
 
