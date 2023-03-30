@@ -40,10 +40,13 @@ estis = model.estimators_
 # m = -w1/w2
 
 fig,ax = plt.subplots()
+ax.set_aspect(1)
 
-colors = ['tab:blue', 'tab:orange', 'tab:green', 'red', 'red', 'white']
+colors = ['tab:blue', 'tab:orange', 'tab:green']
+if nc == 4:
+    colors.append('red')
 coloors=['r','b']
-cmap = matplotlib.colors.ListedColormap(coloors)
+cmap = matplotlib.colors.ListedColormap(colors)
 
 #disp = DecisionBoundaryDisplay.from_estimator(model, X, grid_resolution=1000, alpha=0.3, cmap=cmap)
 
@@ -72,7 +75,35 @@ for i in range(len(estis)):
     # else:
     #     ax.fill_between(xd, yd, ymin, color=colors[i], alpha=0.2)
 
-h = 0.01
+for i in range(len(estis)):
+    esti1 = estis[i]
+    w1 = esti1.coef_
+    b1 = esti1.intercept_
+    slope1 = -w1.T[0]/w1.T[1]
+    for j in range(i+1, len(estis)):
+        esti2 = estis[j]
+
+        w2 = esti2.coef_
+        b2 = esti2.intercept_
+        slope2 = -w2.T[0]/w2.T[1]
+
+        w = w1 - w2
+        b = b1 - b2
+
+        a1, a2 = w.T
+        c = -b/a2
+        m = -a1/a2
+        slope_mid = m
+        yd = m*xd + c
+        ax.plot(xd, yd, 'r', lw = 1, ls = 'dotted')   
+
+        angle_12  = np.arctan((slope1 - slope2)/(1 + slope1*slope2))
+        angle_w_1 = np.arctan((slope1 - slope_mid)/(1 + slope1*slope_mid))     
+        angle_w_2 = np.arctan((slope_mid - slope2)/(1 + slope_mid*slope2))
+
+        print(angle_12, angle_w_1, angle_w_2, angle_w_1 + angle_w_2)
+
+h = 0.05
 xx, yy = np.meshgrid(np.arange(xmin, xmax, h), np.arange(ymin, ymax, h))
 
 # individual estimator i think??
@@ -99,10 +130,27 @@ def pred_func(x):
             y[i] = 4
     return y
 
-# Z = pred_func(np.c_[xx.ravel(), yy.ravel()])
-# Z = Z.reshape(xx.shape)
-# print(Z)
-# ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.5)
+def dec_function_manual(X):
+    res = np.ndarray((X.shape[0], len(estis)))
+    for i in range(X.shape[0]):
+        for j in range(len(estis)):
+            b = estis[j].intercept_
+            w = estis[j].coef_
+            res[i][j] = np.dot(w, X[i]) + b
+    return res
+
+
+Z1 = np.array(np.argmax(model.decision_function(np.c_[xx.ravel(), yy.ravel()]), axis=1))
+Z2 = np.array(np.argmax(model.predict_proba(np.c_[xx.ravel(), yy.ravel()]), axis=1))
+Z3 = model.predict(np.c_[xx.ravel(), yy.ravel()])
+Z4 = np.array(np.argmax(dec_function_manual(np.c_[xx.ravel(), yy.ravel()]), axis=1))
+
+print(np.array_equal(Z1, Z2))
+print(np.array_equal(Z3, Z2))
+
+Z = Z4.reshape(xx.shape)
+print(Z)
+ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
 
 #Z = model.decision_function(np.c_[xx.ravel(), yy.ravel()])
 #print(Z)
@@ -110,7 +158,7 @@ def pred_func(x):
 
 
 for i in range(nc):
-    ax.scatter(*X[yhat==i].T, s=8, alpha=0.7, color=colors[i])
+    ax.scatter(*X[yhat==i].T, s=8, alpha=0.9, color=colors[i])
 
 ax.set_xlim(xmin, xmax)
 ax.set_ylim(ymin, ymax)
@@ -119,20 +167,3 @@ ax.set_xlabel(r'$x_1$')
 
 fig.savefig("plots/fig.pdf")
 
-
-exit()
-for i in range(y.size):
-    c = ""
-    if yhat[i] == 0:
-    #if y[i] == 0:
-        c = "b"
-    elif yhat[i] == 1:
-    #elif y[i] == 1:
-        c = "r"
-    else:
-        c = "g"
-    ax.scatter(X[i][0], X[i][1], color=c)
-
-plt.show()
-
-print(yhat)
