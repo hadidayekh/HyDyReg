@@ -67,7 +67,7 @@ for i in range(len(estis)):
     m = -w1/w2
     yd = m*xd + c
     # yd = m[i]*xd + c[i]
-    ax.plot(xd, yd, 'k', lw=1, ls='--')
+    ax.plot(xd, yd, 'k', lw=1)
     # if i == 0:
     #     ax.fill_between(xd, yd, ymax, color=colors[i], alpha=0.2)
     #     yd = mbis*xd + cbis
@@ -80,13 +80,16 @@ for i in range(len(estis)):
     w1 = esti1.coef_
     b1 = esti1.intercept_
     slope1 = -w1.T[0]/w1.T[1]
+    wnorm1 = np.linalg.norm(w1)
     for j in range(i+1, len(estis)):
         esti2 = estis[j]
 
         w2 = esti2.coef_
         b2 = esti2.intercept_
         slope2 = -w2.T[0]/w2.T[1]
+        wnorm2 = np.linalg.norm(w2)
 
+        # decision function
         w = w1 - w2
         b = b1 - b2
 
@@ -95,7 +98,17 @@ for i in range(len(estis)):
         m = -a1/a2
         slope_mid = m
         yd = m*xd + c
-        ax.plot(xd, yd, 'r', lw = 1, ls = 'dotted')   
+        ax.plot(xd, yd, 'r', lw = 1, ls = '--')
+
+        # BISECTOR
+        w_bis = w1/wnorm1 - w2/wnorm2
+        b_bis = b1/wnorm1 - b2/wnorm2
+        a1, a2 = w_bis.T
+        c = -b_bis/a2
+        m = -a1/a2
+        slope_bis = m
+        yd = m*xd + c
+        ax.plot(xd, yd, 'k', lw = 1, ls='dotted')
 
         angle_12  = np.arctan((slope1 - slope2)/(1 + slope1*slope2))
         angle_w_1 = np.arctan((slope1 - slope_mid)/(1 + slope1*slope_mid))     
