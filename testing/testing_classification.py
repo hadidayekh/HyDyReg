@@ -7,14 +7,14 @@ from sklearn.inspection import DecisionBoundaryDisplay
 import matplotlib.colors
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier
 # define dataset
-nc=3
+nc=4
 X, y = make_classification(n_samples=1000, n_features=2, n_informative=2, n_clusters_per_class=1, n_redundant=0, n_classes=nc, random_state=1)
 
 
 # define model
 #model = LogisticRegression(multi_class='ovr')
 
-model = LogisticRegression()
+model = LogisticRegression(penalty='l2')
 model = OneVsRestClassifier(model)
 
 # fit model
@@ -67,13 +67,15 @@ for i in range(len(estis)):
     m = -w1/w2
     yd = m*xd + c
     # yd = m[i]*xd + c[i]
-    ax.plot(xd, yd, 'k', lw=1)
+    ax.plot(xd, yd, 'k', lw=1, ls='--')
     # if i == 0:
     #     ax.fill_between(xd, yd, ymax, color=colors[i], alpha=0.2)
     #     yd = mbis*xd + cbis
     #     ax.plot(xd, yd, 'r', lw=1)
     # else:
     #     ax.fill_between(xd, yd, ymin, color=colors[i], alpha=0.2)
+
+xd = np.linspace(xmin, xmax,1000)
 
 for i in range(len(estis)):
     esti1 = estis[i]
@@ -82,6 +84,11 @@ for i in range(len(estis)):
     slope1 = -w1.T[0]/w1.T[1]
     wnorm1 = np.linalg.norm(w1)
     for j in range(i+1, len(estis)):
+        if i==0 and j==1:
+            xd = np.linspace(0.1, 0.3,1000)
+        else:
+            xd = np.linspace(xmin, xmax,1000)
+
         esti2 = estis[j]
 
         w2 = esti2.coef_
@@ -98,7 +105,31 @@ for i in range(len(estis)):
         m = -a1/a2
         slope_mid = m
         yd = m*xd + c
-        ax.plot(xd, yd, 'r', lw = 1, ls = '--')
+
+        pr_min = model.predict_proba([[xd[0], yd[0]]])[0]
+        pr_max = model.predict_proba([[xd[-1], yd[-1]]])[0]
+        
+        max1 = np.max(pr_min)
+        i1 = np.argmax(pr_min)
+        max3 = np.max(pr_max)
+        i3 = np.argmax(pr_max)
+        
+        pr_min[i1] = -1
+        pr_max[i3] = -1
+
+        max2 = np.max(pr_min)
+        i2 = np.argmax(pr_min)
+        max4 = np.max(pr_max)
+        i4 = np.argmax(pr_max)
+
+        newx = []
+        newy = []
+        for q in range(len(xd)):
+            if model.predict([[xd[q], yd[q]]])[0] == i or model.predict([[xd[q], yd[q]]])[0] == j:
+                newx.append(xd[q])
+                newy.append(yd[q])
+        ax.plot(newx, newy, 'k', lw = 1)
+
 
         # BISECTOR
         w_bis = w1/wnorm1 - w2/wnorm2
@@ -108,7 +139,8 @@ for i in range(len(estis)):
         m = -a1/a2
         slope_bis = m
         yd = m*xd + c
-        ax.plot(xd, yd, 'k', lw = 1, ls='dotted')
+        xd = np.linspace(xmin, xmax,1000)
+
 
         angle_12  = np.arctan((slope1 - slope2)/(1 + slope1*slope2))
         angle_w_1 = np.arctan((slope1 - slope_mid)/(1 + slope1*slope_mid))     
