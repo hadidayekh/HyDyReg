@@ -1,5 +1,4 @@
 # logistic regression for multi-class classification using built-in one-vs-rest
-from turtle import color
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression, LinearRegression
 import matplotlib.pyplot as plt
@@ -16,7 +15,7 @@ X, y = make_classification(n_samples=1000, n_features=2, n_informative=2, n_clus
 #model = LogisticRegression(multi_class='ovr')
 
 model = LogisticRegression()
-model = OneVsOneClassifier(model)
+model = OneVsRestClassifier(model)
 
 # fit model
 model.fit(X, y)
@@ -40,18 +39,22 @@ estis = model.estimators_
 # c = -b/w2
 # m = -w1/w2
 
+fig,ax = plt.subplots()
 
-colors = ['tab:blue', 'tab:orange', 'tab:green']
-cmap = matplotlib.colors.ListedColormap(colors)
+colors = ['tab:blue', 'tab:orange', 'tab:green', 'red', 'red', 'white']
+coloors=['r','b']
+cmap = matplotlib.colors.ListedColormap(coloors)
 
-disp = DecisionBoundaryDisplay.from_estimator(model, X, grid_resolution=10000, alpha=0.3, cmap=cmap)
+#disp = DecisionBoundaryDisplay.from_estimator(model, X, grid_resolution=1000, alpha=0.3, cmap=cmap)
 
 
 # Plot the data and the classification with the decision boundary.
 xmin, xmax = -4, 4
 ymin, ymax = -4, 4
 xd = np.array([xmin, xmax])
-for i in range(nc):
+
+# plot estimators
+for i in range(len(estis)):
     clf = estis[i]
     b = clf.intercept_
     w = clf.coef_
@@ -61,24 +64,60 @@ for i in range(nc):
     m = -w1/w2
     yd = m*xd + c
     # yd = m[i]*xd + c[i]
-    plt.plot(xd, yd, 'k', lw=1, ls='--')
+    ax.plot(xd, yd, 'k', lw=1, ls='--')
     # if i == 0:
-    #     plt.fill_between(xd, yd, ymax, color=colors[i], alpha=0.2)
+    #     ax.fill_between(xd, yd, ymax, color=colors[i], alpha=0.2)
     #     yd = mbis*xd + cbis
-    #     plt.plot(xd, yd, 'r', lw=1)
+    #     ax.plot(xd, yd, 'r', lw=1)
     # else:
-    #     plt.fill_between(xd, yd, ymin, color=colors[i], alpha=0.2)
-#plt.fill_between(xd, yd, ymax, color='tab:orange', alpha=0.2)
+    #     ax.fill_between(xd, yd, ymin, color=colors[i], alpha=0.2)
+
+h = 0.01
+xx, yy = np.meshgrid(np.arange(xmin, xmax, h), np.arange(ymin, ymax, h))
+
+# individual estimator i think??
+def pred_func(x):
+
+    N = x.shape[0]
+    y = np.zeros(N)
+
+    estis0 = estis[0].predict(x)
+    estis1 = estis[1].predict(x)
+    estis2 = estis[2].predict(x)
+    estis3 = estis[3].predict(x)
+
+    for i in range(N):
+        if   estis0[i] == 1 and estis1[i] == 0 and estis2[i] == 0 and estis3[i] == 0:
+            y[i] = 0
+        elif estis0[i] == 0 and estis1[i] == 1 and estis2[i] == 0 and estis3[i] == 0:
+            y[i] = 1
+        elif estis0[i] == 0 and estis1[i] == 0 and estis2[i] == 1 and estis3[i] == 0:
+            y[i] = 2
+        elif estis0[i] == 0 and estis1[i] == 0 and estis2[i] == 0 and estis3[i] == 1:
+            y[i] = 3
+        else:
+            y[i] = 4
+    return y
+
+# Z = pred_func(np.c_[xx.ravel(), yy.ravel()])
+# Z = Z.reshape(xx.shape)
+# print(Z)
+# ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.5)
+
+#Z = model.decision_function(np.c_[xx.ravel(), yy.ravel()])
+#print(Z)
+#Z = Z.T[1].reshape(xx.shape)
+
 
 for i in range(nc):
-    plt.scatter(*X[yhat==i].T, s=8, alpha=0.7, color=colors[i])
+    ax.scatter(*X[yhat==i].T, s=8, alpha=0.7, color=colors[i])
 
-plt.xlim(xmin, xmax)
-plt.ylim(ymin, ymax)
-plt.ylabel(r'$x_2$')
-plt.xlabel(r'$x_1$')
+ax.set_xlim(xmin, xmax)
+ax.set_ylim(ymin, ymax)
+ax.set_ylabel(r'$x_2$')
+ax.set_xlabel(r'$x_1$')
 
-plt.show()
+fig.savefig("plots/fig.pdf")
 
 
 exit()
@@ -92,7 +131,7 @@ for i in range(y.size):
         c = "r"
     else:
         c = "g"
-    plt.scatter(X[i][0], X[i][1], color=c)
+    ax.scatter(X[i][0], X[i][1], color=c)
 
 plt.show()
 
