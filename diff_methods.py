@@ -87,7 +87,7 @@ def diff_method_central(t_list, x_list, segments=[]):
         return final_X, final_X_dot
 
 # Five point stencil differentiation method, using two points from the back and two from the front
-def diff_method_fps(t_list, x_list, segments=[]):
+def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
     nb_traj = t_list.shape[0] # number of arrays of t-points in t_list
     assert(nb_traj == x_list.shape[0]) # should be equal to number of x-points in x_list
     x_dim = x_list[0][0].shape[0] # dimension of each data point x
@@ -95,20 +95,56 @@ def diff_method_fps(t_list, x_list, segments=[]):
     for i in range(nb_traj):
         t_points = t_list[i]
         x_points = x_list[i]
-        nb_points = t_points.shape[0]
-        assert(nb_points == x_points.shape[0])
 
-        # assuming t_points are equally spaced
-        h = t_points[1] - t_points[0]
+        if not remove_seg:
+            nb_points = t_points.shape[0]
+            assert(nb_points == x_points.shape[0])
 
-        D = nb_points - 4
-        
-        X = np.zeros([D, x_dim])
-        X_dot = np.zeros([D, x_dim])
+            # assuming t_points are equally spaced
+            h = t_points[1] - t_points[0]
 
-        for j in range(0, D):
-            X[j] = x_points[j+2]
-            X_dot[j] = (-x_points[j+4] + 8*x_points[j+3] - 8*x_points[j+1] + x_points[j]) / (12.0 * h)
+            D = nb_points - 4
+            
+            X = np.zeros([D, x_dim])
+            X_dot = np.zeros([D, x_dim])
+
+            for j in range(0, D):
+                X[j] = x_points[j+2]
+                X_dot[j] = (-x_points[j+4] + 8*x_points[j+3] - 8*x_points[j+1] + x_points[j]) / (12.0 * h)
+        else:
+            seg_curr = segments[i]
+            for k in range(len(seg_curr)-1):
+                t_points_seg = t_points[seg_curr[k]:seg_curr[k+1]]
+                x_points_seg = x_points[seg_curr[k]:seg_curr[k+1]]
+                nb_points = t_points_seg.shape[0]
+                assert(nb_points == x_points_seg.shape[0])
+                # assuming t_points are equally spaced
+                h = t_points_seg[1] - t_points_seg[0]
+                D = nb_points - 4
+                if D <= 0:
+                    continue
+
+                X_seg = np.zeros([D, x_dim])
+                X_dot_seg = np.zeros([D, x_dim])
+                for j in range(0, D):
+                    X_seg[j] = x_points_seg[j+2]
+                    X_dot_seg[j] = (-x_points_seg[j+4] + 8*x_points_seg[j+3] - 8*x_points_seg[j+1] + x_points_seg[j]) / (12.0 * h)
+
+                if (k==0):
+                    X = X_seg
+                    X_dot = X_dot_seg
+                else:
+                    # if multiple trajectories, concatenate them
+                    X = np.r_[X, X_seg]
+                    X_dot = np.r_[X_dot, X_dot_seg]
+                
+                if i==0:
+                    seg_res.append(X.shape[0] - X_seg.shape[0])
+                else:
+                    seg_res.append(X.shape[0] - X_seg.shape[0] + final_X.shape[0])
+
+
+
             
         if (i==0):
             final_X = X
