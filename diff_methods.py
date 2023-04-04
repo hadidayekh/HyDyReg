@@ -154,7 +154,7 @@ def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
             final_X = np.r_[final_X, X]
             final_X_dot = np.r_[final_X_dot, X_dot]
 
-        if len(segments) > 0:
+        if len(segments) > 0 and not remove_seg:
             seg_curr = segments[i]
             begin_index = 0
             for j in range(0, i):
