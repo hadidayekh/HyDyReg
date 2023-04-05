@@ -90,7 +90,7 @@ sul = SNDS_linear(params, eventlist, labelfun)
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
 x0s = [[-2, 4], [1.5, 10], [0,5]]#, [2,12], [-4, 10]]
-time_step = 0.08
+time_step = 0.04
 time_range = 4
 
 # Simulating or loading trajectories
@@ -126,7 +126,7 @@ if k_learn:
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments)
+    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=False)
     
     if load_pickle:
         file = open(exp_title + '.model', 'rb')
@@ -134,10 +134,10 @@ if k_learn:
         file.close()
     else:
         # Defining the model
-        model = HybridKernelRegressor(train_coefs=True, n=3, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
+        model = HybridKernelRegressor(train_coefs=True, n=3, deg=1, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
 
         # Fitting the model with its corresponding derivatives
-        model.fit(X, X_dot, deltas=0.001, C=1000, segmentation='squared_diff', segments=seg_res)
+        model.fit(X, X_dot, norm='L2', deltas=0.001, C=1000)#, segmentation='strict', segments=seg_res)
 
         if save_pickle:
             file = open(exp_title + '.model', 'wb')
@@ -169,12 +169,14 @@ if k_learn:
 
     trajs_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
 
-
-    fig2, ax2 = plotting.draw_trajectories_2D(trajectories, label='Original trajectories', colors=['b'], mark_beginning=True, plot_xt=True)
-    fig2, ax2 = plotting.draw_trajectories_2D(trajs_learned, fig=fig2, axs=ax2, colors=['m'], label='Learned trajectories', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
-    ax2['main'].minorticks_on()
-    ax2['main'].grid(which='both', lw=0.1)
-    ax2['main'].set_title(textwrap.fill('Training data versus trajectories simulated from the learning model with the same intial conditions as the training data, as well as the mode state space partitioning.', width=60))
+    try:
+        fig2, ax2 = plotting.draw_trajectories_2D(trajectories, label='Original trajectories', colors=['b'], mark_beginning=True, plot_xt=True)
+        fig2, ax2 = plotting.draw_trajectories_2D(trajs_learned, fig=fig2, axs=ax2, colors=['m'], label='Learned trajectories', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+        ax2['main'].minorticks_on()
+        ax2['main'].grid(which='both', lw=0.1)
+        ax2['main'].set_title(textwrap.fill('Training data versus trajectories simulated from the learning model with the same intial conditions as the training data, as well as the mode state space partitioning.', width=60))
+    except:
+        print("Failed to plot trajs.")
 
 
 
@@ -191,3 +193,5 @@ if k_learn:
 
         file_name = "plots/SIM-MODES_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
         fig3.savefig(file_name)
+
+    plt.show()
