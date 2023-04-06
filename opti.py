@@ -102,7 +102,7 @@ class HybridKernelRegressor:
             
             Chis[j] = opti.variable(chi_size_per_mode)
             opti.set_initial(Chis[j], np.random.rand(chi_size_per_mode))
-            
+
             for d in range(D):
                 if tc:
                     Omegas[j][d] = opti.variable(Q)
@@ -113,7 +113,7 @@ class HybridKernelRegressor:
 
                 betas[j][d] = opti.variable()
                 opti.set_initial(betas[j][d], np.random.rand())
-
+                #betas[j][d] = 0
                 if norm == 'L1':
                     if not tc:
                         As[j][d] = opti.variable(N)
@@ -131,10 +131,13 @@ class HybridKernelRegressor:
         # This forces one Chi per data point to be ~0, which dictates the mode
 
         sum_products_chis = 0
-        for i in range(chi_size_per_mode):
+        for i in range(N):
             temp = 1
             for j in range(n):
-                temp *= Chis[j][i]
+                if segmentation == 'strict':
+                    temp *= Chis[j][which_segment(i, segments)]
+                else:
+                    temp *= Chis[j][i]
             sum_products_chis += temp
         
         sum_products_chis *= C_param
@@ -386,10 +389,14 @@ class HybridKernelRegressor:
         self.Xfit_   = X
         self.Xfit_trans_ = X_trans
 
-    def classify_modes(self, classifier=LogisticRegression()):
+    def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None):
         self.check_if_fitted()
-        classifier = OneVsRestClassifier(classifier)
-        classifier.fit(self.Xfit_, self.get_modes())
+        if X is None:
+            X = self.Xfit_
+            modes = self.get_modes()
+        if self.n > 2:
+            classifier = OneVsRestClassifier(classifier)
+        classifier.fit(X, modes)
 
         def event(t, x):
             return self.classifier_boundary([x])
@@ -400,6 +407,15 @@ class HybridKernelRegressor:
         self.labelfun_ = lambda x : self.classifier_.predict([x])[0]
         self.eventlist_ = event
 
+    def improve_classification(self, X, X_dot, classifier=LogisticRegression()):
+        X_dot_pred_diff = np.ndarray((self.n, X_dot.shape[0], X_dot.shape[1]))
+        for j in range(self.n):
+            X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)
+        
+        X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
+        modes = np.argmin(X_dot_pred_diff, axis=0)
+        self.classify_modes(classifier = classifier, X = np.r_[self.Xfit_, X], modes = np.r_[self.get_modes(), modes])
+    
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION
         # Things to check:
@@ -543,6 +559,7 @@ class HybridKernelRegressor:
             n, D = self.betas_.shape
             if self.deg > 1:
                 print(self.poly.get_feature_names_out())
+                print(self.poly.powers_)
             for j in range(n):
                 print("Mode " + str(j) + ":")
                 for d in range(D):
@@ -714,20 +731,25 @@ class HybridKernelRegressor:
 
     def classifier_boundary(self, x):
         self.check_if_fitted()
-        decs = self.classifier_.predict_proba(x)[0]
-        i1, i2 = 0, 0
-        max1, max2 = 0, 0
+        decs = self.classifier_.decision_function(x)[0]
+        if self.n > 2:
+            i1, i2 = 0, 0
+            max1, max2 = decs[0], decs[1]
 
-        for i in range(len(decs)):
-            if decs[i] > max1:
-                max1 = decs[i]
-                i1 = i
-        for i in range(len(decs)):
-            if decs[i] > max2 and decs[i] < max1:
-                max2 = decs[i]
-                i2 = i
+            for i in range(len(decs)):
+                if decs[i] >= max1:
+                    max1 = decs[i]
+                    i1 = i
+            for i in range(len(decs)):
+                if decs[i] >= max2 and i != i1:
+                    max2 = decs[i]
+                    i2 = i
 
-        if i1 < i2:
-            return decs[i1] - decs[i2]
+            if i1 < i2:
+                e = decs[i1] - decs[i2]
+            else:
+                e = decs[i2] - decs[i1]
         else:
-            return decs[i2] - decs[i1]
+            e = decs
+
+        return e
