@@ -7,6 +7,9 @@ import pandas as pd
 import os
 from tslearn.clustering import TimeSeriesKMeans
 from tslearn.utils import to_time_series_dataset
+from sklearn.preprocessing import PolynomialFeatures
+
+from diff_methods import diff_method_fps
 
 class SNDS:
     '''
@@ -26,7 +29,7 @@ class SNDS:
         self.labelfun = labelfun
         self.eventlist = eventlist
 
-    def simulate_trajectory(self, step, T, x0s):
+    def simulate_trajectory(self, step, T, x0s, t0=0):
         num = round(T/step + 1)
 
         t_list = []
@@ -37,9 +40,9 @@ class SNDS:
             x0 = x0s[k]
             # the mode of the initial condition
             label = self.labelfun(x0)
-            t_start = 0
-            t_end = T + 2*step
-            t_points = np.linspace(0, T, num)
+            t_start = t0
+            t_end = T + t0 + 2*step
+            t_points = np.linspace(t0, T+t0, num)
             status = 1
             ite = 0
             while status == 1:
@@ -97,10 +100,45 @@ class SNDS:
                 if t_points.size == 1:
                     status = 0
 
-            t_list.append(np.linspace(0, T, num))
+            t_list.append(np.linspace(t0, t0+T, num))
             x_list.append(X_points)
         trajs = Trajectories(t_list, x_list)
         return trajs
+
+    def generate_points_between_segments(self, trajectories, segments, seg_tol, timestep='default'):
+        t_list = trajectories.t_list
+        x_list = trajectories.x_list
+        if timestep == 'default':
+            timestep = (t_list[0][1] - t_list[0][0])/10
+
+        for i in range(len(t_list)):
+            x_points = x_list[i]
+            t_points = t_list[i]
+            seg_curr = segments[i]
+
+            for r in range(1, len(seg_curr) - 1):
+                seg_index = seg_curr[r]
+                x0 = x_points[seg_index - 3]
+                t_start = t_points[seg_index - 3]
+                t_end = t_points[seg_index + 3]
+                T = t_end - t_start
+
+                fine_trajs = self.simulate_trajectory(timestep, T, [x0], t_start)
+                segments_fine = fine_trajs.segment_trajectories(seg_tol)
+                while len(segments_fine[0]) < 3:
+                    segments_fine = fine_trajs.segment_trajectories(seg_tol/2)
+                import plotting
+                plotting.draw_trajectories_2D(fine_trajs, segments=segments_fine)
+                X, X_dot, seg_res = diff_method_fps(np.array(fine_trajs.t_list), np.array(fine_trajs.x_list), segments_fine, remove_seg=True)
+
+                if i == 0 and r == 1:
+                    final_X = X
+                    final_X_dot = X_dot
+                else:
+                    final_X = np.r_[final_X, X]
+                    final_X_dot = np.r_[final_X_dot, X_dot]
+        return final_X, final_X_dot
+
 
 class Trajectories:
     '''
@@ -137,7 +175,7 @@ class Trajectories:
             if len(segments) > 0:
                 for seg_index in segments[i]:
                     ax.scatter(x0[seg_index], x1[seg_index], marker='|', c='r', linewidths=0.1)
-            
+
 
             if plot_xt:
                 axs['x0'].scatter(self.t_list[i], x0, c=colors[i], s=2)
@@ -204,7 +242,7 @@ class Trajectories:
         return Segments
 
 
-    def lin_reg(self, segments, diff_method):
+    def lin_reg(self, segments, diff_method, deg=1):
         x_list = self.x_list
         t_list = self.t_list
         models = []
@@ -213,11 +251,12 @@ class Trajectories:
                 t_list_s = np.array([t_list[i][segments[i][s]:segments[i][s+1]]])
                 x_list_s = np.array([x_list[i][segments[i][s]:segments[i][s+1]]])
                 X, X_dot = diff_method(t_list_s, x_list_s)
+                if deg > 1:
+                    X = PolynomialFeatures(degree=deg, include_bias=False).fit_transform(X)
                 model = LinearRegression().fit(X, X_dot)
                 models.append(model)
 
-                # print('model', model.coef_)
-                # print('intercept', model.intercept_)
+                print('model coef, intercept:', model.coef_, model.intercept_)
         return models
 
     def cluster(self, segments, n_clusters, diff_method=None):
