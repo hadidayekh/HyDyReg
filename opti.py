@@ -729,17 +729,18 @@ class HybridKernelRegressor:
 
         return [constraint_1, constraint_2]
 
-    def classifier_boundary(self, x):
+    def classifier_boundary(self, x, print_on=False):
         self.check_if_fitted()
         decs = self.classifier_.decision_function(x)[0]
         if self.n > 2:
             i1, i2 = 0, 0
-            max1, max2 = decs[0], decs[1]
+            max1, max2 = decs[0], decs[0]
 
-            for i in range(len(decs)):
-                if decs[i] >= max1:
-                    max1 = decs[i]
-                    i1 = i
+            i1 = np.argmax(decs)
+            max1 = decs[i1]
+
+            i2 = np.argmin(decs)
+            max2 = decs[i2]
             for i in range(len(decs)):
                 if decs[i] >= max2 and i != i1:
                     max2 = decs[i]
@@ -752,4 +753,6 @@ class HybridKernelRegressor:
         else:
             e = decs
 
+        if print_on:
+            print(decs, max1, max2)
         return e
