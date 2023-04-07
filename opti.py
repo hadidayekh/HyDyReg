@@ -406,6 +406,8 @@ class HybridKernelRegressor:
         self.classifier_ = classifier
         self.labelfun_ = lambda x : self.classifier_.predict([x])[0]
         self.eventlist_ = event
+        self.X_classify_ = X
+        self.modes_classify_ = modes
 
     def improve_classification(self, X, X_dot, classifier=LogisticRegression()):
         X_dot_pred_diff = np.ndarray((self.n, X_dot.shape[0], X_dot.shape[1]))
