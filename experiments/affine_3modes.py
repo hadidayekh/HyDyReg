@@ -19,8 +19,8 @@ import textwrap
 exp_title = "affine_3modes"
 k_learn = True
 save_plots = True
-save_pickle = True
-load_pickle = False
+save_pickle = False
+load_pickle = True
 seg_tol = 0.5
 
 '''
@@ -126,7 +126,7 @@ if k_learn:
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=False)
+    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
     
     if load_pickle:
         file = open(exp_title + '.model', 'rb')
@@ -137,7 +137,7 @@ if k_learn:
         model = HybridKernelRegressor(train_coefs=True, n=3, deg=1, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
 
         # Fitting the model with its corresponding derivatives
-        model.fit(X, X_dot, norm='L2', deltas=0.001, C=1000)#, segmentation='strict', segments=seg_res)
+        model.fit_scipy(X, X_dot, norm='L2', deltas=0.0001, C=100, segmentation='strict', segments=seg_res)
 
         if save_pickle:
             file = open(exp_title + '.model', 'wb')
@@ -145,7 +145,11 @@ if k_learn:
             file.close()
 
     # Classify modes
+    #model.classify_modes(SVC(kernel='linear', C=1))
     model.classify_modes(LogisticRegression(penalty='none'))
+    fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
+    #ax1['main'].scatter(fine_X.T[0], fine_X.T[1], linewidths=0.1, c='k')
+    model.improve_classification(fine_X, fine_X_dot, classifier=LogisticRegression(penalty='none'))
 
     # Comparing modes to each other
     modes = model.get_modes()
@@ -173,7 +177,7 @@ if k_learn:
         fig2, ax2 = plotting.draw_trajectories_2D(trajectories, label='Original trajectories', colors=['b'], mark_beginning=True, plot_xt=True)
         fig2, ax2 = plotting.draw_trajectories_2D(trajs_learned, fig=fig2, axs=ax2, colors=['m'], label='Learned trajectories', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
         ax2['main'].minorticks_on()
-        ax2['main'].grid(which='both', lw=0.1)
+        #ax2['main'].grid(which='both', lw=0.1)
         ax2['main'].set_title(textwrap.fill('Training data versus trajectories simulated from the learning model with the same intial conditions as the training data, as well as the mode state space partitioning.', width=60))
     except:
         print("Failed to plot trajs.")
@@ -181,7 +185,7 @@ if k_learn:
 
 
     
-    fig3, ax3 = plotting.plot_with_modes_2D(model.Xfit_, modes, labelfun=model.labelfun_)
+    fig3, ax3 = plotting.plot_with_modes_2D(model.X_classify_, model.modes_classify_, labelfun=model.labelfun_)
     ax3.set_title(textwrap.fill("Training data and their corresponding learned modes, as well as the result of classification.", width=60))
 
     if save_plots:

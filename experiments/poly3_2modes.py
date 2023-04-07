@@ -1,5 +1,6 @@
 import sys
 from sklearn.linear_model import LogisticRegression
+import warnings
 
 # setting path to access parent directory files
 sys.path.append('./')
@@ -19,8 +20,8 @@ import textwrap
 exp_title = "poly3_2modes"
 k_learn = True
 save_plots = True
-save_pickle = True
-load_pickle = False
+save_pickle = False
+load_pickle = True
 seg_tol = 0.5
 
 '''
@@ -34,14 +35,14 @@ a, b, c (3 modes)
 
 # Label function to decide which mode
 def labelfun(x):
-    if x[1] >= 0:
+    if x[1] + x[0]/12 - 0.5 >= 0:
         return 0
     else:
         return 1
 
 
 # Events to be tracked by the IVP solver
-event = lambda t, x : x[1]
+event = lambda t, x : x[1] + x[0]/12 - 0.5
 event.terminal = True
 event.direction = 0
 
@@ -58,17 +59,17 @@ def eq2(t, y):
     return [ b1 * y[0]**2 + b2 * y[1]**3,
             b3 * y[0]]
 
-eqs2 = [eq1, eq2]
+eqs = [eq1, eq2]
 
 
 ##### DEFINING SNDS #####
-sul = SNDS(2, 2, eqs2, eventlist, labelfun)
+sul = SNDS(2, 2, eqs, eventlist, labelfun)
 
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
-time_step = 0.1
-time_range = 5
-x0s = [[0,3], [0,4], [0,5]]
+time_step = 0.05
+time_range = 10
+x0s = [[0,4], [0,4.5], [0,5]]
 
 # Simulating or loading trajectories
 if not load_pickle:
@@ -82,8 +83,7 @@ else:
     trajectories = pickle.load(file)
     file.close()
 
-print(trajectories.x_list[0].shape)
-print(trajectories.t_list[0].shape)
+
 # Segmenting
 segments = trajectories.segment_trajectories(seg_tol)
 
@@ -97,24 +97,70 @@ if save_plots:
     file_name = "plots/SIM_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
     fig1.savefig(file_name)
 
+t_arr = np.array(trajectories.t_list)
+x_arr = np.array(trajectories.x_list)
+X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
+#X_dot = np.array([eqs[abs(labelfun(x)-1)](0, x) for x in X])
+
+X0 = []
+X0_dot = []
+X1 = []
+X1_dot = []
+for i in range(X.shape[0]):
+    x = X[i]
+    xdot = X_dot[i]
+    if labelfun(x) == 0:
+        X0.append(x)
+        X0_dot.append(xdot)
+    else:
+        X1.append(x)
+        X1_dot.append(xdot)
+
+X0 = np.array(X0)
+X1 = np.array(X1)
+X0_dot = np.array(X0_dot)
+X1_dot = np.array(X1_dot)
+
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+poly = PolynomialFeatures(degree=3)
+X0 = poly.fit_transform(X0)
+X1 = PolynomialFeatures(degree=3).fit_transform(X1)
+
+model00 = LinearRegression().fit(X0, X0_dot.T[0])
+model01 = LinearRegression().fit(X0, X0_dot.T[1])
+model10 = LinearRegression().fit(X1, X1_dot.T[0])
+model11 = LinearRegression().fit(X1, X1_dot.T[1])
+
+print(poly.get_feature_names_out())
+print("Mode 0")
+print(model00.coef_[3], model00.coef_[-1])
+print(model01.coef_[1])
+print("Mode 1")
+print(model10.coef_[3], model10.coef_[-1])
+print(model11.coef_[1])
+
+
+
+
 if k_learn:
     #### LEARNING THE SNDS ####
 
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments)
-    
+    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
+
     if load_pickle:
         file = open(exp_title + '.model', 'rb')
         model = pickle.load(file)
         file.close()
     else:
         # Defining the model
-        model = HybridKernelRegressor(train_coefs=True, n=2, deg=3, kernels_list=['polynomial', 'polynomial'], kargs_list=[[3, 1, 1], [3, 1, 1]])
+        model = HybridKernelRegressor(train_coefs=True, n=2, deg=3)#, kernels_list=['polynomial', 'polynomial'], kargs_list=[[3, 1, 1], [3, 1, 1]])
 
         # Fitting the model with its corresponding derivatives
-        model.fit(X, X_dot, deltas=0.001, C=1000)#, segmentation='squared_diff', segments=seg_res)
+        model.fit(X, X_dot, norm='L2', deltas=0.001, C=10000, segmentation='strict', segments=seg_res)
 
         if save_pickle:
             file = open(exp_title + '.model', 'wb')
@@ -122,7 +168,10 @@ if k_learn:
             file.close()
 
     # Classify modes
+    #model.classify_modes(SVC(kernel='linear', C=0.1))
     model.classify_modes(LogisticRegression(penalty='none'))
+    fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
+    #model.improve_classification(fine_X, fine_X_dot, LogisticRegression(penalty='none'))
 
     # Comparing modes to each other
     modes = model.get_modes()
@@ -142,16 +191,23 @@ if k_learn:
 
     #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
 
-    learned_SNDS = model.to_SNDS()#labelfun=labelfun, eventlist=eventlist)
+    if modes[0] == 0:
+        labelfun_u = labelfun
+    else:
+        labelfun_u = lambda x : 0 if labelfun(x) == 1 else 1
+    learned_SNDS = model.to_SNDS()#labelfun=labelfun_u, eventlist=eventlist)
 
     trajs_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
 
 
-    fig2, ax2 = plotting.draw_trajectories_2D(trajectories, label='Original trajectories', colors=['b'], mark_beginning=True, plot_xt=True)
-    fig2, ax2 = plotting.draw_trajectories_2D(trajs_learned, fig=fig2, axs=ax2, colors=['m'], label='Learned trajectories', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
-    ax2['main'].minorticks_on()
-    ax2['main'].grid(which='both', lw=0.1)
-    ax2['main'].set_title(textwrap.fill('Training data versus trajectories simulated from the learning model with the same intial conditions as the training data, as well as the mode state space partitioning.', width=60))
+    try:
+        fig2, ax2 = plotting.draw_trajectories_2D(trajectories, label='Original trajectories', colors=['b'], mark_beginning=True, plot_xt=True)
+        fig2, ax2 = plotting.draw_trajectories_2D(trajs_learned, fig=fig2, axs=ax2, colors=['m'], label='Learned trajectories', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+        ax2['main'].minorticks_on()
+        ax2['main'].grid(which='both', lw=0.1)
+        ax2['main'].set_title(textwrap.fill('Training data versus trajectories simulated from the learning model with the same intial conditions as the training data, as well as the mode state space partitioning.', width=60))
+    except:
+        warnings.warn("Failed to plot trajectories.")
 
 
 
@@ -168,3 +224,5 @@ if k_learn:
 
         file_name = "plots/SIM-MODES_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
         fig3.savefig(file_name)
+
+    plt.show()
