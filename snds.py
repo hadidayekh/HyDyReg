@@ -127,8 +127,6 @@ class SNDS:
                 segments_fine = fine_trajs.segment_trajectories(seg_tol)
                 while len(segments_fine[0]) < 3:
                     segments_fine = fine_trajs.segment_trajectories(seg_tol/2)
-                import plotting
-                plotting.draw_trajectories_2D(fine_trajs, segments=segments_fine)
                 X, X_dot, seg_res = diff_method_fps(np.array(fine_trajs.t_list), np.array(fine_trajs.x_list), segments_fine, remove_seg=True)
 
                 if i == 0 and r == 1:
