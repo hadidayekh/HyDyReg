@@ -119,11 +119,10 @@ def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
                 nb_points = t_points_seg.shape[0]
                 assert(nb_points == x_points_seg.shape[0])
                 # assuming t_points are equally spaced
-                h = t_points_seg[1] - t_points_seg[0]
                 D = nb_points - 4
                 if D <= 0:
                     continue
-
+                h = t_points_seg[1] - t_points_seg[0]
                 X_seg = np.zeros([D, x_dim])
                 X_dot_seg = np.zeros([D, x_dim])
                 for j in range(0, D):
