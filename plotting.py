@@ -62,7 +62,8 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
             #TODO revisit
             #ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
-            ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.2, aspect='auto')
+            n = max([max(l) for l in label_result]) + 1
+            ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=ListedColormap(colors = ['b','r','y','k','m'][:n]), alpha=0.2, aspect='auto')
             
             ax.set_xlim(xmin,xmax)
             ax.set_ylim(ymin, ymax)
@@ -73,8 +74,9 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
 def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m'], labelfun=None):
     n = np.max(modes) + 1
-    if n >= len(colors):
+    if n > len(colors):
         raise Exception("The number of modes is greater than the number of colors provided. Aborting to avoid confusion.")
+    colors=colors[:n]
     
     if fig is None or ax is None:
         fig,ax = plt.subplots()
@@ -108,11 +110,96 @@ def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m']
 
         #TODO revisit
         #ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
-        ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.2, aspect='auto')
+        ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=ListedColormap(colors = ['b','r','y','k','m'][:n]), alpha=0.2, aspect='auto')
         
         ax.set_xlim(xmin,xmax)
         ax.set_ylim(ymin, ymax)
 
     return fig,ax
 
+def plot_classifier_linear(classifier, X, modes, fig=None, ax=None, colors=['b', 'r', 'y', 'k', 'm']):
+    nc = classifier.classes_.shape[0]
+    colors = colors[:nc]
+    fig, ax = plot_with_modes_2D(X, modes, fig=fig, ax=ax, colors=colors)
+
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    nx0 = np.linspace(xmin, xmax, 1000)
+    nx1 = np.linspace(ymin, ymax, 1000)
+    x0,x1 = np.meshgrid(nx0, nx1)
+    xd = np.array([xmin, xmax])
+
+    Z = classifier.predict(np.c_[x0.ravel(), x1.ravel()])
+    ax.contourf(x0, x1, Z.reshape(x0.shape), cmap=ListedColormap(colors), alpha=0.3)
+
+    # for i in range(nc):
+    #     ax.scatter(*X[modes==i].T, s=2, alpha=0.9, color=colors[i])
+
+    try:
+        estis = classifier.estimators_
+        coefs = []
+        intercepts = []
+        for clf in estis:
+            coefs.append(clf.coef_)
+            intercepts.append(clf.intercept_)
+    except:
+        coefs = classifier.coef_
+        intercepts = classifier.intercept_
+
+    for i in range(nc):
+        # clf = estis[i]
+        # b = clf.intercept_
+        # w = clf.coef_
+
+        b = intercepts[i]
+        w = coefs[i]
+
+        w1, w2 = w.T
+        c = -b/w2
+        m = -w1/w2
+        yd = m*xd + c
+        # yd = m[i]*xd + c[i]
+        ax.plot(xd, yd, 'k', lw=1, ls='--')
+
+        xd = np.linspace(xmin, xmax,1000)
+
+    for i in range(nc):
+        # esti1 = estis[i]
+        # w1 = esti1.coef_
+        # b1 = esti1.intercept_
+        w1 = coefs[i]
+        b1 = intercepts[i]
+        slope1 = -w1.T[0]/w1.T[1]
+        wnorm1 = np.linalg.norm(w1)
+        for j in range(i+1, nc):
+            # esti2 = estis[j]
+            # w2 = esti2.coef_
+            # b2 = esti2.intercept_
+            w2 = coefs[j]
+            b2 = intercepts[j]
+            slope2 = -w2.T[0]/w2.T[1]
+            wnorm2 = np.linalg.norm(w2)
+
+            # decision function
+            w = w1 - w2
+            b = b1 - b2
+
+            a1, a2 = w.T
+            c = -b/a2
+            m = -a1/a2
+            slope_mid = m
+            yd = m*xd + c
             
+            ax.plot(xd, yd, 'k', lw=1, ls='dotted', alpha=0.6)
+            newx = []
+            newy = []
+            for q in range(len(xd)):
+                if classifier.predict([[xd[q], yd[q]]])[0] == i or classifier.predict([[xd[q], yd[q]]])[0] == j:
+                    newx.append(xd[q])
+                    newy.append(yd[q])
+            ax.plot(newx, newy, 'k', lw = 1)
+
+    ax.set_xlim(xmin,xmax)
+    ax.set_ylim(ymin, ymax)
+    return fig, ax
+
