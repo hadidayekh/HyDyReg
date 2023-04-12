@@ -90,7 +90,7 @@ sul = SNDS_linear(params, eventlist, labelfun)
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
 x0s = [[-2, 4], [1.5, 10], [0,5]]#, [2,12], [-4, 10]]
-time_step = 0.04
+time_step = 0.02
 time_range = 4
 
 # Simulating or loading trajectories
@@ -110,6 +110,16 @@ print(trajectories.t_list[0].shape)
 # Segmenting
 segments = trajectories.segment_trajectories(seg_tol)
 
+segments2 = []
+for s in segments:
+    newS = [s[0]]
+    for i in range(len(s)-1):
+        mid = int((s[i+1] - s[i])/2)
+        newS.append(mid)
+        newS.append(s[i+1])
+    segments2.append(newS)
+
+segments2=segments
 # Plotting results
 plot_title = exp_title + ' trajs=' + str(len(x0s)) + ' ts=' + str(time_step) + ' T=' + str(time_range)
 fig1, ax1 = plotting.draw_trajectories_2D(trajectories, mark_beginning=True, plot_xt=True, segments=segments, labelfun=labelfun)
@@ -126,7 +136,7 @@ if k_learn:
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
+    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments2, remove_seg=True)
     
     if load_pickle:
         file = open(exp_title + '.model', 'rb')
@@ -137,7 +147,7 @@ if k_learn:
         model = HybridKernelRegressor(train_coefs=True, n=3, deg=1, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
 
         # Fitting the model with its corresponding derivatives
-        model.fit_scipy(X, X_dot, norm='L2', deltas=0.0001, C=100, segmentation='strict', segments=seg_res)
+        model.fit(X, X_dot, norm='L2', deltas=0.001, C=100, segmentation='strict', segments=seg_res)
 
         if save_pickle:
             file = open(exp_title + '.model', 'wb')
@@ -145,11 +155,11 @@ if k_learn:
             file.close()
 
     # Classify modes
-    #model.classify_modes(SVC(kernel='linear', C=1))
-    model.classify_modes(LogisticRegression(penalty='none'))
+    #model.classify_modes(SVC(kernel='rbf', C=1))
+    model.classify_modes(LogisticRegression(penalty='none', multi_class='ovr'))
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
     #ax1['main'].scatter(fine_X.T[0], fine_X.T[1], linewidths=0.1, c='k')
-    model.improve_classification(fine_X, fine_X_dot, classifier=LogisticRegression(penalty='none'))
+    model.improve_classification(fine_X, fine_X_dot, classifier=LogisticRegression(penalty='none', multi_class='multinomial'))
 
     # Comparing modes to each other
     modes = model.get_modes()
