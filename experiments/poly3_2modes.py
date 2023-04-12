@@ -20,8 +20,8 @@ import textwrap
 exp_title = "poly3_2modes"
 k_learn = True
 save_plots = True
-save_pickle = False
-load_pickle = True
+save_pickle = True
+load_pickle = False
 seg_tol = 0.5
 
 '''
@@ -171,7 +171,7 @@ if k_learn:
     #model.classify_modes(SVC(kernel='linear', C=0.1))
     model.classify_modes(LogisticRegression(penalty='none'))
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
-    #model.improve_classification(fine_X, fine_X_dot, LogisticRegression(penalty='none'))
+    model.improve_classification(fine_X, fine_X_dot, LogisticRegression(penalty='none'))
 
     # Comparing modes to each other
     modes = model.get_modes()
@@ -212,7 +212,7 @@ if k_learn:
 
 
     
-    fig3, ax3 = plotting.plot_with_modes_2D(model.Xfit_, modes, labelfun=model.labelfun_)
+    fig3, ax3 = plotting.plot_with_modes_2D(model.X_classify_, model.modes_classify_, labelfun=model.labelfun_)
     ax3.set_title(textwrap.fill("Training data and their corresponding learned modes, as well as the result of classification.", width=60))
 
     if save_plots:
