@@ -131,15 +131,12 @@ class HybridKernelRegressor:
         # This forces one Chi per data point to be ~0, which dictates the mode
 
         sum_products_chis = 0
-        for i in range(N):
+        for i in range(chi_size_per_mode):
             temp = 1
             for j in range(n):
-                if segmentation == 'strict':
-                    temp *= Chis[j][which_segment(i, segments)]
-                else:
-                    temp *= Chis[j][i]
+                temp *= Chis[j][i]
             sum_products_chis += temp
-        
+
         sum_products_chis *= C_param
 
         # Second part of the optimization objective function:
@@ -395,7 +392,8 @@ class HybridKernelRegressor:
             X = self.Xfit_
             modes = self.get_modes()
         if self.n > 2:
-            classifier = OneVsRestClassifier(classifier)
+            #classifier = OneVsRestClassifier(classifier)
+            pass
         classifier.fit(X, modes)
 
         def event(t, x):
