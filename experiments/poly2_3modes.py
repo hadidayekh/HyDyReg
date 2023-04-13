@@ -64,11 +64,11 @@ time_range = 8
 if not load_pickle:
     trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
     if save_pickle:
-        file = open(exp_title + '.trajectories', 'wb')
+        file = open('trajectories/' + exp_title + '.trajectories', 'wb')
         pickle.dump(trajectories, file)
         file.close()
 else:
-    file = open(exp_title + '.trajectories', 'rb')
+    file = open('trajectories/' + exp_title + '.trajectories', 'rb')
     trajectories = pickle.load(file)
     file.close()
 
@@ -91,7 +91,7 @@ if k_learn:
     X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
 
     if load_pickle:
-        file = open(exp_title + '.model', 'rb')
+        file = open('models/' + exp_title + '.model', 'rb')
         model = pickle.load(file)
         file.close()
     else:
@@ -103,7 +103,7 @@ if k_learn:
         model.fit(X, X_dot, deltas=0.001, C=10000, segmentation='strict', segments=seg_res)
 
         if save_pickle:
-            file = open(exp_title + '.model', 'wb')
+            file = open('models/' + exp_title + '.model', 'wb')
             pickle.dump(model, file)
             file.close()
     
