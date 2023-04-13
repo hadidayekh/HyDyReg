@@ -11,10 +11,11 @@ from snds import SNDS_linear
 import plotting
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
 
 exp_title = "isolette"
 k_learn = True
-save_plots = True
+save_plots = False
 seg_tol = 0.1
 
 # Paramters of Isolette model
@@ -69,7 +70,7 @@ sul = SNDS_linear(params, eventlist, labelfun)
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
 x0s = [[105.5, 80], [97.5, 100]]
-time_step = 1
+time_step = 0.1
 time_range = 50
 
 # Simulating trajectories
@@ -90,15 +91,15 @@ if save_plots:
 #### LEARNING THE SNDS ####
 if k_learn:
     # Defining the model
-    model = HybridKernelRegressor(['linear', 'linear'], [[0], [0]])
+    model = HybridKernelRegressor(train_coefs=True, n=2, deg=1, kernels_list=['linear', 'linear'], kargs_list=[[0], [0]])
 
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments)
+    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
 
     # Fitting the model with its corresponding derivatives
-    model.fit(X, X_dot, deltas=0.0001, C=100)#, segmentation='strict', segments=seg_res)
+    model.fit(X, X_dot, deltas=0.0001, C=100, segmentation='strict', segments=seg_res)
     
     # Comparing modes to each other
     modes = model.get_modes()
@@ -131,14 +132,16 @@ if k_learn:
 
     #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
 
-    learned_SNDS = model.to_SNDS(labelfun=labelfun_used, eventlist=eventlist)
-
+    model.classify_modes()
+    learned_SNDS = model.to_SNDS()#labelfun=labelfun_used, eventlist=eventlist)
+    fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
+    model.improve_classification(fine_X, fine_X_dot, classifier=LogisticRegression(penalty='none'))
     trajs_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
 
-    fig2, ax2 = plotting.draw_trajectories_2D(trajectories, label='Original trajectories', colors=['b'], mark_beginning=True, plot_xt=True, labelfun=labelfun_used)
+    fig2, ax2 = plotting.draw_trajectories_2D(trajectories, label='Original trajectories', colors=['b'], mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
     fig2, ax2 = plotting.draw_trajectories_2D(trajs_learned, fig=fig2, axs=ax2, colors=['m'], label='Learned trajectories', mark_beginning=True, plot_xt=True)
 
-    fig3, ax3 = plotting.plot_with_modes_2D(model.Xfit_, modes, labelfun=labelfun_used)
+    fig3, ax3 = plotting.plot_with_modes_2D(model.X_classify_, model.modes_classify_, labelfun=model.labelfun_)
 
     if save_plots:
         file_name = "plots/SIM-LEARN_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
@@ -146,3 +149,4 @@ if k_learn:
 
         file_name = "plots/SIM-MODES_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
         fig3.savefig(file_name)
+plt.show()
