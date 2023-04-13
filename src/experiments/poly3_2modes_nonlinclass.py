@@ -74,11 +74,11 @@ x0s = [[0,4], [0,4.5], [0,5]]
 if not load_pickle:
     trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
     if save_pickle:
-        file = open('trajectories/' + exp_title + '.trajectories', 'wb')
+        file = open('../trajectories/' + exp_title + '.trajectories', 'wb')
         pickle.dump(trajectories, file)
         file.close()
 else:
-    file = open('trajectories/' + exp_title + '.trajectories', 'rb')
+    file = open('../trajectories/' + exp_title + '.trajectories', 'rb')
     trajectories = pickle.load(file)
     file.close()
 
@@ -93,7 +93,7 @@ ax1['main'].set_title(plot_title)
 
 # Saving figure into a file
 if save_plots:
-    file_name = "plots/" + exp_title + "/SIM_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
+    file_name = "../plots/" + exp_title + "/SIM_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
     fig1.savefig(file_name)
 
 t_arr = np.array(trajectories.t_list)
@@ -151,7 +151,7 @@ if k_learn:
     X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
 
     if load_pickle:
-        file = open('models/' + exp_title + '.model', 'rb')
+        file = open('../models/' + exp_title + '.model', 'rb')
         model = pickle.load(file)
         file.close()
     else:
@@ -162,7 +162,7 @@ if k_learn:
         model.fit(X, X_dot, norm='L2', deltas=0.001, C=10000, segmentation='strict', segments=seg_res)
 
         if save_pickle:
-            file = open('models/' + exp_title + '.model', 'wb')
+            file = open('../models/' + exp_title + '.model', 'wb')
             pickle.dump(model, file)
             file.close()
 
@@ -215,12 +215,12 @@ if k_learn:
 
     if save_plots:
         try:
-            file_name = "plots/" + exp_title + "/SIM-LEARN_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
+            file_name = "../plots/" + exp_title + "/SIM-LEARN_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
             fig2.savefig(file_name)
         except:
             pass
 
-        file_name = "plots/" + exp_title + "/SIM-MODES_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
+        file_name = "../plots/" + exp_title + "/SIM-MODES_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
         fig3.savefig(file_name)
 
 plt.show()
