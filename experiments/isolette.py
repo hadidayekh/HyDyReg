@@ -85,7 +85,7 @@ fig1, ax1 = plotting.draw_trajectories_2D(trajectories, mark_beginning=True, plo
 
 # Saving figure into a file
 if save_plots:
-    file_name = "plots/SIM_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
+    file_name = "plots/" + exp_title + "/SIM_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
     fig1.savefig(file_name)
 
 #### LEARNING THE SNDS ####
@@ -144,9 +144,9 @@ if k_learn:
     fig3, ax3 = plotting.plot_with_modes_2D(model.X_classify_, model.modes_classify_, labelfun=model.labelfun_)
 
     if save_plots:
-        file_name = "plots/SIM-LEARN_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
+        file_name = "plots/" + exp_title + "/SIM-LEARN_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
         fig2.savefig(file_name)
 
-        file_name = "plots/SIM-MODES_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
+        file_name = "plots/" + exp_title + "/SIM-MODES_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
         fig3.savefig(file_name)
 plt.show()

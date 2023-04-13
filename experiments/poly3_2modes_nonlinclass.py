@@ -93,7 +93,7 @@ ax1['main'].set_title(plot_title)
 
 # Saving figure into a file
 if save_plots:
-    file_name = "plots/SIM_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
+    file_name = "plots/" + exp_title + "/SIM_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
     fig1.savefig(file_name)
 
 t_arr = np.array(trajectories.t_list)
@@ -215,12 +215,12 @@ if k_learn:
 
     if save_plots:
         try:
-            file_name = "plots/SIM-LEARN_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
+            file_name = "plots/" + exp_title + "/SIM-LEARN_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
             fig2.savefig(file_name)
         except:
             pass
 
-        file_name = "plots/SIM-MODES_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
+        file_name = "plots/" + exp_title + "/SIM-MODES_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
         fig3.savefig(file_name)
 
 plt.show()
