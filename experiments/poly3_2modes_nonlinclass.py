@@ -21,7 +21,7 @@ exp_title = "poly3_2modes_nonlinclass"
 k_learn = True
 save_plots = True
 save_pickle = False
-load_pickle = False
+load_pickle = True
 seg_tol = 0.5
 
 '''
@@ -35,15 +35,12 @@ a, b, c (3 modes)
 
 # Label function to decide which mode
 def labelfun(x):
-    #if x[1] + x[0]/12 - 0.5 >= 0:
     if x[1] >= -0.2*x[0]**2:
         return 0
     else:
         return 1
 
 
-# Events to be tracked by the IVP solver
-#event = lambda t, x : x[1] + x[0]/12 - 0.5
 event = lambda t, x : x[1] + 0.2*x[0]**2
 event.terminal = True
 event.direction = 0
@@ -170,10 +167,9 @@ if k_learn:
             file.close()
 
     # Classify modes
-    model.classify_modes(SVC())#kernel='linear', C=0.1))
-    #model.classify_modes(LogisticRegression(penalty='none'))
+    model.classify_modes(SVC())
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
-    model.improve_classification(fine_X, fine_X_dot, SVC())
+    model.improve_classification(fine_X, fine_X_dot, SVC(C=10))
 
     # Comparing modes to each other
     modes = model.get_modes()
