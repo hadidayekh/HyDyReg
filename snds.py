@@ -118,9 +118,16 @@ class SNDS:
 
             for r in range(1, len(seg_curr) - 1):
                 seg_index = seg_curr[r]
-                x0 = x_points[seg_index - 3]
-                t_start = t_points[seg_index - 3]
-                t_end = t_points[seg_index + 3]
+                try:
+                    x0 = x_points[seg_index - 3]
+                    t_start = t_points[seg_index - 3]
+                except:
+                    x0 = x_points[0]
+                    t_start = t_points[0]
+                try:
+                    t_end = t_points[seg_index + 3]
+                except:
+                    t_end = t_points[-1]
                 T = t_end - t_start
 
                 fine_trajs = self.simulate_trajectory(timestep, T, [x0], t_start)
