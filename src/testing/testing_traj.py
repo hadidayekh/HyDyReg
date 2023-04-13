@@ -1,3 +1,4 @@
+from statistics import mean
 import sys
 
 
@@ -7,7 +8,7 @@ sys.path.append('../')
 
 import kernels
 import diff_methods
-from main import learn, get_modes, get_differences_learned
+from main import get_modes, get_differences_learned
 from snds import SNDS, SNDS_linear
 from scipy.integrate import solve_ivp
 import numpy as np
@@ -16,7 +17,9 @@ import os
 from sklearn.linear_model import LinearRegression
 from matplotlib.colors import ListedColormap
 from opti import HybridKernelRegressor
-
+import plotting
+import time
+from sklearn.metrics import mean_squared_error
 
 def labelfun(x):
     if x[1] <= 3 and x[0] <= -2:
@@ -102,27 +105,39 @@ def eq2(t, y):
 
 eqs2 = [eq1, eq2]
 
-k_learn = True
+k_learn = False
+poly = False
 
-sul = SNDS(2, 2, eqs2, eventlist2, labelfun2)
-params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 8], [0,0,-6]]])
-sul = SNDS_linear(params, eventlist, labelfun)
+
+if poly:
+    sul = SNDS(2, 2, eqs2, eventlist2, labelfun2)
+    time_step = 0.1
+    time_range = 5
+    label_fun_used = labelfun2
+    x0s = [[0,3], [0,4], [0,5]]
+
+else:
+    params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 16], [0,0,-12]]])
+    sul = SNDS_linear(params, eventlist, labelfun)
+    time_step = 0.005
+    time_range = 3
+    label_fun_used = labelfun
+    x0s = [[-11, 11], [-14, 14]]#, [-12, -10], [12,10]]
+
 #exit()
 
-time_step = 0.035
-time_range = 3
 
-x0s = [[-11, 11], [-14, 14]]
+
+
+
+
 #x0s = [[0,1],[0,2],[0,3],[0,4],[0,5]]
+
 num_trajectories = len(x0s)
 trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
-#segments = trajectories.segment_trajectories(0.5)
-print(trajectories.t_list[0].shape)
-print(trajectories.t_list[1].shape)
-print(trajectories.x_list[0].shape)
-print(trajectories.x_list[1].shape)
-print(trajectories.x_list)
-fig,ax = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True)#, segments=segments)
+segments = trajectories.segment_trajectories(0.5)
+fig,ax = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True, segments=segments)
+fig.savefig('plots/fig.pdf')
 
 #ax['main'].axhline(y = 3, color = 'r', alpha=0.2, linestyle = '-', linewidth=0.1)
 #ax['main'].axvline(x = -2, color = 'r', alpha=0.5, linestyle = '-', linewidth=0.1)
@@ -136,11 +151,11 @@ x = [xmin, -2]
 y1 = [ymin, ymin]
 y2 = [3, 3]
 
-nx0 = np.arange(xmin, xmax, 0.01)
-nx1 = np.arange(ymin, ymax, 0.01)
+nx0 = np.arange(xmin, xmax, 0.1)
+nx1 = np.arange(ymin, ymax, 0.1)
 x0,x1 = np.meshgrid(nx0, nx1)
 
-label_result = [[labelfun([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
+label_result = [[label_fun_used([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
 
 #ax.fill_between(x, y1, y2, lw=0, color='r', alpha=0.075)
 # im = ax.imshow( label_result , 
@@ -172,9 +187,9 @@ ax.minorticks_on()
 #     ax.set_ylim(ymin, ymax)
 
 
-fig.savefig('plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
-print('time heh')
-# trajectories.write_to_file("poly_for_bernstein.csv", labelfun=labelfun2)
+fig.savefig('plots/plot_traj=' + str(num_trajectories) + '_ts=' + str(time_step) + '_T=' + str(time_range) + '.pdf')
+trajectories.write_to_file("lin_2modes_2trajs.csv", labelfun=labelfun)
+
 '''
 lr_models = trajectories.lin_reg(segments, diff_methods.diff_method_fps)
 
@@ -230,22 +245,63 @@ exit()
 t_list = np.array(trajectories.t_list)
 x_list = np.array(trajectories.x_list)
 
-print(t_list.shape)
-print(x_list.shape)
-
 num_modes = 2
 
 kernel_list = [[kernels.linear, [0], num_modes]]
 kernel_list2 = [[kernels.polynomial, [3, 1, 1], num_modes]]
+
 if k_learn:
-    model = HybridKernelRegressor(['linear', 'linear'], [[0], [0]])
-    X, X_dot = diff_methods.diff_method_fps(t_list, x_list)
-    model.fit(X, X_dot)
-    X_dot_pred = model.predict(X, labelfun=labelfun)
-    print(X_dot - X_dot_pred)
-    new_snds = model.to_SNDS(labelfun=labelfun, eventlist=eventlist)
+    if poly:
+        model = HybridKernelRegressor(['polynomial', 'polynomial'], [[3, 1, 1], [3, 1, 1]])
+    else:
+        model = HybridKernelRegressor(['linear', 'linear'], [[0], [0]])
+    #model = HybridKernelRegressor(['polynomial', 'polynomial'], [[2, 1, 1], [2, 1, 1]])
+
+    X, X_dot, seg_res = diff_methods.diff_method_fps(t_list, x_list, segments=segments)
+    
+    # X_dot_r = np.array([eqs2[label_fun_used(curr_x)](0, curr_x) for curr_x in X])
+    # print(np.linalg.norm(X_dot - X_dot_r))
+    
+    
+    #model.fit(X, X_dot, deltas=0.1, C=1000, segmentation='strict', segments=seg_res)
+    #end_1 = time.time()
+    #print("Time taken with ipopt is", end_1 - st, "seconds. Now fitting with SciPy.")
+    print("Starting to fit with SciPy.")
+    st = time.time()
+    model.fit_scipy(X, X_dot, deltas=0.1, C=100, segmentation=None, segments=seg_res)
+    print("Time taken with SciPy is", time.time() - st)
+    labelfun_inverse = lambda x : 0 if label_fun_used(x) == 1 else 1
+    modes = model.get_modes()
+    modes_ori = [label_fun_used(x) for x in X]
+    
+    labelfun_fin = label_fun_used if modes[0] == 0 else labelfun_inverse
+    X_dot_pred = model.predict(X, labelfun=labelfun_fin)
+    print("MSE:", mean_squared_error(X_dot, X_dot_pred))
+    #print(model.get_modes())
+    #print(modes - modes_ori)
+    if not poly:
+        model.print_coefs_linear()
+    new_snds = model.to_SNDS(labelfun=labelfun_fin, eventlist=eventlist)
+    # time_step = 0.035
+    # time_range = 3
+
+    # x0s = [[-11, 11], [-14, 14]]
+    # x0s = [[0,3],[0,4],[0,5]]
     trajs = new_snds.simulate_trajectory(time_step, time_range, x0s)
-    fig,ax = trajectories.draw_trajectories_2D(mark_beginning=True, plot_xt=True)
+    #fig,ax = trajs.draw_trajectories_2D(mark_beginning=True, plot_xt=True)
+    
+    fig,ax = plotting.draw_trajectories_2D(trajectories, colors=['b'],label='Original trajectories', mark_beginning=True, plot_xt=True)
+    
+    fig,ax = plotting.draw_trajectories_2D(trajs, fig=fig, axs=ax, colors=['m'], label='Learned trajectories', mark_beginning=True, plot_xt=True)
+    try:
+        pass
+    except:
+        print("SNDS traj simulation failed for learned system.")
+    _, _ = plotting.plot_with_modes_2D(model.Xfit_, modes)
+    print("Printing minimum chi per mode:")
+    print(np.min(model.Chis_, axis=0))
+
+
     plt.show()
     exit()
     fig, ax = plt.subplots()

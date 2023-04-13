@@ -121,7 +121,8 @@ for i in range(len(estis)):
         i2 = np.argmax(pr_min)
         max4 = np.max(pr_max)
         i4 = np.argmax(pr_max)
-
+        
+        ax.plot(xd, yd, 'k', lw=1, ls='dotted', alpha=0.6)
         newx = []
         newy = []
         for q in range(len(xd)):
