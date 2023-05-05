@@ -9,3 +9,4 @@ def which_segment_all(N, segments):
     segments_per_point = np.zeros(N)
     for i in range(N):
         segments_per_point[i] = which_segment(i, segments)
+    return segments_per_point
