@@ -7,7 +7,7 @@ def which_segment(i, segments):
     return r - 1
 
 def which_segment_all(N, segments):
-    segments_per_point = np.zeros(N)
+    segments_per_point = np.ndarray((N,), int)
     for i in range(N):
         segments_per_point[i] = which_segment(i, segments)
     return segments_per_point
@@ -30,16 +30,28 @@ def train_test_split_segments(X, Xdot, segments, segments_per_point, test_size=N
             Xdot_train  = Xdot_train_seg
             X_val       = X_val_seg
             Xdot_val    = Xdot_val_seg
-            seg_train   = np.ones(X_train_seg.shape[0]) * seg_curr
-            seg_val     = np.ones(X_val_seg.shape[0])   * seg_curr
+            seg_train   = np.ones(X_train_seg.shape[0]).astype(int) * seg_curr
+            seg_val     = np.ones(X_val_seg.shape[0]).astype(int)   * seg_curr
         
         else:
             X_train     = np.r_[X_train, X_train_seg]
             Xdot_train  = np.r_[Xdot_train, Xdot_train_seg]
             X_val       = np.r_[X_val, X_val_seg]
             Xdot_val    = np.r_[Xdot_val, Xdot_val_seg]
-            seg_train   = np.r_[seg_train, np.ones(X_train_seg.shape[0]) * seg_curr]
-            seg_val     = np.r_[seg_val, np.ones(X_val_seg.shape[0]) * seg_curr]
+            seg_train   = np.r_[seg_train, np.ones(X_train_seg.shape[0]).astype(int) * seg_curr]
+            seg_val     = np.r_[seg_val, np.ones(X_val_seg.shape[0]).astype(int) * seg_curr]
 
     return X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val
 
+def get_modes_val(Chis_seg, seg_val):
+    # Chis_seg represents Chis per segment, from which we deduce mode per segment
+    # seg_val tells us the segment of each validation point
+
+    # this gives us the mode of each segment
+    modes_seg = np.argmin(Chis_seg, axis=0)
+
+    modes_val = np.ndarray((len(seg_val)), int)
+    for i in range(len(seg_val)):
+        modes_val[i] = modes_seg[seg_val[i]]
+    
+    return modes_val

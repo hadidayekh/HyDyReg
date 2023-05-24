@@ -167,13 +167,18 @@ class HybridKernelRegressor:
 
         if segmentation == 'squared_diff':
             sum_diff_chis = 0
-            for r in range(len(segments)-1):
-                for i in range(segments[r], segments[r+1] - 1):
+            for r in range(S):
+                seg_indices = np.where(segments==r)
+                for i in range(seg_indices.shape[0] - 1):
                     for j in range(n):
-                        sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
-            for i in range(segments[-1], N-1):
-                for j in range(n):
-                    sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
+                        sum_diff_chis += (Chis[j][seg_indices[i]] - Chis[j][seg_indices[i+1]])**2
+            # for r in range(len(segments)-1):
+            #     for i in range(segments[r], segments[r+1] - 1):
+            #         for j in range(n):
+            #             sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
+            # for i in range(segments[-1], N-1):
+            #     for j in range(n):
+            #         sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
             
             to_minimize += C*sum_diff_chis
 
@@ -199,7 +204,7 @@ class HybridKernelRegressor:
                     #     trans_mat[i][seg_index] = 1
                     # Chis[j] = casadi.vec(trans_mat @ Chis[j])
                     for i in range(N):
-                        seg_index = which_segment(i, segments)
+                        seg_index = segments[i]
                         if not tc:
                             opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
                             opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
@@ -225,7 +230,7 @@ class HybridKernelRegressor:
                         opti.subject_to(As[j][d] <= Omegas[j][d])
 
         
-        opti.solver('ipopt', dict(), dict(max_iter = 10000))
+        opti.solver('ipopt', dict(), dict(max_iter = 3000))
         
         # Initiate the optimization
         sol = opti.solve()
@@ -261,11 +266,12 @@ class HybridKernelRegressor:
                 betas_sol[j][d]  = sol.value(betas[j][d])
         
         if segmentation == 'strict':
-            print("CHIS", Chis_sol)
+            self.Chis_segments_ = Chis_sol
             final_Chis = np.ndarray((n, N))
             for j in range(n):
                 for i in range(N):
-                    final_Chis[j][i] = Chis_sol[j][which_segment(i, segments)]
+                    seg_index = segments[i]
+                    final_Chis[j][i] = Chis_sol[j][seg_index]
 
             self.Chis_ = final_Chis
         else: 
@@ -427,6 +433,12 @@ class HybridKernelRegressor:
 
         if labelfun is None:
             labelfun = self.labelfun_
+        
+        labellist = False
+        if isinstance(labelfun, list) or isinstance(labelfun, np.ndarray):
+            labellist = True
+            if len(labelfun) != X.shape[0]:
+                raise Exception("When labelfun is a list of labels, its length must be equal to the number of datapoints in X.")
 
         if not tc:
             kernels_list = self.kernels_list
@@ -457,7 +469,10 @@ class HybridKernelRegressor:
         # For each data point
         for i in range(M):
             # Find the mode of the data point
-            j = labelfun(X[i])
+            if labellist:
+                j = labelfun[i]
+            else:
+                j = labelfun(X[i])
             if not tc:
                 # Calculate based on the correct kernel
                 if isinstance(kernels_list[j], str):
@@ -475,9 +490,7 @@ class HybridKernelRegressor:
 
     def fit_predict(self, X, X_dot, C=100, deltas=0.01, norm='L2', segments=[], print_on=False, labelfun=None):
         self.fit(X, X_dot, C=C, deltas=deltas, norm=norm, segments=segments, print_on=print_on)
-        if labelfun is None:
-            labelfun = self.labelfun_
-        return self.predict(X)
+        return self.predict(X, labelfun=labelfun)
 
     def get_modes(self):
         self.check_if_fitted()
@@ -732,7 +745,8 @@ class HybridKernelRegressor:
     def classifier_boundary(self, x, print_on=False):
         self.check_if_fitted()
         decs = self.classifier_.decision_function(x)[0]
-        if self.n > 2:
+        num_modes = len(np.unique(self.modes_classify_))
+        if num_modes > 2:
             i1, i2 = 0, 0
             max1, max2 = decs[0], decs[0]
 

@@ -41,7 +41,7 @@ class SNDS:
             # the mode of the initial condition
             label = self.labelfun(x0)
             t_start = t0
-            t_end = T + t0 + 2*step
+            t_end = T + t0 + step/1000
             t_points = np.linspace(t0, T+t0, num)
             status = 1
             ite = 0
@@ -132,7 +132,7 @@ class SNDS:
 
                 fine_trajs = self.simulate_trajectory(timestep, T, [x0], t_start)
                 segments_fine = fine_trajs.segment_trajectories(seg_tol)
-                while len(segments_fine[0]) < 3:
+                while len(segments_fine[0]) > 3:
                     segments_fine = fine_trajs.segment_trajectories(seg_tol/2)
                 X, X_dot, seg_res = diff_method_fps(np.array(fine_trajs.t_list), np.array(fine_trajs.x_list), segments_fine, remove_seg=True)
 
