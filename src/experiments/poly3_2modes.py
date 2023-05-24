@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import dill as pickle
 from sklearn.svm import SVC
 import textwrap
+import utils
+import copy
 
 exp_title = "poly3_2modes"
 k_learn = True
@@ -23,6 +25,7 @@ save_plots = True
 save_pickle = True
 load_pickle = False
 seg_tol = 0.5
+
 
 '''
 Model of the shape:
@@ -67,7 +70,7 @@ sul = SNDS(2, 2, eqs, eventlist, labelfun)
 
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
-time_step = 0.05
+time_step = 0.1
 time_range = 10
 x0s = [[0,4], [0,4.5], [0,5]]
 
@@ -83,7 +86,19 @@ else:
     trajectories = pickle.load(file)
     file.close()
 
+t_small = trajectories.t_list[0][0:5]
+x_small = trajectories.x_list[0][0:5]
+tdiff = np.diff(t_small)
+xdiff = np.diff(x_small, axis=0)
+print(tdiff)
+print(xdiff)
+xdot_small = xdiff / 0.1
 
+xdotdot = np.diff(xdot_small, axis=0) / xdiff[0:3]
+xdotdotdot = np.diff(xdotdot, axis=0) / xdiff[0:2]
+xdotdotdotdot = np.diff(xdotdotdot, axis=0) / xdiff[0:1]
+print(xdotdotdotdot)
+exit()
 # Segmenting
 segments = trajectories.segment_trajectories(seg_tol)
 
@@ -151,51 +166,64 @@ if k_learn:
     x_arr = np.array(trajectories.x_list)
     X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
 
+    seg_all = utils.which_segment_all(X.shape[0], seg_res)
+    X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val = utils.train_test_split_segments(X, X_dot, seg_res, utils.which_segment_all(X.shape[0], seg_res), test_size=0.1)
+ 
     if load_pickle:
         file = open('../models/' + exp_title + '.model', 'rb')
         model = pickle.load(file)
         file.close()
     else:
         # Defining the model
-        model = HybridKernelRegressor(train_coefs=True, n=2, deg=3)#, kernels_list=['polynomial', 'polynomial'], kargs_list=[[3, 1, 1], [3, 1, 1]])
+        model_curr = HybridKernelRegressor(train_coefs=True, n=4, deg=5, kernels_list=['polynomial', 'polynomial'], kargs_list=[[3, 1, 1], [3, 1, 1]])
+        
+        C_space = [0.01, 0.1, 0.5, 1, 2, 5]
+        Cs = []
+        MSEs = []
+        MSE_val = 1e9
+        for i in range(len(C_space)):
+            C_curr = C_space[i]
+            try:
+                # Fitting the model with its corresponding derivatives
+                model_curr.fit(X_train, Xdot_train, norm='L2', deltas=0.001, C=C_curr, segmentation='strict', segments=seg_train)
+            except:
+                print('C =', C_curr, 'failed.')
+                continue
 
-        # Fitting the model with its corresponding derivatives
-        model.fit(X, X_dot, norm='L2', deltas=0.001, C=10000, segmentation='strict', segments=seg_res)
+            modes_val = utils.get_modes_val(model_curr.Chis_segments_, seg_val)
+            Xdot_val_pred = model_curr.predict(X_val, labelfun=modes_val)
+            MSE_val_curr = mean_squared_error(Xdot_val_pred, Xdot_val)
+            Cs.append(C_curr)
+            MSEs.append(MSE_val_curr)
+            if MSE_val_curr < MSE_val:
+                model = copy.deepcopy(model_curr)
+                MSE_val = MSE_val_curr
+                C = C_curr
 
         if save_pickle:
             file = open('../models/' + exp_title + '.model', 'wb')
             pickle.dump(model, file)
             file.close()
 
+    print('Cs', Cs)
+    print('MSEs', MSEs)
+    print('Final C =', C)
     # Classify modes
     #model.classify_modes(SVC(kernel='linear', C=0.1))
     model.classify_modes(LogisticRegression(penalty='none'))
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
     model.improve_classification(fine_X, fine_X_dot, LogisticRegression(penalty='none'))
 
-    # Comparing modes to each other
-    modes = model.get_modes()
-    modes_ori = [labelfun(x) for x in X]
-    
-    
-    print("After loading")
-    # Predicting X_dot from the model and comparing
-    X_dot_pred = model.predict(X)
-    
-    MSE1 = mean_squared_error(X_dot, X_dot_pred)
-    print("MSE:", MSE1)
-
+    X_dot_pred = model.predict(X)#, labelfun=labelfun)
+    MSE_all = mean_squared_error(X_dot, X_dot_pred)
+    print('MSE after classification =', MSE_all)
+   
     # This is a linear model so printing the equations
     model.print_coefs_linear()
-    print(modes)
 
     #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
 
-    if modes[0] == 0:
-        labelfun_u = labelfun
-    else:
-        labelfun_u = lambda x : 0 if labelfun(x) == 1 else 1
-    learned_SNDS = model.to_SNDS()#labelfun=labelfun_u, eventlist=eventlist)
+    learned_SNDS = model.to_SNDS()
 
     trajs_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
 
