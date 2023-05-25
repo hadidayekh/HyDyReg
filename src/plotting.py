@@ -1,3 +1,4 @@
+from matplotlib import gridspec
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 import numpy as np
@@ -153,6 +154,46 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
         ax.set_title(title)
 
         return fig,axs
+
+def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','k','m'], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
+    num_plots = trajectories.d
+    if fig is None or axs is None:
+        if num_plots == 1:
+            # Create the figure and subplots
+            fig, axs = plt.subplots(1, 1)
+            axs = [axs]
+        else:
+            # Calculate the number of rows and columns based on the number of plots
+            rows = (num_plots + 1) // 2
+            cols = 2
+            gs = gridspec.GridSpec(rows, 4)
+            axs = []
+            for i in range(num_plots - 1):
+                if i % 2 == 0:
+                    axs.append(plt.subplot(gs[i//2, 0:2]))
+                else:
+                    axs.append(plt.subplot(gs[i//2, 2:]))
+            if num_plots % 2 == 0:
+                axs.append(plt.subplot(gs[(num_plots-1)//2, 2:]))
+            else:
+                axs.append(plt.subplot(gs[(num_plots-1)//2, 1:3]))
+            
+            fig = plt.gcf()
+    
+    for i, x in enumerate(trajectories.x_list):
+        for j in range(num_plots):
+            ax = axs[j]
+            ax.scatter(trajectories.t_list[i], x.T[j], c=colors[i % len(colors)], s=1, label = label if i == 0 else None)
+            if len(segments) > 0:
+                for seg_index in segments[i]:
+                    ax.scatter(trajectories.t_list[i][seg_index], x.T[j][seg_index], marker='|', c='r', linewidths=0.7)
+            ax.set_xlabel('$t$')
+            ax.set_ylabel('$x_' + str(j) + '$')
+            if not label is None:
+                ax.legend()
+
+    return fig, axs
+
 
 
 def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m'], labelfun=None):
