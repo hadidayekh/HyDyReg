@@ -163,6 +163,7 @@ def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','
             fig, axs = plt.subplots(1, 1)
             axs = [axs]
         else:
+            fig = plt.figure()
             # Calculate the number of rows and columns based on the number of plots
             rows = (num_plots + 1) // 2
             cols = 2
@@ -178,7 +179,6 @@ def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','
             else:
                 axs.append(plt.subplot(gs[(num_plots-1)//2, 1:3]))
             
-            fig = plt.gcf()
     
     for i, x in enumerate(trajectories.x_list):
         for j in range(num_plots):
