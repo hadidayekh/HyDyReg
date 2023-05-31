@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 def which_segment(i, segments):
     r = 0
     while r < len(segments) and i >= segments[r]:
@@ -55,3 +56,12 @@ def get_modes_val(Chis_seg, seg_val):
         modes_val[i] = modes_seg[seg_val[i]]
     
     return modes_val
+
+def compare_trajs(traj1, traj2):
+    assert np.equal(np.array(traj1.t_list), np.array(traj2.t_list)).all(), "Cannot compare different timed trajectories."
+    return mean_squared_error(np.array(traj1.x_list).flatten(), np.array(traj2.x_list).flatten())
+
+def compare_snds(snds1, snds2, x0s, time_step, time_range):
+    traj1 = snds1.simulate_trajectory(time_step, time_range, x0s)
+    traj2 = snds2.simulate_trajectory(time_step, time_range, x0s)
+    return compare_trajs(traj1, traj2)
