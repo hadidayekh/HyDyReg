@@ -19,7 +19,7 @@ import textwrap
 import utils
 import copy
 
-exp_title = "poly3_2modes"
+exp_title = "lorentz_attractor"
 k_learn = True
 save_plots = True
 save_pickle = True
