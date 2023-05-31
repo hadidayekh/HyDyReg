@@ -400,16 +400,21 @@ class HybridKernelRegressor:
         if self.n > 2:
             #classifier = OneVsRestClassifier(classifier)
             pass
-        classifier.fit(X, modes)
+        num_modes = len(np.unique(modes))
+        if num_modes > 1:
+            classifier.fit(X, modes)
 
-        def event(t, x):
-            return self.classifier_boundary([x])
-        event.direction = 0
-        event.terminal = True
+            def event(t, x):
+                return self.classifier_boundary([x])
+            event.direction = 0
+            event.terminal = True
 
-        self.classifier_ = classifier
-        self.labelfun_ = lambda x : self.classifier_.predict([x])[0]
-        self.eventlist_ = event
+            self.classifier_ = classifier
+            self.labelfun_ = lambda x : self.classifier_.predict([x])[0]
+            self.eventlist_ = event
+        else:
+            self.labelfun_ = lambda x : modes[0]
+            self.eventlist_ = None
         self.X_classify_ = X
         self.modes_classify_ = modes
 

@@ -41,13 +41,12 @@ class SNDS:
             # the mode of the initial condition
             label = self.labelfun(x0)
             t_start = t0
-            t_end = T + t0 + step/1000
+            t_end = T + t0 + 1.1*step
             t_points = np.linspace(t0, T+t0, num)
             status = 1
             ite = 0
             while status == 1:
                 ite = ite + 1
-                
                 # solve the ivp according to the label  of x0 while tracking events in eventlist
                 x_object = solve_ivp(self.eqs[label], (t_start, t_end), x0,
                                     t_eval=t_points, method='RK45', rtol=1e-7, atol=1e-9,
@@ -80,9 +79,7 @@ class SNDS:
                     sol = x_object.sol
                     x0 = sol.__call__(t_start + step/1000)
                     label = self.labelfun(x0)
-                    # TODO:
-                    # Something is wrong in the logic here, as x_object.y is tereated as a list with len
-                    # then it is treated as an array with .T operator
+
                     if len(x_object.y) == 0:
                         continue
                     x_points = x_object.y.T
@@ -110,12 +107,13 @@ class SNDS:
         x_list = trajectories.x_list
         if timestep == 'default':
             timestep = (t_list[0][1] - t_list[0][0])/10
-
+        first = True
         for i in range(len(t_list)):
             x_points = x_list[i]
             t_points = t_list[i]
             seg_curr = segments[i]
-
+            if len(seg_curr) < 3:
+                continue
             for r in range(1, len(seg_curr) - 1):
                 seg_index = seg_curr[r]
                 try:
@@ -136,9 +134,10 @@ class SNDS:
                     segments_fine = fine_trajs.segment_trajectories(seg_tol/2)
                 X, X_dot, seg_res = diff_method_fps(np.array(fine_trajs.t_list), np.array(fine_trajs.x_list), segments_fine, remove_seg=True)
 
-                if i == 0 and r == 1:
+                if first:
                     final_X = X
                     final_X_dot = X_dot
+                    first = False
                 else:
                     final_X = np.r_[final_X, X]
                     final_X_dot = np.r_[final_X_dot, X_dot]
