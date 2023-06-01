@@ -47,6 +47,8 @@ class SNDS:
             ite = 0
             while status == 1:
                 ite = ite + 1
+                if len(t_points) == 0:
+                    break
                 # solve the ivp according to the label  of x0 while tracking events in eventlist
                 x_object = solve_ivp(self.eqs[label], (t_start, t_end), x0,
                                     t_eval=t_points, method='RK45', rtol=1e-7, atol=1e-9,
@@ -68,9 +70,11 @@ class SNDS:
                     # check where t_start occurs in the list t_points
                     # this is in order to keep t_eval consistent with what we want
                     l = t_points.shape[0]
-                    for i in range(0,l):
+                    i = 0
+                    while i < l:
                         if t_points[i] > t_start:
                             break
+                        i += 1
                     
                     # update t_points to be the times after t_start
                     t_points = t_points[i:]
@@ -94,8 +98,8 @@ class SNDS:
                 else:
                     X_points = np.r_[X_points, x_points]
 
-                if t_points.size == 1:
-                    status = 0
+                # if t_points.size == 1:
+                #     status = 0
 
             t_list.append(np.linspace(t0, t0+T, num))
             x_list.append(X_points)
