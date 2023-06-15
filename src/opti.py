@@ -79,8 +79,7 @@ class HybridKernelRegressor:
         N = X_dot.shape[0]  # nb of points
         D = X_dot.shape[1]  # dimension of each vector
         Q = X_trans.shape[1]
-        S = len(segments)   # Number of segments
-        
+        S = max(segments) + 1   # Number of segments
         opti = casadi.Opti()
 
         # variable declaration arrays
