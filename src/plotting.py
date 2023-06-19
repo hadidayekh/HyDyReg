@@ -127,29 +127,28 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
             axs['x2'].set_xlabel('$t$')
             axs['x2'].set_ylabel('$x_2$')
 
-        # ADDING LABEL CONTROUR
-        if not labelfun is None:
-            xmin, xmax = ax.get_xlim()
-            ymin, ymax = ax.get_ylim()
-            zmin, zmax = ax.get_zlim()
-            nx0 = np.linspace(xmin, xmax, 100)
-            nx1 = np.linspace(ymin, ymax, 100)
-            nx2 = np.linspace(zmin, zmax, 100)
-            x0,x1,x2 = np.meshgrid(nx0, nx1, nx2)
+        # ADDING LABEL CONTROUR (TODO REVISIT)
+        # if not labelfun is None:
+        #     xmin, xmax = ax.get_xlim()
+        #     ymin, ymax = ax.get_ylim()
+        #     zmin, zmax = ax.get_zlim()
+        #     nx0 = np.linspace(xmin, xmax, 100)
+        #     nx1 = np.linspace(ymin, ymax, 100)
+        #     nx2 = np.linspace(zmin, zmax, 100)
+        #     x0,x1,x2 = np.meshgrid(nx0, nx1, nx2)
 
-            label_result = [[[labelfun([x0[i, j, k], x1[i, j, k], x2[i, j, k]]) for k in range(x2.shape[2])] for j in range(x1.shape[1])] for i in range(x0.shape[0])]
+        #     label_result = [[[labelfun([x0[i, j, k], x1[i, j, k], x2[i, j, k]]) for k in range(x2.shape[2])] for j in range(x1.shape[1])] for i in range(x0.shape[0])]
 
-            #TODO revisit
-            #ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
-            n = max(max([max(l) for l in label_result])) + 1
-            label_result = np.array(label_result)
+        #     #ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
+        #     n = max(max([max(l) for l in label_result])) + 1
+        #     label_result = np.array(label_result)
 
-            #ax.voxels(x0, x1, x2, label_result, cmap=ListedColormap(colors=['b', 'r', 'y', 'k', 'm'][:n]), alpha=0.2)
+        #     #ax.voxels(x0, x1, x2, label_result, cmap=ListedColormap(colors=['b', 'r', 'y', 'k', 'm'][:n]), alpha=0.2)
 
-            #ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=ListedColormap(colors = ['b','r','y','k','m'][:n]), alpha=0.2, aspect='auto')
+        #     #ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=ListedColormap(colors = ['b','r','y','k','m'][:n]), alpha=0.2, aspect='auto')
             
-            ax.set_xlim(xmin,xmax)
-            ax.set_ylim(ymin, ymax)
+        #     ax.set_xlim(xmin,xmax)
+        #     ax.set_ylim(ymin, ymax)
 
         ax.set_title(title)
 
