@@ -1,4 +1,5 @@
 from asyncio.proactor_events import _ProactorBaseWritePipeTransport
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
 import casadi
 import numpy as np
 import kernels
@@ -8,6 +9,7 @@ from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.metrics import mean_squared_error
 kernel_dic = {'linear' : kernels.linear, 
               'polynomial' : kernels.polynomial,
               'rbf' : kernels.rbf }
@@ -229,7 +231,7 @@ class HybridKernelRegressor:
                         opti.subject_to(As[j][d] <= Omegas[j][d])
 
         
-        opti.solver('ipopt', dict(), dict(max_iter = 3000))
+        opti.solver('ipopt', dict(), dict(max_iter = 3000, print_level = 0))
         
         # Initiate the optimization
         sol = opti.solve()
@@ -286,6 +288,194 @@ class HybridKernelRegressor:
         self.Xfit_ = X
         self.Xfit_trans_ = X_trans
 
+    def fit_LR(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
+        if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
+            raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
+        if not segmentation is None and len(segments) == 0:
+            raise Exception("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
+        for s in segments:
+            assert s < X.shape[0], "At least one index in segments is out of range."
+        if segmentation == 'squared_diff':
+            raise NotImplementedError
+        tc = self.train_coefs
+        if not tc:
+            raise NotImplementedError
+        
+        n = self.n
+        deg = self.deg
+        
+        if tc and deg > 1:
+            poly = PolynomialFeatures(degree=deg, include_bias=False)
+            X_trans = poly.fit_transform(X)
+            self.poly = poly
+        else:
+            X_trans = X
+
+        # deltas could be a scalar or defined per mode
+        if (np.isscalar(deltas)):
+            temp = np.ones(n)
+            deltas = deltas*temp
+        else:
+            assert(len(deltas) == n)
+
+        N = X_dot.shape[0]  # nb of points
+        D = X_dot.shape[1]  # dimension of each vector
+        Q = X_trans.shape[1]
+        S = max(segments) + 1   # Number of segments
+        
+
+        
+        opti = casadi.Opti()
+
+        # variable declaration arrays
+        Omegas = np.ndarray((n, D, Q), dtype=float)
+        Alphas = np.ndarray((n, D), dtype=object)
+        betas = np.ndarray((n, D), dtype=object)
+        Chis = np.ndarray((n,), dtype=object)
+        
+        LR_Omegas = np.ndarray((S, D, Q), dtype=float)
+        for r in range(S-2):
+            seg_index = np.where(segments == r)[0][0]
+            next_seg_index = np.where(segments == r+1)[0][0]
+            X_trans_seg = X_trans[seg_index:next_seg_index]
+            X_dot_seg = X_dot[seg_index:next_seg_index]
+            LR = LinearRegression()
+            LR.fit(X_trans_seg, X_dot_seg)
+            x_dot_pred = LR.predict(X_trans_seg)
+            print(mean_squared_error(x_dot_pred, X_dot_seg))
+            print(LR.coef_, LR.intercept_)
+            if r == 0:
+                x_dot_pred = X_trans_seg @ LR.coef_[0] + LR.intercept_[0]
+                print(x_dot_pred - X_dot_seg.T[0])
+            LR_Omegas[r] = LR.coef_
+        r = S-1
+        X_trans_seg = X_trans[np.where(segments == r)[0][0]:]
+        X_dot_seg = X_dot[np.where(segments == r)[0][0]:]
+        LR = LinearRegression()
+        LR.fit(X_trans_seg, X_dot_seg)
+        LR_Omegas[r] = LR.coef_
+
+        for j in range(n):
+            chi_size_per_mode = S
+            
+            Chis[j] = opti.variable(chi_size_per_mode)
+            opti.set_initial(Chis[j], np.random.rand(chi_size_per_mode))
+
+            for d in range(D):
+                if tc:
+                    Alphas[j][d] = opti.variable(S)
+                    opti.set_initial(Alphas[j][d], np.random.rand(S))
+
+                betas[j][d] = opti.variable()
+                opti.set_initial(betas[j][d], np.random.rand())
+                #betas[j][d] = 0
+        print(chi_size_per_mode)
+
+        C_param = opti.parameter()
+        opti.set_value(C_param, C)
+
+        # First part of the optimization objective function:
+        # the sum of products of Chis
+        # This forces one Chi per data point to be ~0, which dictates the mode
+
+        sum_products_chis = 0
+        for i in range(chi_size_per_mode):
+            temp = 1
+            for j in range(n):
+                temp *= Chis[j][i]
+            sum_products_chis += temp
+
+        sum_products_chis *= C_param
+
+        # Second part of the optimization objective function:
+        # The sum of norms of alphas/Omegas
+        # Here we use the L1 norm
+        eye = np.ones(S)
+        sum_norms_alphas = 0
+        for j in range(n):
+            for d in range(D):
+                sum_norms_alphas += (Alphas[j][d].T @ eye)
+        to_minimize = sum_norms_alphas + sum_products_chis
+
+        # Setting the objective function
+        opti.minimize(to_minimize)
+
+        # CONSTRAINTS
+
+        # all chis must be positive
+        for j in range(n):
+            opti.subject_to(Chis[j] >= 0)
+        
+        x_dotT = X_dot.T    # d by N
+        eye = np.ones(N)
+        for d in range(D):
+            for j in range(n):
+                # # Here we need to transform each Chi[j], which is currently an S by 1 matrix into an N by 1 matrix
+                # # We do this by constructing a transformation matrix that assigns the correct chi according to which segment the point is in
+                # trans_mat = np.zeros((N, S))
+                # for i in range(N):
+                #     seg_index = which_segment(i, segments)
+                #     trans_mat[i][seg_index] = 1
+                # Chis[j] = casadi.vec(trans_mat @ Chis[j])
+                lin_comb_lr = 0
+                for r in range(S):
+                    lin_comb_lr += Alphas[j][d][r] * LR_Omegas[r][d]
+                for i in range(N):
+                    seg_index = segments[i]
+                    
+                    opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, lin_comb_lr) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
+                    opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, lin_comb_lr) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+
+        
+        opti.solver('ipopt', dict(), dict(max_iter = 3000))
+        
+        # Initiate the optimization
+        sol = opti.solve()
+
+        # Printing the results if print is on
+        if print_on:
+            for j in range(n):
+                print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
+            for j in range(n):
+                for d in range(D):
+                    if not tc:
+                        print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
+                    else:
+                        print("Omega_" + str(j) + "_" + str(d) + ": " + str(sol.value(Omegas[j][d])))
+                    print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
+
+        # Saving the results in proper arrays
+        Omegas_sol = np.ndarray((n, D, Q))
+        betas_sol  = np.ndarray((n, D))
+        Chis_sol   = np.ndarray((n, chi_size_per_mode))
+
+        for j in range(n):
+                Chis_sol[j] = sol.value(Chis[j])
+        for j in range(n):
+            for d in range(D):
+                lin_comb_lr = 0
+                for r in range(S):
+                    lin_comb_lr += sol.value(Alphas[j][d][r]) * LR_Omegas[r][d]
+                Omegas_sol[j][d] = lin_comb_lr
+                betas_sol[j][d]  = sol.value(betas[j][d])
+        
+        self.Chis_segments_ = Chis_sol
+        final_Chis = np.ndarray((n, N))
+        for j in range(n):
+            for i in range(N):
+                seg_index = segments[i]
+                final_Chis[j][i] = Chis_sol[j][seg_index]
+
+        self.Chis_ = final_Chis
+       
+        #self.sol_ = sol
+        self.Omegas_ = Omegas_sol
+        self.betas_ = betas_sol
+        # self.Chis_ = Chis_sol
+        self.Xfit_ = X
+        self.Xfit_trans_ = X_trans
+
+    
     def fit_scipy(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
             raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
@@ -464,7 +654,11 @@ class HybridKernelRegressor:
             raise Exception("Given X does not have the right dimensions.")
         if tc and self.deg > 1:
             poly = PolynomialFeatures(degree = self.deg, include_bias=False)
-            X_trans = poly.fit_transform(X)
+            try:
+                X_trans = poly.fit_transform(X)
+            except:
+                print("PROBLEM", X)
+                exit(-1)
         else:
             X_trans = X
 
