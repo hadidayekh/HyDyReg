@@ -46,7 +46,7 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         C_curr = C_space[i]
         try:
             # Fit the model with the current hyperparameter C_curr
-            model_curr.fit(X_train, Xdot_train, norm='L2', deltas=0.00001, C=C_curr, segmentation='strict', segments=seg_train)
+            model_curr.fit(X_train, Xdot_train, norm='L2', deltas=0.001, C=C_curr, segmentation='strict', segments=seg_train)
         except:
             print('C =', C_curr, 'failed.')
             continue
@@ -95,6 +95,8 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
     traj_test_sul = sul.simulate_trajectory(time_step_test, time_range_test, x0s_test)
     traj_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
 
+    print("Test MSE of trajectories = ", compare_trajs(traj_test_learned, traj_test_sul))
+
     if with_plots:
         if D == 2:
             plotting_function = draw_trajectories_2D
@@ -113,7 +115,7 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
 
         # Plotting test data
         f2, a2 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
-        f2, a2 = plotting_function(traj_test_sul, fig=f2, axs=a2, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+        f2, a2 = plotting_function(traj_test_learned, fig=f2, axs=a2, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
         plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data'
         plot_title += ', as well as the mode state space partitioning.' if D==2 or D==3 else '.'
         f2.suptitle(textwrap.fill(plot_title, width=60))
