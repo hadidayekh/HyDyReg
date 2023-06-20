@@ -122,7 +122,6 @@ class HybridKernelRegressor:
                     else:
                         As[j][d] = opti.variable(Q)
                         opti.set_initial(As[j][d], np.random.rand(Q))
-        print(chi_size_per_mode)
 
         C_param = opti.parameter()
         opti.set_value(C_param, C)
@@ -230,9 +229,7 @@ class HybridKernelRegressor:
                         opti.subject_to(-Omegas[j][d] <= As[j][d])
                         opti.subject_to(As[j][d] <= Omegas[j][d])
 
-        
-        opti.solver('ipopt', dict(), dict(max_iter = 3000, print_level = 0))
-        
+        opti.solver('ipopt', dict(print_time = 0), dict(max_iter = 3000, print_level = 0))
         # Initiate the optimization
         sol = opti.solve()
 

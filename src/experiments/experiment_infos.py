@@ -91,7 +91,6 @@ def affine_3modes():
     ##### DEFINING SNDS #####
     return SNDS_linear(params, eventlist, labelfun)
 
-
 def lorentz_attractor():
     # Label function to decide which mode
     def labelfun(x):
@@ -310,7 +309,8 @@ exp_infos = {
 
 for exp_title in exp_infos.keys():
     exp = exp_infos[exp_title]
-    learn_system(exp_name = exp_title,
+    try:
+        learn_system(exp_name = exp_title,
                  sul =              exp['sul'],
                  time_step =        exp['time_step'],
                  time_range =       exp['time_range'],
@@ -322,5 +322,7 @@ for exp_title in exp_infos.keys():
                  poly_degree =      exp['poly_degree'],
                  seg_tol =          exp['seg_tol'],
                  classifier =       exp['classifier'])
+    except:
+        print("Experiment " + exp_title + " failed.")
 
 plt.show()
