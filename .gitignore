@@ -11,3 +11,4 @@ poly_for_bernstein.zip
 *.model
 *.trajectories
 *.txt
+*.info
