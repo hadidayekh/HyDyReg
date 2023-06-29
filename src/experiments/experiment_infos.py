@@ -321,7 +321,10 @@ for exp_title in exp_infos.keys():
                  nmodes =           exp['nmodes'],
                  poly_degree =      exp['poly_degree'],
                  seg_tol =          exp['seg_tol'],
-                 classifier =       exp['classifier'])
+                 classifier =       exp['classifier'],
+                 C_space =          [0.1, 1, 2, 5, 10],
+                 write_on =         True,
+                 deltas =           0.01)
     except:
         print("Experiment " + exp_title + " failed.")
 
