@@ -8,7 +8,7 @@ sys.path.append('../')
 
 import kernels
 import diff_methods
-from main import get_modes, get_differences_learned
+from main import get_modes
 from snds import SNDS, SNDS_linear
 from scipy.integrate import solve_ivp
 import numpy as np

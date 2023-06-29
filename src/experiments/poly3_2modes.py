@@ -86,19 +86,6 @@ else:
     trajectories = pickle.load(file)
     file.close()
 
-t_small = trajectories.t_list[0][0:5]
-x_small = trajectories.x_list[0][0:5]
-tdiff = np.diff(t_small)
-xdiff = np.diff(x_small, axis=0)
-print(tdiff)
-print(xdiff)
-xdot_small = xdiff / 0.1
-
-xdotdot = np.diff(xdot_small, axis=0) / xdiff[0:3]
-xdotdotdot = np.diff(xdotdot, axis=0) / xdiff[0:2]
-xdotdotdotdot = np.diff(xdotdotdot, axis=0) / xdiff[0:1]
-print(xdotdotdotdot)
-exit()
 # Segmenting
 segments = trajectories.segment_trajectories(seg_tol)
 
@@ -183,6 +170,8 @@ if k_learn:
         MSE_val = 1e9
         for i in range(len(C_space)):
             C_curr = C_space[i]
+            #model_curr.fit_LR(X_train, Xdot_train, norm='L2', deltas=0.001, C=C_curr, segmentation='strict', segments=seg_train)
+
             try:
                 # Fitting the model with its corresponding derivatives
                 model_curr.fit(X_train, Xdot_train, norm='L2', deltas=0.001, C=C_curr, segmentation='strict', segments=seg_train)

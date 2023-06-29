@@ -21,10 +21,10 @@ import copy
 
 exp_title = "lorentz_attractor"
 k_learn = True
-save_plots = True
-save_pickle = True
+save_plots = False
+save_pickle = False
 load_pickle = False
-seg_tol = 0.5
+seg_tol = 1
 
 
 '''

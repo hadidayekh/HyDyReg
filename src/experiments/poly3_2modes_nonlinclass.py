@@ -20,8 +20,8 @@ import textwrap
 exp_title = "poly3_2modes_nonlinclass"
 k_learn = True
 save_plots = True
-save_pickle = False
-load_pickle = True
+save_pickle = True
+load_pickle = False
 seg_tol = 0.5
 
 '''
@@ -66,7 +66,7 @@ sul = SNDS(2, 2, eqs, eventlist, labelfun)
 
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
-time_step = 0.025
+time_step = 0.02
 time_range = 10
 x0s = [[0,4], [0,4.5], [0,5]]
 
@@ -159,7 +159,7 @@ if k_learn:
         model = HybridKernelRegressor(train_coefs=True, n=2, deg=3)#, kernels_list=['polynomial', 'polynomial'], kargs_list=[[3, 1, 1], [3, 1, 1]])
 
         # Fitting the model with its corresponding derivatives
-        model.fit(X, X_dot, norm='L2', deltas=0.001, C=10000, segmentation='strict', segments=seg_res)
+        model.fit(X, X_dot, norm='L2', deltas=0.0001, C=0.1, segmentation='strict', segments=seg_res)
 
         if save_pickle:
             file = open('../models/' + exp_title + '.model', 'wb')

@@ -20,12 +20,14 @@ from sklearn.svm import SVC
 import textwrap
 import utils
 import copy
+import time
+from main import learn_system
 
 exp_title = "poly2_4d"
 k_learn = True
 save_plots = True
 save_pickle = False
-load_pickle = True
+load_pickle = False
 seg_tol = 0.01
 
 
@@ -68,7 +70,7 @@ def eq2(t, x):
     return [ - s * x[1],
     x[0] - r1,
     x[3],
-    -p * (x[0] - x[2])**2 ]
+    p * (x[0] - x[2])**2 ]
 
 eqs = [eq1, eq2]
 
@@ -78,10 +80,10 @@ sul = SNDS(2, 4, eqs, eventlist, labelfun)
 
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
-time_step = 0.01
-time_range = 2
+time_step = 0.05
+time_range = 5
 x0s =  [[4.1,0.5,2,0], [6,0.7,2,0]]
-x0s = [[4,0.1,3.1,0], [5.9,0.2,-3,0], [4.1,0.5,2,0], [6,0.7,2,0]]
+x0s = [[6,0.7,2,0], [4,0.1,3.1,0], [5.9,0.2,-3,0], [4.1,0.5,2,0]]
 
 # Simulating or loading trajectories
 if not load_pickle:
@@ -119,29 +121,9 @@ if save_plots:
     file_name = "../plots/" + exp_title + "/SIM_" + exp_title + "_trajs=" + str(len(x0s)) + '_ts=' + str(time_step) + '_T=' + str(time_range) + ".pdf"
     fig1.savefig(file_name)
 
-t_arr = np.array(trajectories.t_list)
-x_arr = np.array(trajectories.x_list)
-X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
-#X_dot = np.array([eqs[abs(labelfun(x)-1)](0, x) for x in X])
-
-X0 = []
-X0_dot = []
-X1 = []
-X1_dot = []
-for i in range(X.shape[0]):
-    x = X[i]
-    xdot = X_dot[i]
-    if labelfun(x) == 0:
-        X0.append(x)
-        X0_dot.append(xdot)
-    else:
-        X1.append(x)
-        X1_dot.append(xdot)
-
-X0 = np.array(X0)
-X1 = np.array(X1)
-X0_dot = np.array(X0_dot)
-X1_dot = np.array(X1_dot)
+x0s_test = [[4.6,0.13,2,0], [5.3,0.17,-2,0]]
+time_step_test = 0.01
+time_range_test = 2
 
 
 if k_learn:
@@ -167,11 +149,13 @@ if k_learn:
         Cs = []
         MSEs = []
         MSE_val = 1e9
+        total_time = 0
         for i in range(len(C_space)):
+            t_start = time.time()
             C_curr = C_space[i]
             try:
                 # Fitting the model with its corresponding derivatives
-                model_curr.fit(X_train, Xdot_train, norm='L2', deltas=0.0001, C=C_curr, segmentation='strict', segments=seg_train)
+                model_curr.fit(X_train, Xdot_train, norm='L2', deltas=0.00001, C=C_curr, segmentation='strict', segments=seg_train)
             except:
                 print('C =', C_curr, 'failed.')
                 continue
@@ -181,12 +165,16 @@ if k_learn:
             MSE_val_curr = mean_squared_error(Xdot_val_pred, Xdot_val)
             Cs.append(C_curr)
             MSEs.append(MSE_val_curr)
-            print("C =", C_curr, "MSE =", MSE_val_curr)
             if MSE_val_curr < MSE_val:
                 model = copy.deepcopy(model_curr)
                 MSE_val = MSE_val_curr
                 C = C_curr
-
+            curr_time = time.time() - t_start
+            total_time += curr_time
+            print("C =", C_curr, "MSE =", MSE_val_curr, 'time =', curr_time)
+        print("Best C =", C, "with MSE_val =", MSE_val)
+        print("Total time:", total_time)
+        print("Average time per C:", total_time/len(C_space))
         if save_pickle:
             file = open('../models/' + exp_title + '.model', 'wb')
             pickle.dump(model, file)
@@ -197,7 +185,6 @@ if k_learn:
     # print('Final C =', C)
     # Classify modes
     #model.classify_modes(SVC(kernel='linear', C=0.1))
-    model.print_coefs_linear()
     model.classify_modes(LogisticRegression(penalty='none'))
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
     model.improve_classification(fine_X, fine_X_dot, LogisticRegression(penalty='none'))
@@ -210,7 +197,6 @@ if k_learn:
     model.print_coefs_linear()
 
     #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
-
     learned_SNDS = model.to_SNDS()
 
     trajs_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
