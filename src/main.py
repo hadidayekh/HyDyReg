@@ -15,8 +15,15 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10]):
-    D = len(x0s[0])
+def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5):
+
+    if write_on:
+        dir = "experi-info/" + exp_name + "/"
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        file = open(dir + exp_name + ".txt", 'w')
+    
+    D = len(x0s[0])   
     # Simulate trajectories given initial conditions
     trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
     
@@ -34,7 +41,7 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
     # Define the model
     model_curr = HybridKernelRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list, kargs_list=kargs_list)
 
-    print("\n\n\nSTARTING " + exp_name)
+    print("Starting " + exp_name + "\n")
     # Starting the hyperparamater tuning
     Cs = []
     MSEs = []
@@ -46,9 +53,11 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         C_curr = C_space[i]
         try:
             # Fit the model with the current hyperparameter C_curr
-            model_curr.fit(X_train, Xdot_train, norm='L2', deltas=0.001, C=C_curr, segmentation='strict', segments=seg_train)
+            model_curr.fit(X_train, Xdot_train, norm='L2', deltas=deltas, C=C_curr, segmentation='strict', segments=seg_train, apply_LR=True)
         except:
             print('C =', C_curr, 'failed.')
+            if write_on:
+                file.write('C = ' + str(C_curr) + ' failed.\n')
             continue
         
         # Deduce the modes of validation points and compute validation error
@@ -63,17 +72,29 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
             model = copy.deepcopy(model_curr)
             MSE_val = MSE_val_curr
             C = C_curr
-        
+
         curr_time = time.time() - t_start
         total_time += curr_time
 
         if print_on:
             print("C =", C_curr, "MSE =", MSE_val_curr, 'time =', curr_time)
+        if write_on:
+            file.write("C = " + str(C_curr) + " MSE = " + str(MSE_val_curr) + ' time = ' + str(curr_time) + "\n")
+
+        if MSE_val_curr < tol:
+            print("MSE low enough; no need to continue.")
+            break
+
 
     if print_on:
         print("Best C =", C, "with MSE_val =", MSE_val)
         print("Total time:", total_time)
         print("Average time per C:", total_time/len(C_space))
+
+    if write_on:
+        file.write("Best C = " + str(C) + " with MSE_val = " + str(MSE_val) + "\n")
+        file.write("Total time = " + str(total_time) + "\n")
+        file.write("Average time per C = " + str(total_time/len(C_space)) + "\n")
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
@@ -83,19 +104,37 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
     # Compute training error
     X_dot_pred = model.predict(X)
     MSE_all = mean_squared_error(X_dot, X_dot_pred)
-    print('Training MSE of X dot after classification =', MSE_all)
-
+    
     #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
     learned_SNDS = model.to_SNDS()
     trajs_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
 
-    print("Training MSE of trajectories after classification =", compare_trajs(trajectories, trajs_learned))
+    comp_traj_train_MSE = compare_trajs(trajectories, trajs_learned, measure="MSE")
+    comp_traj_train_RD = compare_trajs(trajectories, trajs_learned, measure="RD")
 
     # Simulating trajectories on test data
     traj_test_sul = sul.simulate_trajectory(time_step_test, time_range_test, x0s_test)
     traj_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
 
-    print("Test MSE of trajectories = ", compare_trajs(traj_test_learned, traj_test_sul))
+    comp_traj_test_MSE = compare_trajs(traj_test_learned, traj_test_sul, measure="MSE")
+    comp_traj_test_RD = compare_trajs(traj_test_learned, traj_test_sul, measure="RD")
+    
+    if print_on:
+        print('Training MSE of X dot after classification =', MSE_all)
+        print("Training MSE of trajectories after classification =", comp_traj_train_MSE)
+        print("Test MSE of trajectories = ", comp_traj_test_MSE)
+        print("Training RD of trajectories after classification =", comp_traj_train_RD)
+        print("Test RD of trajectories = ", comp_traj_test_RD)
+
+    
+    if write_on:
+        file.write('Training MSE of X dot after classification = ' + str(MSE_all) + "\n")
+        file.write("Training MSE of trajectories after classification = " + str(comp_traj_train_MSE) + "\n")
+        file.write("Test MSE of trajectories = " + str(comp_traj_test_MSE) + "\n")
+        file.write("Training RD of trajectories after classification = " + str(comp_traj_train_RD) + "\n")
+        file.write("Test RD of trajectories = " + str(comp_traj_test_RD) + "\n")
+
+
 
     if with_plots:
         if D == 2:
@@ -119,3 +158,10 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data'
         plot_title += ', as well as the mode state space partitioning.' if D==2 or D==3 else '.'
         f2.suptitle(textwrap.fill(plot_title, width=60))
+
+        if write_on:
+            f1.savefig(dir + exp_name + "_training.pdf")
+            f2.savefig(dir + exp_name + "_test.pdf")
+            file.close()
+
+        print()
