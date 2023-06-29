@@ -43,7 +43,7 @@ class HybridKernelRegressor:
 
     # For segmentation, will introduce variable segmentation which can belong to
     # {'squared_diff', 'strict'} or be None
-    def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
+    def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False):
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
             raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
         if not segmentation is None and len(segments) == 0:
@@ -274,6 +274,20 @@ class HybridKernelRegressor:
             self.Chis_ = final_Chis
         else: 
             self.Chis_ = Chis_sol
+
+        if apply_LR and tc:
+            modes = self.get_modes()
+            LR = LinearRegression()
+            for j in range(n):
+                indices_j = np.where(modes == j)
+                X_j = X_trans[indices_j]
+                X_dot_j = X_dot[indices_j]
+                LR.fit(X_j, X_dot_j)
+                Omegas_sol[j] = LR.coef_
+                betas_sol[j] = LR.intercept_
+
+
+
 
         #self.sol_ = sol
         if not tc:
