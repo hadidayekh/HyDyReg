@@ -322,10 +322,13 @@ for exp_title in exp_infos.keys():
                  poly_degree =      exp['poly_degree'],
                  seg_tol =          exp['seg_tol'],
                  classifier =       exp['classifier'],
-                 C_space =          [0.1, 1, 2, 5, 10],
+                 C_space =          [0, 0.001, 0.01, 0.1, 1],
                  write_on =         True,
-                 deltas =           0.01)
-    except:
+                 deltas =           0.001,
+                 break_at_low_MSE = True,
+                 apply_LR =         False )
+    except Exception as e:
+        print(e)
         print("Experiment " + exp_title + " failed.")
 
 plt.show()

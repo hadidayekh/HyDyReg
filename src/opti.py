@@ -137,7 +137,7 @@ class HybridKernelRegressor:
                 temp *= Chis[j][i]
             sum_products_chis += temp
 
-        sum_products_chis *= C_param
+        #sum_products_chis *= C_param
 
         # Second part of the optimization objective function:
         # The sum of norms of alphas/Omegas
@@ -160,7 +160,7 @@ class HybridKernelRegressor:
                         sum_norms += (Omegas[j][d].T @ Omegas[j][d])
                     else:
                         sum_norms += (Alphas[j][d].T @ Alphas[j][d])
-            to_minimize = sum_norms + sum_products_chis
+            to_minimize = C_param*sum_norms + sum_products_chis
         else:
             raise Exception("The norm parameter has to be 'L1' or 'L2'.")
         
