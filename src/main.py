@@ -27,16 +27,16 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         file = open(dir + exp_name + ".txt", 'w')
         file2 = open(dir2 + exp_name + "-results.tex", 'w')
 
-        file2.write(f'Initial conditions: ')
+        file2.write(f'Initial conditions = ')
         for i in range(len(x0s)):
             file2.write('[')
             for j in range(D-1):
-                file2.write(f'${x0s[i][j]:f}$, ')
+                file2.write(f'${x0s[i][j]}$, ')
             if i == D-1:
-                file2.write(f'${x0s[i][D-1]:f}$]\n\n')
+                file2.write(f'${x0s[i][D-1]}$]\n\n')
             else:
-                file2.write(f'${x0s[i][D-1]:f}$], ')
-        file2.write(f'Time step: ${time_step:f}$\n\nTime range: ${time_range:f}$\n\nSegmentation tolerance: ${seg_tol:f}$\n\n')
+                file2.write(f'${x0s[i][D-1]}$], ')
+        file2.write(f'Time step = ${time_step}$\n\nTime range = ${time_range}$\n\nSegmentation tolerance = ${seg_tol}$\n\n')
     
     # Simulate trajectories given initial conditions
     trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
@@ -114,11 +114,11 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         file.write("Total time = " + str(total_time) + "\n")
         file.write("Average time per C = " + str(total_time/len(C_space)) + "\n")
 
-        file2.write(f"$C_{{\\text{{best}}}} = {C:f}$\n\n")
-        file2.write(f"$\\text{{MSE}}_{{\text{{val}}}} = {MSE_val:f}$\n\n")
-        file2.write(f"$t_{{\\text{{best}} C}} = {t_best_C:f}$\n\n")
-        file2.write(f"$t_{{\\text{{total}}}} = {total_time:f}$\n\n")
-        file2.write(f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):f}$\n\n")
+        file2.write(f"$C_{{\\text{{best}}}} = {C}$\n\n")
+        file2.write(f"$\\text{{MSE}}_{{\\text{{val}}}} =$ {MSE_val:.3e}\n\n")
+        file2.write(f"$t_{{C_{{\\text{{best}}}}}} = {t_best_C:.3f}$s\n\n")
+        file2.write(f"$t_{{\\text{{total}}}} = {total_time:.3f}$s\n\n")
+        file2.write(f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):.3f}$s\n\n")
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
@@ -158,11 +158,11 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         file.write("Training RD of trajectories after classification = " + str(comp_traj_train_RD) + "\n")
         file.write("Test RD of trajectories = " + str(comp_traj_test_RD) + "\n")
 
-        file2.write(f"$\\text{{MSE}}_{{\text{{dot}}}} = {MSE_all:f}$\n\n")
-        file2.write(f"$\\text{{MSE}}_{{\text{{train}}}} = {comp_traj_train_MSE:f}$\n\n")
-        file2.write(f"$\\text{{MSE}}_{{\text{{test}}}} = {comp_traj_test_MSE:f}$\n\n")
-        file2.write(f"$\\text{{RD}}_{{\text{{train}}}} = {comp_traj_train_RD:f}$\n\n")
-        file2.write(f"$\\text{{RD}}_{{\text{{test}}}} = {comp_traj_test_RD:f}$\n\n")
+        file2.write(f"$\\text{{MSE}}_{{\\text{{dot}}}} =$ {MSE_all:.3e}\n\n")
+        file2.write(f"$\\text{{MSE}}_{{\\text{{train}}}} =$ {comp_traj_train_MSE:.3e}\n\n")
+        file2.write(f"$\\text{{MSE}}_{{\\text{{test}}}} =$ {comp_traj_test_MSE:.3e}\n\n")
+        file2.write(f"$\\text{{RD}}_{{\\text{{train}}}} =$ {comp_traj_train_RD:.3e}\n\n")
+        file2.write(f"$\\text{{RD}}_{{\\text{{test}}}} =$ {comp_traj_test_RD:.3e}\n\n")
 
 
 
