@@ -16,14 +16,28 @@ def get_modes(Chis_sol):
 
 
 def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False):
-
+    D = len(x0s[0])   
     if write_on:
         dir = "experi-info/" + exp_name + "/"
+        dir2 = "experi-info/latex-files/"
         if not os.path.exists(dir):
             os.makedirs(dir)
+        if not os.path.exists(dir2):
+            os.makedirs(dir2)
         file = open(dir + exp_name + ".txt", 'w')
+        file2 = open(dir2 + exp_name + "-results.tex", 'w')
+
+        file2.write(f'Initial conditions: ')
+        for i in range(len(x0s)):
+            file2.write('[')
+            for j in range(D-1):
+                file2.write(f'${x0s[i][j]:f}$, ')
+            if i == D-1:
+                file2.write(f'${x0s[i][D-1]:f}$]\n\n')
+            else:
+                file2.write(f'${x0s[i][D-1]:f}$], ')
+        file2.write(f'Time step: ${time_step:f}$\n\nTime range: ${time_range:f}$\n\nSegmentation tolerance: ${seg_tol:f}$\n\n')
     
-    D = len(x0s[0])   
     # Simulate trajectories given initial conditions
     trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
     
@@ -54,7 +68,11 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         try:
             # Fit the model with the current hyperparameter C_curr
             model_curr.fit(X_train, Xdot_train, norm='L2', deltas=deltas, C=C_curr, segmentation='strict', segments=seg_train, apply_LR=apply_LR)
+            curr_time = time.time() - t_start
+            total_time += curr_time
         except:
+            curr_time = time.time() - t_start
+            total_time += curr_time
             print('C =', C_curr, 'failed.')
             if write_on:
                 file.write('C = ' + str(C_curr) + ' failed.\n')
@@ -66,7 +84,7 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         modes_val = get_modes_val(model_curr.Chis_segments_, seg_val)
         Xdot_val_pred = model_curr.predict(X_val, labelfun=modes_val)
         MSE_val_curr = mean_squared_error(Xdot_val_pred, Xdot_val)
-        
+
         # Compare with previous best error to find the new best
         Cs.append(C_curr)
         MSEs.append(MSE_val_curr)
@@ -74,9 +92,7 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
             model = copy.deepcopy(model_curr)
             MSE_val = MSE_val_curr
             C = C_curr
-
-        curr_time = time.time() - t_start
-        total_time += curr_time
+            t_best_C = curr_time
 
         if print_on:
             print("C =", C_curr, "MSE =", MSE_val_curr, 'time =', curr_time)
@@ -97,6 +113,12 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         file.write("Best C = " + str(C) + " with MSE_val = " + str(MSE_val) + "\n")
         file.write("Total time = " + str(total_time) + "\n")
         file.write("Average time per C = " + str(total_time/len(C_space)) + "\n")
+
+        file2.write(f"$C_{{\\text{{best}}}} = {C:f}$\n\n")
+        file2.write(f"$\\text{{MSE}}_{{\text{{val}}}} = {MSE_val:f}$\n\n")
+        file2.write(f"$t_{{\\text{{best}} C}} = {t_best_C:f}$\n\n")
+        file2.write(f"$t_{{\\text{{total}}}} = {total_time:f}$\n\n")
+        file2.write(f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):f}$\n\n")
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
@@ -135,6 +157,13 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         file.write("Test MSE of trajectories = " + str(comp_traj_test_MSE) + "\n")
         file.write("Training RD of trajectories after classification = " + str(comp_traj_train_RD) + "\n")
         file.write("Test RD of trajectories = " + str(comp_traj_test_RD) + "\n")
+
+        file2.write(f"$\\text{{MSE}}_{{\text{{dot}}}} = {MSE_all:f}$\n\n")
+        file2.write(f"$\\text{{MSE}}_{{\text{{train}}}} = {comp_traj_train_MSE:f}$\n\n")
+        file2.write(f"$\\text{{MSE}}_{{\text{{test}}}} = {comp_traj_test_MSE:f}$\n\n")
+        file2.write(f"$\\text{{RD}}_{{\text{{train}}}} = {comp_traj_train_RD:f}$\n\n")
+        file2.write(f"$\\text{{RD}}_{{\text{{test}}}} = {comp_traj_test_RD:f}$\n\n")
+
 
 
 
