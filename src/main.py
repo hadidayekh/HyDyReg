@@ -18,12 +18,13 @@ def get_modes(Chis_sol):
 def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False):
     D = len(x0s[0])   
     if write_on:
+        dir_plots = "experi-plots/"
         dir = "experi-info/" + exp_name + "/"
         dir2 = "experi-info/latex-files/"
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        if not os.path.exists(dir2):
-            os.makedirs(dir2)
+        dirs = [dir_plots, dir, dir2]
+        for directory in dirs:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
         file = open(dir + exp_name + ".txt", 'w')
         file2 = open(dir2 + exp_name + "-results.tex", 'w')
 
@@ -32,11 +33,11 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
             file2.write('[')
             for j in range(D-1):
                 file2.write(f'${x0s[i][j]}$, ')
-            if i == D-1:
-                file2.write(f'${x0s[i][D-1]}$]\n\n')
+            if i == len(x0s)-1:
+                file2.write(f'${x0s[i][D-1]}$]\\\\\n')
             else:
                 file2.write(f'${x0s[i][D-1]}$], ')
-        file2.write(f'Time step = ${time_step}$\n\nTime range = ${time_range}$\n\nSegmentation tolerance = ${seg_tol}$\n\n')
+        file2.write(f'Time step = ${time_step}$\\\\\nTime range = ${time_range}$\\\\\nSegmentation tolerance = ${seg_tol}$\\\\\n')
     
     # Simulate trajectories given initial conditions
     trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
@@ -114,11 +115,11 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         file.write("Total time = " + str(total_time) + "\n")
         file.write("Average time per C = " + str(total_time/len(C_space)) + "\n")
 
-        file2.write(f"$C_{{\\text{{best}}}} = {C}$\n\n")
-        file2.write(f"$\\text{{MSE}}_{{\\text{{val}}}} =$ {MSE_val:.3e}\n\n")
-        file2.write(f"$t_{{C_{{\\text{{best}}}}}} = {t_best_C:.3f}$s\n\n")
-        file2.write(f"$t_{{\\text{{total}}}} = {total_time:.3f}$s\n\n")
-        file2.write(f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):.3f}$s\n\n")
+        file2.write(f"$C_{{\\text{{best}}}} = {C}$\\\\\n")
+        file2.write(f"$\\text{{MSE}}_{{\\text{{val}}}} =$ {MSE_val:.3e}\\\\\n")
+        file2.write(f"$t_{{C_{{\\text{{best}}}}}} = {t_best_C:.3f}$s\\\\\n")
+        file2.write(f"$t_{{\\text{{total}}}} = {total_time:.3f}$s\\\\\n")
+        file2.write(f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):.3f}$s\\\\\n")
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
@@ -158,11 +159,11 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         file.write("Training RD of trajectories after classification = " + str(comp_traj_train_RD) + "\n")
         file.write("Test RD of trajectories = " + str(comp_traj_test_RD) + "\n")
 
-        file2.write(f"$\\text{{MSE}}_{{\\text{{dot}}}} =$ {MSE_all:.3e}\n\n")
-        file2.write(f"$\\text{{MSE}}_{{\\text{{train}}}} =$ {comp_traj_train_MSE:.3e}\n\n")
-        file2.write(f"$\\text{{MSE}}_{{\\text{{test}}}} =$ {comp_traj_test_MSE:.3e}\n\n")
-        file2.write(f"$\\text{{RD}}_{{\\text{{train}}}} =$ {comp_traj_train_RD:.3e}\n\n")
-        file2.write(f"$\\text{{RD}}_{{\\text{{test}}}} =$ {comp_traj_test_RD:.3e}\n\n")
+        file2.write(f"$\\text{{MSE}}_{{\\text{{dot}}}} =$ {MSE_all:.3e}\\\\\n")
+        file2.write(f"$\\text{{MSE}}_{{\\text{{train}}}} =$ {comp_traj_train_MSE:.3e}\\\\\n")
+        file2.write(f"$\\text{{MSE}}_{{\\text{{test}}}} =$ {comp_traj_test_MSE:.3e}\\\\\n")
+        file2.write(f"$\\text{{RD}}_{{\\text{{train}}}} =$ {comp_traj_train_RD:.3e}\\\\\n")
+        file2.write(f"$\\text{{RD}}_{{\\text{{test}}}} =$ {comp_traj_test_RD:.3e}\n")
 
 
 
@@ -191,8 +192,9 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         f2.suptitle(textwrap.fill(plot_title, width=60))
 
         if write_on:
-            f1.savefig(dir + exp_name + "_training.pdf")
-            f2.savefig(dir + exp_name + "_test.pdf")
+            f1.savefig(dir_plots + exp_name + "_training.pdf")
+            f2.savefig(dir_plots + exp_name + "_test.pdf")
             file.close()
+            file2.close()
 
         print()
