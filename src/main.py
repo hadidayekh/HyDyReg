@@ -180,7 +180,7 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         f1, a1 = plotting_function(trajectories, label='Original trajectories', colors = ['b'], mark_beginning=True, plot_xt=True)
         f1, a1 = plotting_function(trajs_learned, fig=f1, axs=a1, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
         plot_title='Training data versus trajectories simulated from the learning model with the same intial conditions as the training data'
-        plot_title += ', as well as the mode state space partitioning.' if D==2 or D==3 else '.'
+        plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
         f1.suptitle(textwrap.fill(plot_title, width=60))
 
 
@@ -188,7 +188,7 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         f2, a2 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
         f2, a2 = plotting_function(traj_test_learned, fig=f2, axs=a2, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
         plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data'
-        plot_title += ', as well as the mode state space partitioning.' if D==2 or D==3 else '.'
+        plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
         f2.suptitle(textwrap.fill(plot_title, width=60))
 
         if write_on:
