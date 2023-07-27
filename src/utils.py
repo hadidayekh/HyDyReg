@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import PolynomialFeatures
 def which_segment(i, segments):
     r = 0
     while r < len(segments) and i >= segments[r]:
@@ -75,3 +76,43 @@ def relative_diff(x, y):
         return np.linalg.norm(x - y) / (np.linalg.norm(x) + np.linalg.norm(y))
     else:
         return np.linalg.norm(x - y, axis=1) / (np.linalg.norm(x, axis=1) + np.linalg.norm(y,axis=1))
+
+
+def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias):
+    powers = polyf.powers_
+    nfeatures_in = powers.shape[1]
+    nfeatures_out = powers.shape[0]
+    assert nfeatures_out == len(coefs)
+
+    def x_name(d):
+        x_name = f'\\xdim{{{d}}}'
+        return x_name
+
+    x_names = []
+    for d in range(nfeatures_in):
+        x_names.append(x_name(d))
+
+    eq_string = ""
+
+    started = False
+    for i in range(nfeatures_out):
+        if coefs[i] == 0:
+            continue
+        x_part = ''
+        for d in range(nfeatures_in):
+            pow = powers[i][d]
+            if pow > 0:
+                x_part += x_names[d]
+            if pow > 1:
+                x_part += f'^{{{pow}}}'
+        if i > 0 and coefs[i] >= 0 and started:
+            eq_string += ' + '
+        eq_string += str(round(coefs[i], 3)) + ' ' + x_part
+        started = True
+
+    if bias != 0:
+        if bias > 0:
+            eq_string += ' + '
+        eq_string += str(round(bias, 3)) 
+
+    return eq_string
