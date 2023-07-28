@@ -79,7 +79,7 @@ def relative_diff(x, y):
 
 
 def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig=4):
-    np.around(coefs, round_dig)
+    coefs = np.around(coefs, round_dig)
     bias = round(bias, round_dig)
     powers = polyf.powers_
     nfeatures_in = powers.shape[1]
