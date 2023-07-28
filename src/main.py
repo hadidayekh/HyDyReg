@@ -27,6 +27,7 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
                 os.makedirs(directory)
         file = open(dir + exp_name + ".txt", 'w')
         file2 = open(dir2 + exp_name + "-results.tex", 'w')
+        file3 = open(dir2 + exp_name + "-eqs.tex", 'w')
 
         file2.write(f'Initial conditions = ')
         for i in range(len(x0s)):
@@ -192,9 +193,11 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         f2.suptitle(textwrap.fill(plot_title, width=60))
 
         if write_on:
+            file3.write(model.gen_full_latex_eq())
             f1.savefig(dir_plots + exp_name + "_training.pdf")
             f2.savefig(dir_plots + exp_name + "_test.pdf")
             file.close()
             file2.close()
+            file3.close()
 
         print()
