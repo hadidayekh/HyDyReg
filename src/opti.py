@@ -807,7 +807,7 @@ class HybridKernelRegressor:
                 eq_string += f'\t\t\\xddim{{{d}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d]) + '\n'
                 eq_string += f'\t\\end{{aligned}}\\\\\n'
             eq_string += f'\\end{{cases}}\n\\]\n\n'
-        print(eq_string)
+        return eq_string
 
     @staticmethod
     def scipy_opti_fun(opti_x, N, n, D, C, segmentation, segments):
