@@ -4,7 +4,7 @@ import casadi
 import numpy as np
 import kernels
 from snds import SNDS, SNDS_linear
-from utils import which_segment
+from utils import which_segment, get_latex_eq
 from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
@@ -64,7 +64,7 @@ class HybridKernelRegressor:
                 
                 kernel_mat_list.append(kernel(X, X, self.kargs_list[j]))
 
-        if tc and deg > 1:
+        if tc:
             poly = PolynomialFeatures(degree=deg, include_bias=False)
             X_trans = poly.fit_transform(X)
             self.poly = poly
@@ -788,6 +788,26 @@ class HybridKernelRegressor:
                     print("x" + str(d) + "_dot:")
                     coefs = self.Omegas_[j][d]
                     print(coefs.T, " ", self.betas_[j][d])
+
+    def gen_full_latex_eq(self):
+        self.check_if_fitted()
+        if not self.train_coefs:
+            raise NotImplementedError
+        
+        omegas = self.Omegas_ # n by D by Q tensor
+        biases = self.betas_ # n by D matrix
+
+        n, D, Q = omegas.shape
+        
+        eq_string = ""
+        for j in range(n):
+            eq_string += f'\\textbf{{Mode {j}:}}\n\\[\n\\begin{{cases}}\n'
+            for d in range(D):
+                eq_string += f'\t\\begin{{aligned}}\n'
+                eq_string += f'\t\t\\xddim{{{d}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d]) + '\n'
+                eq_string += f'\t\\end{{aligned}}\\\\\n'
+            eq_string += f'\\end{{cases}}\n\\]\n\n'
+        print(eq_string)
 
     @staticmethod
     def scipy_opti_fun(opti_x, N, n, D, C, segmentation, segments):
