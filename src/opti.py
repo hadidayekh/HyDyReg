@@ -806,7 +806,7 @@ class HybridKernelRegressor:
                 eq_string += f'\t\\begin{{aligned}}\n'
                 eq_string += f'\t\t\\xddim{{{d}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d]) + '\n'
                 eq_string += f'\t\\end{{aligned}}\\\\\n'
-            eq_string += f'\\end{{cases}}\n\\]\n\n'
+            eq_string += f'\\end{{cases}}\n\\]\n'
         return eq_string
 
     @staticmethod
