@@ -78,7 +78,9 @@ def relative_diff(x, y):
         return np.linalg.norm(x - y, axis=1) / (np.linalg.norm(x, axis=1) + np.linalg.norm(y,axis=1))
 
 
-def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias):
+def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig=4):
+    np.around(coefs, round_dig)
+    bias = round(bias, round_dig)
     powers = polyf.powers_
     nfeatures_in = powers.shape[1]
     nfeatures_out = powers.shape[0]
@@ -107,12 +109,12 @@ def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias):
                 x_part += f'^{{{pow}}}'
         if i > 0 and coefs[i] >= 0 and started:
             eq_string += ' + '
-        eq_string += str(round(coefs[i], 3)) + ' ' + x_part
+        eq_string += str(coefs[i]) + ' ' + x_part
         started = True
 
     if bias != 0:
         if bias > 0:
             eq_string += ' + '
-        eq_string += str(round(bias, 3)) 
+        eq_string += str(bias) 
 
     return eq_string
