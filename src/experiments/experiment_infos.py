@@ -226,6 +226,26 @@ def poly2_4d():
     ##### DEFINING SNDS #####
     return SNDS(2, 4, eqs, eventlist, labelfun)
 
+
+def bio_sys():
+    def labelfun(x):
+        if x[0]-x[1]>=-3:
+            return 0
+        else:
+            return 1
+    event = lambda t, x : x[0] - x[1] + 3
+    event.terminal = True
+    event.direction = 0
+    eventlist = [event]
+
+    def eq1(t, x):
+        return [-x[1], 2*x[0]]
+    def eq2(t, x):
+        return [-x[1], x[0]**3]
+
+    return SNDS(2, 2, [eq1, eq2], eventlist, labelfun)
+
+
 exp_infos = {
     'isolette' : {
         'sul' : isolette(),
@@ -304,10 +324,23 @@ exp_infos = {
         'poly_degree' : 2,
         'seg_tol' : 0.01,
         'classifier' : LogisticRegression(penalty='none')
+    },
+    'bio_sys' : {
+        'sul' : bio_sys(),
+        'time_step' : 0.01,
+        'time_range' : 3,
+        'x0s' : [[1, 7], [0.9, -1.1], [2,3], [4,6]],
+        'time_step_test' : 0.01,
+        'time_range_test' : 2.5,
+        'x0s_test' : [[1, 7], [0.9, -1.1], [2,3], [4,6], [0.1,0.1]],
+        'nmodes' : 2,
+        'poly_degree' : 3,
+        'seg_tol' : 0.15,
+        'classifier' : LogisticRegression(penalty='none')
     }
 }
 
-for exp_title in exp_infos.keys():
+for exp_title in ['bio_sys']:
     exp = exp_infos[exp_title]
     try:
         learn_system(exp_name = exp_title,
@@ -325,7 +358,7 @@ for exp_title in exp_infos.keys():
                  C_space =          [0, 0.001, 0.01, 0.1, 1],
                  write_on =         True,
                  deltas =           0.001,
-                 break_at_low_MSE = True,
+                 break_at_low_MSE = False,
                  apply_LR =         False )
     except Exception as e:
         print(e)
