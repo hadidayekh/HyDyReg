@@ -20,11 +20,11 @@ seg_tol = 0.15
 
 
 def labelfun(x):
-    if x[0]**2+x[1]**2>=0.25:
+    if x[0]**2+x[1]**2>=0.51:
         return 0
     else:
         return 1
-event = lambda t, x : x[0]**2+x[1]**2 - 0.25
+event = lambda t, x : x[0]**2+x[1]**2 - 0.51
 event.terminal = True
 event.direction = 0
 eventlist = [event]
