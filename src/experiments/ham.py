@@ -43,7 +43,7 @@ sul = SNDS(2, 2, [eq1, eq2], eventlist, labelfun)
 # Setting initial conditions and simulation paramtersoyt
 x0s = [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1]]
 time_step = 0.1
-time_range = 50
+time_range = 5
 
 # Simulating trajectories
 trajectories = sul.simulate_trajectory(time_step, time_range, x0s)

@@ -246,6 +246,27 @@ def bio_sys():
     return SNDS(2, 2, [eq1, eq2], eventlist, labelfun)
 
 
+def ham():
+    def labelfun(x):
+        if x[0]**2+x[1]**2>=0.51:
+            return 0
+        else:
+            return 1
+    event = lambda t, x : x[0]**2+x[1]**2 - 0.51
+    event.terminal = True
+    event.direction = 0
+    eventlist = [event]
+
+    def eq1(t, x):
+        return [x[1], -x[0]**3+x[0]]
+    def eq2(t, x):
+        return [-x[0]+x[1], -x[0]-x[1]]
+
+
+    ##### DEFINING SNDS #####
+    sul = SNDS(2, 2, [eq1, eq2], eventlist, labelfun)
+    return sul
+
 exp_infos = {
     'isolette' : {
         'sul' : isolette(),
@@ -337,10 +358,23 @@ exp_infos = {
         'poly_degree' : 3,
         'seg_tol' : 0.15,
         'classifier' : LogisticRegression(penalty='none')
+    },
+    'ham' : {
+        'sul' : ham(),
+        'time_step' : 0.1,
+        'time_range' : 10,
+        'x0s' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1]],
+        'time_step_test' : 0.1,
+        'time_range_test' : 10,
+        'x0s_test' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1]],
+        'nmodes' : 2,
+        'poly_degree' : 3,
+        'seg_tol' : 0.15,
+        'classifier' : SVC(C=1, kernel="poly", degree=2)
     }
 }
 
-for exp_title in ['bio_sys']:
+for exp_title in ['ham']:
     exp = exp_infos[exp_title]
     try:
         learn_system(exp_name = exp_title,
