@@ -8,7 +8,7 @@ import os
 from tslearn.clustering import TimeSeriesKMeans
 from tslearn.utils import to_time_series_dataset
 from sklearn.preprocessing import PolynomialFeatures
-
+from typing_extensions import Self
 from diff_methods import diff_method_fps
 
 class SNDS:
@@ -161,6 +161,12 @@ class Trajectories:
         self.x_list = x_list
         self.num_trajectories = len(x_list)
         self.d = x_list[0].shape[1]
+
+    def append_trajs(self, trajs : Self):
+        self.t_list = self.t_list.extend(trajs.t_list)
+        self.x_list = self.x_list.extend(trajs.x_list)
+        pass
+
     
     def draw_trajectories_2D(self, mark_beginning=False, plot_xt=False, segments=[]):
         if(plot_xt):
