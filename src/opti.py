@@ -625,7 +625,7 @@ class HybridKernelRegressor:
         
         X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
         modes = np.argmin(X_dot_pred_diff, axis=0)
-        self.classify_modes(classifier = classifier, X = np.r_[self.Xfit_, X], modes = np.r_[self.get_modes(), modes])
+        self.classify_modes(classifier = classifier, X = np.r_[self.X_classify_, X], modes = np.r_[self.modes_classify_, modes])
     
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION

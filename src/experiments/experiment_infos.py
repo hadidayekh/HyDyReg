@@ -370,11 +370,14 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.15,
-        'classifier' : SVC(C=1, kernel="poly", degree=2)
+        'classifier' : SVC(C=1, kernel="poly", degree=2),
+        'eq_query_bounds' : [[-1.5, 1.5], [-1, 1]],
+        'eq_query_ntrajs' : 10,
+        'eq_query_tol' : 0.1
     }
 }
 
-for exp_title in ['ham']:
+for exp_title in ['ham']:#['bio_sys', 'ham']:
     exp = exp_infos[exp_title]
     try:
         learn_system(exp_name = exp_title,
@@ -389,11 +392,15 @@ for exp_title in ['ham']:
                  poly_degree =      exp['poly_degree'],
                  seg_tol =          exp['seg_tol'],
                  classifier =       exp['classifier'],
+                 do_eq_query =      True,
+                 eq_query_bounds=   exp['eq_query_bounds'],
+                 eq_query_ntrajs=   exp['eq_query_ntrajs'],
+                 eq_query_tol=      exp['eq_query_tol'],
                  C_space =          [0, 0.001, 0.01, 0.1, 1],
                  write_on =         True,
                  deltas =           0.001,
-                 break_at_low_MSE = False,
-                 apply_LR =         False )
+                 break_at_low_MSE = True,
+                 apply_LR =         False)
     except Exception as e:
         print(e)
         print("Experiment " + exp_title + " failed.")

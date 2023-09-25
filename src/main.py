@@ -9,13 +9,14 @@ from diff_methods import diff_method_fps
 from opti import HybridKernelRegressor
 from sklearn.linear_model import LogisticRegression
 from plotting import *
+from snds import SNDS
 from utils import *
 import matplotlib.pyplot as plt
 def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1):
     D = len(x0s[0])   
     if write_on:
         dir_plots = "experi-plots/"
@@ -168,7 +169,20 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
 
 
 
-
+    oldmodel = copy.deepcopy(model)
+    improved = False
+    if do_eq_query:
+        eq_query, eq_trajs_sul, eq_trajs_learned_system = equivalence_query(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
+        count = 0
+        while not eq_query and count < 10:
+            count += 1
+            print("Improving...")
+            X, X_dot = diff_method(np.array(eq_trajs_sul.t_list), np.array(eq_trajs_sul.x_list))
+            model.improve_classification(X, X_dot, classifier)
+            learned_SNDS = model.to_SNDS()
+            eq_query, eq_trajs_sul2, eq_trajs_learned_system2 = equivalence_query(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
+            improved = True
+    
     if with_plots:
         if D == 2:
             plotting_function = draw_trajectories_2D
@@ -179,7 +193,7 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
         
         # Plotting training data
         f1, a1 = plotting_function(trajectories, label='Original trajectories', colors = ['b'], mark_beginning=True, plot_xt=True)
-        f1, a1 = plotting_function(trajs_learned, fig=f1, axs=a1, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+        f1, a1 = plotting_function(trajs_learned, fig=f1, axs=a1, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=oldmodel.labelfun_)
         plot_title='Training data versus trajectories simulated from the learning model with the same intial conditions as the training data'
         plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
         f1.suptitle(textwrap.fill(plot_title, width=60))
@@ -187,10 +201,18 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
 
         # Plotting test data
         f2, a2 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
-        f2, a2 = plotting_function(traj_test_learned, fig=f2, axs=a2, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+        f2, a2 = plotting_function(traj_test_learned, fig=f2, axs=a2, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=oldmodel.labelfun_)
         plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data'
         plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
         f2.suptitle(textwrap.fill(plot_title, width=60))
+
+        if do_eq_query:
+            f3, a3 = plotting_function(eq_trajs_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
+            f3, a3 = plotting_function(eq_trajs_learned_system, fig=f3, axs=a3, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=oldmodel.labelfun_)
+
+            if improved:
+                f4, a4 = plotting_function(eq_trajs_sul2, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
+                f4, a4 = plotting_function(eq_trajs_learned_system2, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
 
         if write_on:
             file3.write(model.gen_full_latex_eq())
@@ -201,3 +223,20 @@ def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time
             file3.close()
 
         print()
+
+
+def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1):
+    x0s = []
+    for i in range(n_trajs):
+        x0 = []
+        for d in range(sul.dim):
+            x0.append(np.random.random() * (bounds[d][1] - bounds[d][0]) + bounds[d][0])
+        x0s.append(x0)
+    sul_trajs = sul.simulate_trajectory(time_step, time_range, x0s)
+    learned_trajs = learned_snds.simulate_trajectory(time_step, time_range, x0s)
+
+    comp_traj_test_MSE = compare_trajs(learned_trajs, sul_trajs, measure="MSE")
+    comp_traj_test_RD = compare_trajs(learned_trajs, sul_trajs, measure="RD")
+
+    print(comp_traj_test_MSE, comp_traj_test_RD)
+    return comp_traj_test_RD <= tol, sul_trajs, learned_trajs
