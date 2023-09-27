@@ -365,15 +365,15 @@ exp_infos = {
         'time_range' : 10,
         'x0s' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1]],
         'time_step_test' : 0.1,
-        'time_range_test' : 10,
+        'time_range_test' : 5,
         'x0s_test' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1]],
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.15,
-        'classifier' : SVC(C=1, kernel="poly", degree=2),
+        'classifier' : SVC(C=1000, kernel="poly", degree=2),
         'eq_query_bounds' : [[-1.5, 1.5], [-1, 1]],
-        'eq_query_ntrajs' : 10,
-        'eq_query_tol' : 0.1
+        'eq_query_ntrajs' : 50,
+        'eq_query_tol' : 0.01
     }
 }
 
@@ -399,7 +399,7 @@ for exp_title in ['ham']:#['bio_sys', 'ham']:
                  C_space =          [0, 0.001, 0.01, 0.1, 1],
                  write_on =         True,
                  deltas =           0.001,
-                 break_at_low_MSE = True,
+                 break_at_low_MSE = False,
                  apply_LR =         False)
     except Exception as e:
         print(e)

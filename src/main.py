@@ -174,14 +174,22 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     if do_eq_query:
         eq_query, eq_trajs_sul, eq_trajs_learned_system = equivalence_query(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
         count = 0
+        eq_trajs_sul2, eq_trajs_learned_system2 = eq_trajs_sul, eq_trajs_learned_system
         while not eq_query and count < 10:
             count += 1
             print("Improving...")
-            X, X_dot = diff_method(np.array(eq_trajs_sul.t_list), np.array(eq_trajs_sul.x_list))
-            model.improve_classification(X, X_dot, classifier)
+            segments_eq = eq_trajs_sul2.segment_trajectories(seg_tol)
+            X, X_dot, seg_res_eq = diff_method(np.array(eq_trajs_sul2.t_list), np.array(eq_trajs_sul2.x_list), segments=segments_eq, remove_seg=True)
+            fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(eq_trajs_sul2, segments_eq, seg_tol/10, timestep=time_step_test/100)
+            #model.improve_classification(X, X_dot, classifier)
+            model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
             learned_SNDS = model.to_SNDS()
             eq_query, eq_trajs_sul2, eq_trajs_learned_system2 = equivalence_query(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
             improved = True
+
+    traj_test_learned2 = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
+    comp_traj_test_RD = compare_trajs(traj_test_learned2, traj_test_sul, measure="RD")
+    print("Test RD of trajectories = ", comp_traj_test_RD)
     
     if with_plots:
         if D == 2:
