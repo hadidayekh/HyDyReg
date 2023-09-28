@@ -9,7 +9,7 @@ from diff_methods import diff_method_fps
 from opti import HybridKernelRegressor
 from sklearn.linear_model import LogisticRegression
 from plotting import *
-from snds import SNDS
+from snds import SNDS, Trajectories
 from utils import *
 import matplotlib.pyplot as plt
 def get_modes(Chis_sol):
@@ -40,7 +40,13 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             else:
                 file2.write(f'${x0s[i][D-1]}$], ')
         file2.write(f'Time step = ${time_step}$\\\\\nTime range = ${time_range}$\\\\\nSegmentation tolerance = ${seg_tol}$\\\\\n')
-    
+    if with_plots:
+        if D == 2:
+            plotting_function = draw_trajectories_2D
+        elif D == 3:
+            plotting_function = draw_trajectories_3D
+        else:
+            plotting_function = draw_trajectories_ND
     # Simulate trajectories given initial conditions
     trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
     
@@ -170,34 +176,42 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
 
     oldmodel = copy.deepcopy(model)
-    improved = False
     if do_eq_query:
-        eq_query, eq_trajs_sul, eq_trajs_learned_system = equivalence_query(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
+        eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
+        sul_trajs = copy.deepcopy(cexs_sul)
+        sul_trajs.append_trajs(conforming_trajs_sul)
+        # eq_query, eq_trajs_sul, eq_trajs_learned_system = equivalence_query(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
         count = 0
-        eq_trajs_sul2, eq_trajs_learned_system2 = eq_trajs_sul, eq_trajs_learned_system
+
+        if with_plots:
+            f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
+            f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+            f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+
         while not eq_query and count < 10:
             count += 1
             print("Improving...")
-            segments_eq = eq_trajs_sul2.segment_trajectories(seg_tol)
-            X, X_dot, seg_res_eq = diff_method(np.array(eq_trajs_sul2.t_list), np.array(eq_trajs_sul2.x_list), segments=segments_eq, remove_seg=True)
-            fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(eq_trajs_sul2, segments_eq, seg_tol/10, timestep=time_step_test/100)
+            segments_eq = cexs_sul.segment_trajectories(seg_tol)
+            X, X_dot, seg_res_eq = diff_method(np.array(cexs_sul.t_list), np.array(cexs_sul.x_list), segments=segments_eq, remove_seg=True)
+            fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/100)
             #model.improve_classification(X, X_dot, classifier)
             model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
             learned_SNDS = model.to_SNDS()
-            eq_query, eq_trajs_sul2, eq_trajs_learned_system2 = equivalence_query(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
-            improved = True
+            eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
+            sul_trajs = copy.deepcopy(cexs_sul)
+            sul_trajs.append_trajs(conforming_trajs_sul)
+
+            if with_plots:
+                f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
+                f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+                f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+
 
     traj_test_learned2 = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
     comp_traj_test_RD = compare_trajs(traj_test_learned2, traj_test_sul, measure="RD")
     print("Test RD of trajectories = ", comp_traj_test_RD)
     
     if with_plots:
-        if D == 2:
-            plotting_function = draw_trajectories_2D
-        elif D == 3:
-            plotting_function = draw_trajectories_3D
-        else:
-            plotting_function = draw_trajectories_ND
         
         # Plotting training data
         f1, a1 = plotting_function(trajectories, label='Original trajectories', colors = ['b'], mark_beginning=True, plot_xt=True)
@@ -214,13 +228,13 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
         f2.suptitle(textwrap.fill(plot_title, width=60))
 
-        if do_eq_query:
-            f3, a3 = plotting_function(eq_trajs_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
-            f3, a3 = plotting_function(eq_trajs_learned_system, fig=f3, axs=a3, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=oldmodel.labelfun_)
+        # if do_eq_query:
+        #     f3, a3 = plotting_function(eq_trajs_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
+        #     f3, a3 = plotting_function(eq_trajs_learned_system, fig=f3, axs=a3, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=oldmodel.labelfun_)
 
-            if improved:
-                f4, a4 = plotting_function(eq_trajs_sul2, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
-                f4, a4 = plotting_function(eq_trajs_learned_system2, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+        #     if improved:
+        #         f4, a4 = plotting_function(eq_trajs_sul2, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
+        #         f4, a4 = plotting_function(eq_trajs_learned_system2, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
 
         if write_on:
             file3.write(model.gen_full_latex_eq())
@@ -248,3 +262,32 @@ def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_ste
 
     print(comp_traj_test_MSE, comp_traj_test_RD)
     return comp_traj_test_RD <= tol, sul_trajs, learned_trajs
+
+def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1):
+    cexs_sul = Trajectories([],[])
+    conforming_trajs_sul = Trajectories([],[])
+    cexs_learned = Trajectories([],[])
+    conforming_trajs_learned = Trajectories([],[])
+    total_RD = 0
+    cexs_RD = 0
+    for i in range(n_trajs):
+        x0 = generate_random_point(bounds)
+
+        sul_traj = sul.simulate_trajectory(time_step, time_range, [x0])
+        learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0])
+
+        comp_traj_test_RD = compare_trajs(learned_traj, sul_traj, measure="RD")
+        total_RD += comp_traj_test_RD
+
+        if comp_traj_test_RD >= tol:
+            cexs_sul.append_trajs(sul_traj)
+            cexs_learned.append_trajs(learned_traj)
+            cexs_RD += comp_traj_test_RD
+        else:
+            conforming_trajs_sul.append_trajs(sul_traj)
+            conforming_trajs_learned.append_trajs(sul_traj)
+
+    print("Total RD:", total_RD/n_trajs)
+    if cexs_sul.num_trajectories > 0:
+        print("CEX RD:", cexs_RD / cexs_sul.num_trajectories)
+    return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned

@@ -12,7 +12,7 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
                 fig,axs = plt.subplots()
                 ax = axs
         
-        assert trajectories.d == 2, "Cannot draw in 2D, the dimension is not 2."
+        assert trajectories.d == 2 or trajectories.d is None, "Cannot draw in 2D, the dimension is not 2."
         
         ax = axs['main'] if plot_xt else axs
 
@@ -83,7 +83,7 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
                 fig,axs = plt.subplots()
                 ax = axs
         
-        assert trajectories.d == 3, "Cannot draw in 3D, the dimension is not 3."
+        assert trajectories.d == 3 or trajectories.d is None, "Cannot draw in 3D, the dimension is not 3."
         
         ax = axs['main'] if plot_xt else axs
 
@@ -156,6 +156,8 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
 def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','k','m'], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
     num_plots = trajectories.d
+    if num_plots is None:
+        return
     if fig is None or axs is None:
         if num_plots == 1:
             # Create the figure and subplots

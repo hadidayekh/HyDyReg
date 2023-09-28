@@ -371,16 +371,16 @@ exp_infos = {
         'poly_degree' : 3,
         'seg_tol' : 0.15,
         'classifier' : SVC(C=1000, kernel="poly", degree=2),
-        'eq_query_bounds' : [[-1.5, 1.5], [-1, 1]],
+        'eq_query_bounds' : np.array([[-1.5, 1.5], [-1, 1]]),
         'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.01
+        'eq_query_tol' : 0.05
     }
 }
 
 for exp_title in ['ham']:#['bio_sys', 'ham']:
     exp = exp_infos[exp_title]
-    try:
-        learn_system(exp_name = exp_title,
+    #try:
+    learn_system(exp_name = exp_title,
                  sul =              exp['sul'],
                  time_step =        exp['time_step'],
                  time_range =       exp['time_range'],
@@ -401,8 +401,8 @@ for exp_title in ['ham']:#['bio_sys', 'ham']:
                  deltas =           0.001,
                  break_at_low_MSE = False,
                  apply_LR =         False)
-    except Exception as e:
-        print(e)
-        print("Experiment " + exp_title + " failed.")
+    # except Exception as e:
+    #     print(e)
+    #     print("Experiment " + exp_title + " failed.")
 
 plt.show()

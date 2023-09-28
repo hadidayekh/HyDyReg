@@ -156,15 +156,20 @@ class Trajectories:
     x_list = list of x point arrays, each x point is of d dimensions
     '''
     def __init__(self, t_list, x_list):
-        assert len(x_list) > 0, "Empty trajectory."
         self.t_list = t_list
         self.x_list = x_list
         self.num_trajectories = len(x_list)
-        self.d = x_list[0].shape[1]
+        if self.num_trajectories > 0:
+            self.d = x_list[0].shape[1]
+        else:
+            self.d = None
+        
 
     def append_trajs(self, trajs : Self):
-        self.t_list = self.t_list.extend(trajs.t_list)
-        self.x_list = self.x_list.extend(trajs.x_list)
+        assert self.d == trajs.d or self.d is None or trajs.d is None
+        self.t_list.extend(trajs.t_list)
+        self.x_list.extend(trajs.x_list)
+        self.num_trajectories += trajs.num_trajectories
         pass
 
     
