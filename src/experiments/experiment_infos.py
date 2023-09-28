@@ -370,10 +370,10 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.15,
-        'classifier' : SVC(C=1000, kernel="poly", degree=2),
+        'classifier' : SVC(C=1, kernel="poly", degree=2),
         'eq_query_bounds' : np.array([[-1.5, 1.5], [-1, 1]]),
         'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.05
+        'eq_query_tol' : 0.1
     }
 }
 

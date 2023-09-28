@@ -107,6 +107,7 @@ class SNDS:
         return trajs
 
     def generate_points_between_segments(self, trajectories, segments, seg_tol, timestep='default'):
+        print(segments)
         t_list = trajectories.t_list
         x_list = trajectories.x_list
         if timestep == 'default':

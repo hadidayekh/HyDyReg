@@ -193,9 +193,12 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             print("Improving...")
             segments_eq = cexs_sul.segment_trajectories(seg_tol)
             X, X_dot, seg_res_eq = diff_method(np.array(cexs_sul.t_list), np.array(cexs_sul.x_list), segments=segments_eq, remove_seg=True)
-            fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/100)
-            #model.improve_classification(X, X_dot, classifier)
-            model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
+            for k in range(len(segments_eq)):
+                if len(segments_eq[k]) > 2:
+                    fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/100)
+                    model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
+                    break
+            model.improve_classification(X, X_dot, classifier)
             learned_SNDS = model.to_SNDS()
             eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
             sul_trajs = copy.deepcopy(cexs_sul)
