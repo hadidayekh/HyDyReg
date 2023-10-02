@@ -17,7 +17,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random'):
     D = len(x0s[0])   
     if write_on:
         dir_plots = "experi-plots/"
@@ -178,11 +178,11 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     oldmodel = copy.deepcopy(model)
     if do_eq_query:
-        eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
+        eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method)
         sul_trajs = copy.deepcopy(cexs_sul)
         sul_trajs.append_trajs(conforming_trajs_sul)
         # eq_query, eq_trajs_sul, eq_trajs_learned_system = equivalence_query(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
-        count = 0
+        count = 1
 
         if with_plots:
             f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
@@ -201,7 +201,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                     break
             model.improve_classification(X, X_dot, classifier)
             learned_SNDS = model.to_SNDS()
-            eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
+            eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, sobol_skip=count*eq_query_ntrajs)
             sul_trajs = copy.deepcopy(cexs_sul)
             sul_trajs.append_trajs(conforming_trajs_sul)
 
@@ -267,7 +267,7 @@ def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_ste
     print(comp_traj_test_MSE, comp_traj_test_RD)
     return comp_traj_test_RD <= tol, sul_trajs, learned_trajs
 
-def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1):
+def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1, sampling_method='random', sobol_skip=0):
     cexs_sul = Trajectories([],[])
     conforming_trajs_sul = Trajectories([],[])
     cexs_learned = Trajectories([],[])
@@ -275,7 +275,13 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
     total_RD = 0
     cexs_RD = 0
 
-    x0s = generate_random_points(n_trajs, bounds)
+    if sampling_method == 'random':
+        x0s = generate_random_points(n_trajs, bounds)
+    elif sampling_method == 'sobol':
+        x0s = generate_sobol_points(n_trajs, bounds, skip=sobol_skip)
+    else:
+        raise NotImplementedError
+    
     for i in range(n_trajs):
         x0 = x0s[i]
 
