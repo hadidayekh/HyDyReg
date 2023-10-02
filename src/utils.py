@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import PolynomialFeatures
+import sobol
 def which_segment(i, segments):
     r = 0
     while r < len(segments) and i >= segments[r]:
@@ -77,8 +78,14 @@ def relative_diff(x, y):
     else:
         return np.linalg.norm(x - y, axis=1) / (np.linalg.norm(x, axis=1) + np.linalg.norm(y,axis=1))
 
-def generate_random_points(npoints, bounds):
-    x0s = np.random.random((npoints, bounds.shape[0]))
+def generate_random_points(n_points, bounds):
+    x0s = np.random.random((n_points, bounds.shape[0]))
+    for d in range(bounds.shape[0]):
+        x0s.T[d] = x0s.T[d] * (bounds[d][1] - bounds[d][0]) + bounds[d][0]
+    return x0s
+
+def generate_sobol_points(n_points, bounds, skip=0):
+    x0s = sobol.sample(dimension=bounds.shape[0], n_points=n_points, skip=skip)
     for d in range(bounds.shape[0]):
         x0s.T[d] = x0s.T[d] * (bounds[d][1] - bounds[d][0]) + bounds[d][0]
     return x0s
