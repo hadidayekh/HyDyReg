@@ -77,11 +77,11 @@ def relative_diff(x, y):
     else:
         return np.linalg.norm(x - y, axis=1) / (np.linalg.norm(x, axis=1) + np.linalg.norm(y,axis=1))
 
-def generate_random_point(bounds):
-    x0 = []
+def generate_random_points(npoints, bounds):
+    x0s = np.random.random((npoints, bounds.shape[0]))
     for d in range(bounds.shape[0]):
-        x0.append(np.random.random() * (bounds[d][1] - bounds[d][0]) + bounds[d][0])
-    return x0
+        x0s.T[d] = x0s.T[d] * (bounds[d][1] - bounds[d][0]) + bounds[d][0]
+    return x0s
 
 def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig=4):
     coefs = np.around(coefs, round_dig)

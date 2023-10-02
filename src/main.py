@@ -12,6 +12,7 @@ from plotting import *
 from snds import SNDS, Trajectories
 from utils import *
 import matplotlib.pyplot as plt
+from sklearn.inspection import DecisionBoundaryDisplay
 def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
@@ -188,7 +189,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
             f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=None)
 
-        while not eq_query and count < 10:
+        while not eq_query and count < 100:
             count += 1
             print("Improving...")
             segments_eq = cexs_sul.segment_trajectories(seg_tol)
@@ -273,8 +274,10 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
     conforming_trajs_learned = Trajectories([],[])
     total_RD = 0
     cexs_RD = 0
+
+    x0s = generate_random_points(n_trajs, bounds)
     for i in range(n_trajs):
-        x0 = generate_random_point(bounds)
+        x0 = x0s[i]
 
         sul_traj = sul.simulate_trajectory(time_step, time_range, [x0])
         learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0])
