@@ -279,7 +279,10 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 1,
         'seg_tol' : 0.01,
-        'classifier' : LogisticRegression(penalty='none')
+        'classifier' : LogisticRegression(penalty='none'),
+        'eq_query_bounds' : np.array([[90, 106], [70, 110]]),
+        'eq_query_ntrajs' : 50,
+        'eq_query_tol' : 0.1
     } ,
     'affine_3modes' : {
         'sul' : affine_3modes(),
@@ -292,7 +295,10 @@ exp_infos = {
         'nmodes' : 3,
         'poly_degree' : 1,
         'seg_tol' : 0.5,
-        'classifier' : LogisticRegression(penalty='none', multi_class='ovr')
+        'classifier' : LogisticRegression(penalty='none', multi_class='ovr'),
+        'eq_query_bounds' : np.array([[-2, 3], [-1, 8]]),
+        'eq_query_ntrajs' : 50,
+        'eq_query_tol' : 0.1
     } ,
     'lorentz_attractor' : {
         'sul' : lorentz_attractor(),
@@ -305,7 +311,10 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 2,
         'seg_tol' : 0.5,
-        'classifier' : LogisticRegression(penalty='none', multi_class='ovr')
+        'classifier' : LogisticRegression(penalty='none', multi_class='ovr'),
+        'eq_query_bounds' : np.array([[-20, 20], [-25, 25], [0, 60]]),
+        'eq_query_ntrajs' : 50,
+        'eq_query_tol' : 0.1
     } ,
     'poly2_3modes' : {
         'sul' : poly2_3modes(),
@@ -318,7 +327,10 @@ exp_infos = {
         'nmodes' : 3,
         'poly_degree' : 2,
         'seg_tol' : 0.1,
-        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial')
+        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial'),
+        'eq_query_bounds' : np.array([[-6,7], [-5, 15]]),
+        'eq_query_ntrajs' : 50,
+        'eq_query_tol' : 0.1
     } ,
     'poly3_2modes_nonlinclass' : {
         'sul' : poly3_2modes_nonlinclass(),
@@ -331,7 +343,10 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.5,
-        'classifier' : SVC(C=10)
+        'classifier' : SVC(C=10, degree=2, kernel="poly"),
+        'eq_query_bounds' : np.array([[-10, 10], [-8, 5]]),
+        'eq_query_ntrajs' : 50,
+        'eq_query_tol' : 0.1
     } ,
     'poly2_4d' : {
         'sul' : poly2_4d(),
@@ -344,7 +359,10 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 2,
         'seg_tol' : 0.01,
-        'classifier' : LogisticRegression(penalty='none')
+        'classifier' : LogisticRegression(penalty='none'),
+        'eq_query_bounds' : np.array([[3.5, 6], [-1, 1], [-4, 4], [-5, 5]]),
+        'eq_query_ntrajs' : 50,
+        'eq_query_tol' : 0.1
     },
     'bio_sys' : {
         'sul' : bio_sys(),
@@ -357,7 +375,10 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.15,
-        'classifier' : LogisticRegression(penalty='none')
+        'classifier' : LogisticRegression(penalty='none'),
+        'eq_query_bounds' : np.array([[-4, 4], [-6, 12]]),
+        'eq_query_ntrajs' : 50,
+        'eq_query_tol' : 0.1
     },
     'ham' : {
         'sul' : ham(),
@@ -370,39 +391,39 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.15,
-        'classifier' : SVC(C=1, kernel="poly", degree=2),
+        'classifier' : SVC(C=1000, kernel="poly", degree=2),
         'eq_query_bounds' : np.array([[-1.5, 1.5], [-1, 1]]),
-        'eq_query_ntrajs' : 50,
+        'eq_query_ntrajs' : 20,
         'eq_query_tol' : 0.1
     }
 }
 
-for exp_title in ['ham']:#['bio_sys', 'ham']:
+for exp_title in exp_infos.keys():# ['ham']:#['bio_sys', 'ham']:
     exp = exp_infos[exp_title]
-    #try:
-    learn_system(exp_name = exp_title,
-                 sul =              exp['sul'],
-                 time_step =        exp['time_step'],
-                 time_range =       exp['time_range'],
-                 x0s =              exp['x0s'],
-                 time_step_test =   exp['time_step_test'],
-                 time_range_test =  exp['time_range_test'],
-                 x0s_test =         exp['x0s_test'],
-                 nmodes =           exp['nmodes'],
-                 poly_degree =      exp['poly_degree'],
-                 seg_tol =          exp['seg_tol'],
-                 classifier =       exp['classifier'],
-                 do_eq_query =      True,
-                 eq_query_bounds=   exp['eq_query_bounds'],
-                 eq_query_ntrajs=   exp['eq_query_ntrajs'],
-                 eq_query_tol=      exp['eq_query_tol'],
-                 C_space =          [0, 0.001, 0.01, 0.1, 1],
-                 write_on =         True,
-                 deltas =           0.001,
-                 break_at_low_MSE = False,
-                 apply_LR =         False)
-    # except Exception as e:
-    #     print(e)
-    #     print("Experiment " + exp_title + " failed.")
+    try:
+        learn_system(exp_name = exp_title,
+                    sul =              exp['sul'],
+                    time_step =        exp['time_step'],
+                    time_range =       exp['time_range'],
+                    x0s =              exp['x0s'],
+                    time_step_test =   exp['time_step_test'],
+                    time_range_test =  exp['time_range_test'],
+                    x0s_test =         exp['x0s_test'],
+                    nmodes =           exp['nmodes'],
+                    poly_degree =      exp['poly_degree'],
+                    seg_tol =          exp['seg_tol'],
+                    classifier =       exp['classifier'],
+                    do_eq_query =      True,
+                    eq_query_bounds=   exp['eq_query_bounds'],
+                    eq_query_ntrajs=   exp['eq_query_ntrajs'],
+                    eq_query_tol=      exp['eq_query_tol'],
+                    C_space =          [0, 0.001, 0.01, 0.1, 1],
+                    write_on =         True,
+                    deltas =           0.001,
+                    break_at_low_MSE = True,
+                    apply_LR =         False)
+    except Exception as e:
+        print(e)
+        print("Experiment " + exp_title + " failed.")
 
 plt.show()
