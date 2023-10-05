@@ -78,8 +78,10 @@ def relative_diff(x, y):
     else:
         return np.linalg.norm(x - y, axis=1) / (np.linalg.norm(x, axis=1) + np.linalg.norm(y,axis=1))
 
-def generate_random_points(n_points, bounds):
-    x0s = np.random.random((n_points, bounds.shape[0]))
+def generate_random_points(n_points, bounds, random_generator=None):
+    if random_generator is None:
+        random_generator = np.random
+    x0s = random_generator.random((n_points, bounds.shape[0]))
     for d in range(bounds.shape[0]):
         x0s.T[d] = x0s.T[d] * (bounds[d][1] - bounds[d][0]) + bounds[d][0]
     return x0s
