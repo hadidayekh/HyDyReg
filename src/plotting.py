@@ -23,7 +23,7 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
             ax.scatter(x0, x1, c=colors[i % len(colors)], s=2, label = label if i == 0 else None)
             if mark_beginning:
-                ax.scatter(x0[0], x1[0], c='r', s=6)
+                ax.scatter(x0[0], x1[0], c='b', s=6)
             if len(segments) > 0:
                 for seg_index in segments[i]:
                     ax.scatter(x0[seg_index], x1[seg_index], marker='|', c='r', linewidths=0.7)
@@ -95,7 +95,7 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
             ax.scatter(x0, x1, x2, c=colors[i % len(colors)], s=2, label = label if i == 0 else None)
             if mark_beginning:
-                ax.scatter(x0[0], x1[0], x2[0], c='r', s=6)
+                ax.scatter(x0[0], x1[0], x2[0], c='b', s=6)
             if len(segments) > 0:
                 for seg_index in segments[i]:
                     ax.scatter(x0[seg_index], x1[seg_index], x2[seg_index], marker='|', c='r', linewidths=0.7)
