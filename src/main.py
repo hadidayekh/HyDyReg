@@ -13,6 +13,7 @@ from snds import SNDS, Trajectories
 from utils import *
 import matplotlib.pyplot as plt
 from sklearn.inspection import DecisionBoundaryDisplay
+from tqdm import tqdm
 def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
@@ -132,8 +133,11 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
-    fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
-    model.improve_classification(fine_X, fine_X_dot, classifier)
+    get_SVC_boundary_eq_dim2_poly2(model.classifier_)
+    # fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
+    # model.improve_classification(fine_X, fine_X_dot, classifier)
+    # get_SVC_boundary_eq_dim2_poly2(model.classifier_)
+
 
     # Compute training error
     X_dot_pred = model.predict(X)
@@ -178,6 +182,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     oldmodel = copy.deepcopy(model)
     if do_eq_query:
+        print("Checking equivalence query...")
         eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method)
         sul_trajs = copy.deepcopy(cexs_sul)
         sul_trajs.append_trajs(conforming_trajs_sul)
@@ -191,16 +196,27 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
         while not eq_query and count < 100:
             count += 1
-            print("Improving...")
+            print("Equivalence query is FALSE. Improving...")
             segments_eq = cexs_sul.segment_trajectories(seg_tol)
             X, X_dot, seg_res_eq = diff_method(np.array(cexs_sul.t_list), np.array(cexs_sul.x_list), segments=segments_eq, remove_seg=True)
             for k in range(len(segments_eq)):
                 if len(segments_eq[k]) > 2:
                     fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/100)
                     model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
-                    break
+            
+            close_indices = np.abs(model.classifier_.decision_function(X)) < 1
+            print(X.size)
+            plt.scatter(X.T[0], X.T[1], c='k', s=2)
+            X = X[close_indices]
+            plt.scatter(X.T[0], X.T[1], c='r', s=2)
+
+            X_dot = X_dot[close_indices]
+            print(X.size)
             model.improve_classification(X, X_dot, classifier)
+            coefs = get_SVC_boundary_eq_dim2_poly2(model.classifier_)
+
             learned_SNDS = model.to_SNDS()
+            print("Rechecking equivalence query...")
             eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, sobol_skip=count*eq_query_ntrajs)
             sul_trajs = copy.deepcopy(cexs_sul)
             sul_trajs.append_trajs(conforming_trajs_sul)
@@ -210,10 +226,13 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                 f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
                 f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=None)
 
-
+        if eq_query:
+            print("Equivalence query is TRUE!")
     traj_test_learned2 = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
     comp_traj_test_RD = compare_trajs(traj_test_learned2, traj_test_sul, measure="RD")
     print("Test RD of trajectories = ", comp_traj_test_RD)
+
+    print(not (model.classifier_.predict(model.X_classify_) - model.modes_classify_).any())
     
     if with_plots:
         
@@ -280,9 +299,9 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
     elif sampling_method == 'sobol':
         x0s = generate_sobol_points(n_trajs, bounds, skip=sobol_skip)
     else:
-        raise NotImplementedError
+        x0s = generate_random_points(n_trajs, bounds, random_generator=sampling_method)
     
-    for i in range(n_trajs):
+    for i in tqdm(range(n_trajs)):
         x0 = x0s[i]
 
         sul_traj = sul.simulate_trajectory(time_step, time_range, [x0])
@@ -301,5 +320,6 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
 
     print("Total RD:", total_RD/n_trajs)
     if cexs_sul.num_trajectories > 0:
-        print("CEX RD:", cexs_RD / cexs_sul.num_trajectories)
+        print("Number of counterexamples:", cexs_sul.num_trajectories)
+        print("Counterexamples RD:", cexs_RD / cexs_sul.num_trajectories)
     return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned

@@ -132,3 +132,35 @@ def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig
         eq_string += str(bias) 
 
     return eq_string
+
+
+def get_SVC_boundary_eq_dim2_poly2(model_SVC):
+    if model_SVC.kernel != 'poly' or model_SVC.degree != 2:
+        raise NotImplementedError
+
+    n = model_SVC.support_vectors_.shape[0]
+    dc = model_SVC.dual_coef_[0]
+    sv = model_SVC.support_vectors_
+
+    x0 = sv.T[0]
+    x1 = sv.T[1]
+    coef_1 = 0
+    coef_2 = 0
+    coef_12 = 0
+    for i in range(n):
+        coef_1 += dc[i] * x0[i]**2
+        coef_2 += dc[i] * x1[i]**2
+        coef_12 += 2*dc[i] * x0[i] * x1[i]
+    
+    print(f"x0^2 + {coef_2/coef_1:.3f} x1^2 + {coef_12/coef_1:.3f} x0x1 + {model_SVC.intercept_[0]/coef_1}")
+
+    return (coef_1, coef_2, coef_12, model_SVC.intercept_[0])
+
+def check_SVC(model_SVC, X, coefs):
+    y = model_SVC.predict(X)
+    N = X.shape[0]
+    yc = np.zeros(N)
+    ydc = model_SVC.decision_function(X)
+    for i in range(N):
+        yc[i] = coefs[0]*X[i][0]**2 + coefs[1]*X[i][1]**2 + coefs[2]*X[i][0]*X[i][1] + coefs[3]
+    return y, yc, ydc

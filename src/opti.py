@@ -619,6 +619,8 @@ class HybridKernelRegressor:
         self.modes_classify_ = modes
 
     def improve_classification(self, X, X_dot, classifier=LogisticRegression()):
+        if X.size == 0:
+            return
         X_dot_pred_diff = np.ndarray((self.n, X_dot.shape[0], X_dot.shape[1]))
         for j in range(self.n):
             X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)

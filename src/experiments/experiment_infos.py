@@ -391,14 +391,15 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.15,
-        'classifier' : SVC(C=1000, kernel="poly", degree=2),
+        'classifier' : SVC(C=1e10, kernel="poly", degree=2, gamma=1, coef0=0),
         'eq_query_bounds' : np.array([[-1.5, 1.5], [-1, 1]]),
-        'eq_query_ntrajs' : 20,
+        'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
     }
 }
 
-for exp_title in exp_infos.keys():# ['ham']:#['bio_sys', 'ham']:
+# for exp_title in exp_infos.keys():
+for exp_title in ['ham']:#['bio_sys', 'ham']:
     exp = exp_infos[exp_title]
     try:
         learn_system(exp_name = exp_title,
@@ -417,10 +418,11 @@ for exp_title in exp_infos.keys():# ['ham']:#['bio_sys', 'ham']:
                     eq_query_bounds=   exp['eq_query_bounds'],
                     eq_query_ntrajs=   exp['eq_query_ntrajs'],
                     eq_query_tol=      exp['eq_query_tol'],
+                    sampling_method=   np.random.default_rng(54321) ,
                     C_space =          [0, 0.001, 0.01, 0.1, 1],
                     write_on =         True,
                     deltas =           0.001,
-                    break_at_low_MSE = True,
+                    break_at_low_MSE = False,
                     apply_LR =         False)
     except Exception as e:
         print(e)
