@@ -384,7 +384,7 @@ exp_infos = {
         'sul' : ham(),
         'time_step' : 0.1,
         'time_range' : 10,
-        'x0s' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1]],
+        'x0s' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1], [0.3, 0.1]],
         'time_step_test' : 0.1,
         'time_range_test' : 5,
         'x0s_test' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1]],
@@ -393,7 +393,7 @@ exp_infos = {
         'seg_tol' : 0.15,
         'classifier' : SVC(C=1e10, kernel="poly", degree=2, gamma=1, coef0=0),
         'eq_query_bounds' : np.array([[-1.5, 1.5], [-1, 1]]),
-        'eq_query_ntrajs' : 50,
+        'eq_query_ntrajs' : 200,
         'eq_query_tol' : 0.1
     }
 }
@@ -418,7 +418,7 @@ for exp_title in ['ham']:#['bio_sys', 'ham']:
                     eq_query_bounds=   exp['eq_query_bounds'],
                     eq_query_ntrajs=   exp['eq_query_ntrajs'],
                     eq_query_tol=      exp['eq_query_tol'],
-                    sampling_method=   np.random.default_rng(54321) ,
+                    sampling_method=   np.random ,
                     C_space =          [0, 0.001, 0.01, 0.1, 1],
                     write_on =         True,
                     deltas =           0.001,

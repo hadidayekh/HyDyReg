@@ -134,6 +134,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
     get_SVC_boundary_eq_dim2_poly2(model.classifier_)
+    # print(model.gen_full_latex_eq())
     # fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
     # model.improve_classification(fine_X, fine_X_dot, classifier)
     # get_SVC_boundary_eq_dim2_poly2(model.classifier_)
@@ -199,20 +200,27 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             print("Equivalence query is FALSE. Improving...")
             segments_eq = cexs_sul.segment_trajectories(seg_tol)
             X, X_dot, seg_res_eq = diff_method(np.array(cexs_sul.t_list), np.array(cexs_sul.x_list), segments=segments_eq, remove_seg=True)
+            X_classify = np.ndarray((0, X.shape[1]))
+            X_dot_classify = np.ndarray((0, X.shape[1]))
             for k in range(len(segments_eq)):
                 if len(segments_eq[k]) > 2:
                     fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/100)
-                    model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
+                    X_classify = np.r_[X_classify, fine_X_eq]
+                    X_dot_classify = np.r_[X_dot_classify, fine_X_dot_eq]
+                    # model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
             
-            close_indices = np.abs(model.classifier_.decision_function(X)) < 1
-            print(X.size)
-            plt.scatter(X.T[0], X.T[1], c='k', s=2)
-            X = X[close_indices]
-            plt.scatter(X.T[0], X.T[1], c='r', s=2)
+            # close_indices = np.abs(model.classifier_.decision_function(X)) < 1
+            # print(X.size)
+            # plt.scatter(X.T[0], X.T[1], c='k', s=2)
+            # X = X[close_indices]
+            # plt.scatter(X.T[0], X.T[1], c='r', s=2)
 
-            X_dot = X_dot[close_indices]
-            print(X.size)
-            model.improve_classification(X, X_dot, classifier)
+            # X_dot = X_dot[close_indices]
+            # print(X.size)
+
+            X_classify = np.r_[X_classify, X]
+            X_dot_classify = np.r_[X_dot_classify, X_dot]
+            model.improve_classification(X_classify, X_dot_classify, classifier)
             coefs = get_SVC_boundary_eq_dim2_poly2(model.classifier_)
 
             learned_SNDS = model.to_SNDS()
@@ -300,7 +308,8 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
         x0s = generate_sobol_points(n_trajs, bounds, skip=sobol_skip)
     else:
         x0s = generate_random_points(n_trajs, bounds, random_generator=sampling_method)
-    
+
+    print(x0s[:5])    
     for i in tqdm(range(n_trajs)):
         x0 = x0s[i]
 

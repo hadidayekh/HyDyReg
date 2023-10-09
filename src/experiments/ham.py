@@ -1,9 +1,13 @@
 import sys
-
+path_to_InferDynamic = ""
 # setting path to access parent directory files
 sys.path.append('./')
 sys.path.append('../')
-
+sys.path.insert(0, path_to_InferDynamic)
+from infer_multi_ch import infer_model, test_model
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning) # setting ignore as a parameter and further adding category
+ 
 from sklearn.metrics import mean_squared_error
 from opti import HybridKernelRegressor
 from diff_methods import diff_method_fps
@@ -41,12 +45,31 @@ sul = SNDS(2, 2, [eq1, eq2], eventlist, labelfun)
 
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramtersoyt
-x0s = [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1]]
+x0s = [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1], [0.3, 0.1]]
 time_step = 0.1
 time_range = 5
 
 # Simulating trajectories
 trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
+
+
+total_win, total_d_avg, total_time = dict(), dict(), dict()
+methods = ['kmeans', 'dbscan', 'merge', 'piecelinear', 'tolmerge', 'piecelinear1']
+for method in methods:
+    total_win[method] = 0
+    total_d_avg[method] = 0.0
+    total_time[method] = 0.0
+np.random.seed(0)
+
+for method in methods:
+    print(method)
+    print()
+    P, G, boundary = infer_model(
+                trajectories.t_list, trajectories.x_list, stepsize=time_step, maxorder=3, boundary_order=2,
+                num_mode=2, modelist=None, event=None, ep=0.01, mergeep = 0.01, method=method, verbose=False)
+    print([b/boundary[0] for b in boundary])
+    print(test_model(P, G, boundary, 2, trajectories.x_list, [eq1, eq2], event, 3, 2))
+    
 
 # Segmenting
 segments = trajectories.segment_trajectories(seg_tol)
