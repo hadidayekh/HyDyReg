@@ -278,17 +278,17 @@ def ham():
 exp_infos = {
     'isolette' : {
         'sul' : isolette(),
-        'time_step' : 0.1,
-        'time_range' : 50,
+        'time_step' : 0.25,
+        'time_range' : 25,
         'x0s' : [[105.5, 80], [97.5, 100]],
         'time_step_test' : 0.1,
-        'time_range_test' : 50,
+        'time_range_test' : 15,
         'x0s_test' : [[98, 99]],
         'nmodes' : 2,
         'poly_degree' : 1,
         'seg_tol' : 0.01,
         'boundary_deg' : 1,
-        'classifier' : LogisticRegression(penalty='none'),
+        'classifier' : SVC(C=1e10, kernel="linear"),
         'eq_query_bounds' : np.array([[90, 106], [70, 110]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
@@ -415,6 +415,7 @@ exp_infos = {
 }
 
 exps = list(exp_infos.keys())
+exps=['isolette']
 for exp_title in exps:
 # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
     np.random.seed(0)
