@@ -4,7 +4,7 @@ path_to_InferDynamic = ""
 sys.path.append('./')
 sys.path.append('../')
 sys.path.insert(0, path_to_InferDynamic)
-from infer_multi_ch import infer_model, test_model
+#from infer_multi_ch import infer_model, test_model
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning) # setting ignore as a parameter and further adding category
  
@@ -52,7 +52,8 @@ time_range = 5
 # Simulating trajectories
 trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
 
-
+sul.get_derivatives(trajectories)
+exit()
 total_win, total_d_avg, total_time = dict(), dict(), dict()
 methods = ['kmeans', 'dbscan', 'merge', 'piecelinear', 'tolmerge', 'piecelinear1']
 for method in methods:

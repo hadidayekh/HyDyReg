@@ -1,11 +1,19 @@
 import numpy as np
 import sys
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning) # setting ignore as a parameter and further adding category
+ 
 sys.path.append('./')
+from utils import *
 from snds import SNDS, SNDS_linear
 from main import learn_system
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
+path_to_InferDynamic = ''
+sys.path.insert(0, path_to_InferDynamic)
+from infer_multi_ch import infer_model, test_model
 # def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none')):
 
 '''
@@ -279,6 +287,7 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 1,
         'seg_tol' : 0.01,
+        'boundary_deg' : 1,
         'classifier' : LogisticRegression(penalty='none'),
         'eq_query_bounds' : np.array([[90, 106], [70, 110]]),
         'eq_query_ntrajs' : 50,
@@ -289,13 +298,14 @@ exp_infos = {
         'time_step' : 0.04,
         'time_range' : 4,
         'x0s' : [[-2, 4], [1.5, 10], [0,5]],
-        'time_step_test' : 0.02,
+        'time_step_test' : 0.04,
         'time_range_test' : 2,
         'x0s_test' : [[2,12], [-4, 10]],
         'nmodes' : 3,
         'poly_degree' : 1,
         'seg_tol' : 0.5,
-        'classifier' : LogisticRegression(penalty='none', multi_class='ovr'),
+        'boundary_deg' : 1,
+        'classifier' : SVC(C=1e10, kernel="linear"),
         'eq_query_bounds' : np.array([[-2, 3], [-1, 8]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
@@ -310,9 +320,10 @@ exp_infos = {
         'x0s_test' : [[3,3,3]],
         'nmodes' : 2,
         'poly_degree' : 2,
-        'seg_tol' : 0.5,
-        'classifier' : LogisticRegression(penalty='none', multi_class='ovr'),
-        'eq_query_bounds' : np.array([[-20, 20], [-25, 25], [0, 60]]),
+        'seg_tol' : 0.25,
+        'boundary_deg' : 1,
+        'classifier' : SVC(C=1e10, kernel="linear"),
+        'eq_query_bounds' : np.array([[0, 8], [0, 8], [0, 8]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
     } ,
@@ -327,7 +338,8 @@ exp_infos = {
         'nmodes' : 3,
         'poly_degree' : 2,
         'seg_tol' : 0.1,
-        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial'),
+        'boundary_deg' : 1,
+        'classifier' :  SVC(C=1e10, kernel="linear"),
         'eq_query_bounds' : np.array([[-6,7], [-5, 15]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
@@ -343,8 +355,9 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.5,
-        'classifier' : SVC(C=10, degree=2, kernel="poly"),
-        'eq_query_bounds' : np.array([[-10, 10], [-8, 5]]),
+        'boundary_deg' : 2,
+        'classifier' : SVC(C=1e10, degree=2, kernel="poly", gamma=1, coef0=1),
+        'eq_query_bounds' : np.array([[-1, 1], [-8, 5]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
     } ,
@@ -359,7 +372,8 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 2,
         'seg_tol' : 0.01,
-        'classifier' : LogisticRegression(penalty='none'),
+        'boundary_deg' : 1,
+        'classifier' : SVC(C=1e10, kernel="linear"),
         'eq_query_bounds' : np.array([[3.5, 6], [-1, 1], [-4, 4], [-5, 5]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
@@ -375,34 +389,38 @@ exp_infos = {
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.15,
-        'classifier' : LogisticRegression(penalty='none'),
+        'boundary_deg' : 1,
+        'classifier' : SVC(C=1e10, kernel="linear"),
         'eq_query_bounds' : np.array([[-4, 4], [-6, 12]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
     },
     'ham' : {
         'sul' : ham(),
-        'time_step' : 0.1,
+        'time_step' : 0.08,
         'time_range' : 10,
         'x0s' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1], [0.3, 0.1]],
         'time_step_test' : 0.1,
         'time_range_test' : 5,
-        'x0s_test' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1]],
+        'x0s_test' : [[1.1, 0.7], [0.5, -0.8], [-1,0.3], [-0.3,0.6], [-0.4,1.3]],
         'nmodes' : 2,
         'poly_degree' : 3,
         'seg_tol' : 0.15,
+        'boundary_deg' : 2,
         'classifier' : SVC(C=1e10, kernel="poly", degree=2, gamma=1, coef0=0),
         'eq_query_bounds' : np.array([[-1.5, 1.5], [-1, 1]]),
-        'eq_query_ntrajs' : 200,
+        'eq_query_ntrajs' : 100,
         'eq_query_tol' : 0.1
     }
 }
 
-# for exp_title in exp_infos.keys():
-for exp_title in ['ham']:#['bio_sys', 'ham']:
+exps = list(exp_infos.keys())
+for exp_title in exps:
+# for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
+    np.random.seed(0)
     exp = exp_infos[exp_title]
     try:
-        learn_system(exp_name = exp_title,
+        sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2 = learn_system(exp_name = exp_title,
                     sul =              exp['sul'],
                     time_step =        exp['time_step'],
                     time_range =       exp['time_range'],
@@ -418,12 +436,36 @@ for exp_title in ['ham']:#['bio_sys', 'ham']:
                     eq_query_bounds=   exp['eq_query_bounds'],
                     eq_query_ntrajs=   exp['eq_query_ntrajs'],
                     eq_query_tol=      exp['eq_query_tol'],
-                    sampling_method=   np.random ,
+                    sampling_method=   'random' ,
                     C_space =          [0, 0.001, 0.01, 0.1, 1],
                     write_on =         True,
                     deltas =           0.001,
                     break_at_low_MSE = False,
                     apply_LR =         False)
+
+        X_dot_sul = sul.get_derivatives(traj_test_sul)
+        X_dot_learned = learned_SNDS.get_derivatives(traj_test_sul)
+       
+        print("Test derivatives RD:", np.mean(relative_diff(X_dot_sul, X_dot_learned)))
+
+
+        if exp['nmodes'] == 2 or exp['nmodes'] == 3:
+
+            methods = ['kmeans', 'dbscan', 'merge', 'piecelinear', 'tolmerge', 'piecelinear1']
+
+            for method in methods:
+                print()
+                print(method)
+                if exp['nmodes'] == 2:
+                    P, G, boundary = infer_model(
+                                trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['boundary_deg'],
+                                num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep = 0.01, method=method, verbose=False)
+                    print(test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist[0], exp['poly_degree'], exp['boundary_deg']))
+                else:
+                    P, G, boundary = infer_model(
+                                trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['boundary_deg'],
+                                num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep = 0.01, method=method, verbose=False, labeltest=exp['sul'].labelfun)
+                    print(test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist, exp['poly_degree'], exp['boundary_deg']))
     except Exception as e:
         print(e)
         print("Experiment " + exp_title + " failed.")

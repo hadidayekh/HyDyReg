@@ -156,8 +156,7 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
 def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','k','m'], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
     num_plots = trajectories.d
-    if num_plots is None:
-        return
+    assert not num_plots is None
     if fig is None or axs is None:
         if num_plots == 1:
             # Create the figure and subplots

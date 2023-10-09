@@ -133,10 +133,11 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
-    get_SVC_boundary_eq_dim2_poly2(model.classifier_)
+    if exp_name == 'ham' or exp_name == 'poly3_2modes_nonlinclass':
+        get_SVC_boundary_eq_dim2_poly2(model.classifier_)
     # print(model.gen_full_latex_eq())
-    # fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
-    # model.improve_classification(fine_X, fine_X_dot, classifier)
+    fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
+    model.improve_classification(fine_X, fine_X_dot, classifier)
     # get_SVC_boundary_eq_dim2_poly2(model.classifier_)
 
 
@@ -202,9 +203,9 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             X, X_dot, seg_res_eq = diff_method(np.array(cexs_sul.t_list), np.array(cexs_sul.x_list), segments=segments_eq, remove_seg=True)
             X_classify = np.ndarray((0, X.shape[1]))
             X_dot_classify = np.ndarray((0, X.shape[1]))
-            for k in range(len(segments_eq)):
+            for k in tqdm(range(len(segments_eq))):
                 if len(segments_eq[k]) > 2:
-                    fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/100)
+                    fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/10)
                     X_classify = np.r_[X_classify, fine_X_eq]
                     X_dot_classify = np.r_[X_dot_classify, fine_X_dot_eq]
                     # model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
@@ -221,7 +222,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             X_classify = np.r_[X_classify, X]
             X_dot_classify = np.r_[X_dot_classify, X_dot]
             model.improve_classification(X_classify, X_dot_classify, classifier)
-            coefs = get_SVC_boundary_eq_dim2_poly2(model.classifier_)
+            if exp_name == 'ham' or exp_name == 'poly3_2modes_nonlinclass':
+                coefs = get_SVC_boundary_eq_dim2_poly2(model.classifier_)
 
             learned_SNDS = model.to_SNDS()
             print("Rechecking equivalence query...")
@@ -277,6 +279,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
         print()
 
+        return sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2
+
 
 def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1):
     x0s = []
@@ -313,12 +317,15 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
     else:
         x0s = generate_random_points(n_trajs, bounds, random_generator=sampling_method)
 
-    print(x0s[:5])    
     for i in tqdm(range(n_trajs)):
         x0 = x0s[i]
-
         sul_traj = sul.simulate_trajectory(time_step, time_range, [x0])
         learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0])
+        if len(sul_traj.x_list[0]) != len(learned_traj.x_list[0]):
+            f, a = draw_trajectories_2D(learned_traj, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=sul.labelfun)
+            f, a = draw_trajectories_2D(sul_traj, fig=f, axs=a, colors=['b'], label='From sul', mark_beginning=True, plot_xt=True, labelfun=sul.labelfun)
+            plt.show()
+
 
         comp_traj_test_RD = compare_trajs(learned_traj, sul_traj, measure="RD")
         total_RD += comp_traj_test_RD

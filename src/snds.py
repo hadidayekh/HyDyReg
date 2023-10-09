@@ -134,8 +134,10 @@ class SNDS:
 
                 fine_trajs = self.simulate_trajectory(timestep, T, [x0], t_start)
                 segments_fine = fine_trajs.segment_trajectories(seg_tol)
-                while len(segments_fine[0]) > 3:
-                    segments_fine = fine_trajs.segment_trajectories(seg_tol/2)
+                # while len(segments_fine[0]) > 3:
+                #     print('i am here')
+                #     segments_fine = fine_trajs.segment_trajectories(seg_tol/2)
+                #     seg_tol /=2
                 X, X_dot, seg_res = diff_method_fps(np.array(fine_trajs.t_list), np.array(fine_trajs.x_list), segments_fine, remove_seg=True)
 
                 if first:
@@ -147,6 +149,16 @@ class SNDS:
                     final_X_dot = np.r_[final_X_dot, X_dot]
         return final_X, final_X_dot
 
+    def get_derivatives(self, trajectories):
+        x_list = trajectories.x_list
+        X_dot = np.ndarray((0,self.dim))
+        for xpoints in x_list:
+            X_dot_traj = np.ndarray((len(xpoints), self.dim))
+            for i in range(len(xpoints)):
+                x = xpoints[i]
+                X_dot_traj[i] = self.eqs[self.labelfun(x)](0, x)
+            X_dot = np.r_[X_dot, X_dot_traj]
+        return X_dot
 
 class Trajectories:
     '''
