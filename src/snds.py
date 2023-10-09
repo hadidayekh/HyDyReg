@@ -170,6 +170,8 @@ class Trajectories:
         self.t_list.extend(trajs.t_list)
         self.x_list.extend(trajs.x_list)
         self.num_trajectories += trajs.num_trajectories
+        if self.d is None:
+            self.d = trajs.d
         pass
 
     

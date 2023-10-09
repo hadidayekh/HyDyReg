@@ -296,9 +296,13 @@ def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_ste
 
 def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1, sampling_method='random', sobol_skip=0):
     cexs_sul = Trajectories([],[])
+    cexs_sul.d = sul.dim
     conforming_trajs_sul = Trajectories([],[])
+    conforming_trajs_sul.d = sul.dim
     cexs_learned = Trajectories([],[])
+    cexs_learned.d = sul.dim
     conforming_trajs_learned = Trajectories([],[])
+    conforming_trajs_learned.d = sul.dim
     total_RD = 0
     cexs_RD = 0
 
