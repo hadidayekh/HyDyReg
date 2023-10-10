@@ -192,6 +192,10 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         count = 1
 
         if with_plots:
+            # if not cexs_sul.is_empty():
+            #         f3, a3 = plotting_function(cexs_sul, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
+            #         f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+                
             f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
             f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
             f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=None)
@@ -232,6 +236,10 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             sul_trajs.append_trajs(conforming_trajs_sul)
 
             if with_plots:
+                # if not cexs_sul.is_empty():
+                #     f3, a3 = plotting_function(cexs_sul, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
+                #     f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+                
                 f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
                 f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
                 f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=None)
@@ -257,17 +265,16 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         # Plotting test data
         f2, a2 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
         f2, a2 = plotting_function(traj_test_learned, fig=f2, axs=a2, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=oldmodel.labelfun_)
-        plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data'
+        plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data before EQ improvements'
         plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
         f2.suptitle(textwrap.fill(plot_title, width=60))
 
-        # if do_eq_query:
-        #     f3, a3 = plotting_function(eq_trajs_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
-        #     f3, a3 = plotting_function(eq_trajs_learned_system, fig=f3, axs=a3, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=oldmodel.labelfun_)
-
-        #     if improved:
-        #         f4, a4 = plotting_function(eq_trajs_sul2, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
-        #         f4, a4 = plotting_function(eq_trajs_learned_system2, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+        if do_eq_query:
+            f4, a4 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
+            f4, a4 = plotting_function(traj_test_learned2, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+            plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data after EQ improvements'
+            plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
+            f2.suptitle(textwrap.fill(plot_title, width=60))
 
         if write_on:
             file3.write(model.gen_full_latex_eq())
@@ -321,10 +328,6 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
         x0 = x0s[i]
         sul_traj = sul.simulate_trajectory(time_step, time_range, [x0])
         learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0])
-        if len(sul_traj.x_list[0]) != len(learned_traj.x_list[0]):
-            f, a = draw_trajectories_2D(learned_traj, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=sul.labelfun)
-            f, a = draw_trajectories_2D(sul_traj, fig=f, axs=a, colors=['b'], label='From sul', mark_beginning=True, plot_xt=True, labelfun=sul.labelfun)
-            plt.show()
 
 
         comp_traj_test_RD = compare_trajs(learned_traj, sul_traj, measure="RD")

@@ -10,6 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_squared_error
+from sklearn.base import clone
 kernel_dic = {'linear' : kernels.linear, 
               'polynomial' : kernels.polynomial,
               'rbf' : kernels.rbf }
@@ -602,15 +603,14 @@ class HybridKernelRegressor:
             pass
         num_modes = len(np.unique(modes))
         if num_modes > 1:
-            classifier.fit(X, modes)
+            self.classifier_ = classifier.fit(X, modes)
 
             def event(t, x):
                 return self.classifier_boundary([x])
             event.direction = 0
             event.terminal = True
 
-            self.classifier_ = classifier
-            self.labelfun_ = lambda x : self.classifier_.predict([x])[0]
+            self.labelfun_ = lambda x, c=self.classifier_ : c.predict([x])[0]
             self.eventlist_ = event
         else:
             self.labelfun_ = lambda x : modes[0]
@@ -618,7 +618,8 @@ class HybridKernelRegressor:
         self.X_classify_ = X
         self.modes_classify_ = modes
 
-    def improve_classification(self, X, X_dot, classifier=LogisticRegression()):
+    def improve_classification(self, X, X_dot, classifier=None):
+        self.check_if_fitted()
         if X.size == 0:
             return
         X_dot_pred_diff = np.ndarray((self.n, X_dot.shape[0], X_dot.shape[1]))
@@ -627,7 +628,7 @@ class HybridKernelRegressor:
         
         X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
         modes = np.argmin(X_dot_pred_diff, axis=0)
-        self.classify_modes(classifier = classifier, X = np.r_[self.X_classify_, X], modes = np.r_[self.modes_classify_, modes])
+        self.classify_modes(classifier = clone(self.classifier_), X = np.r_[self.X_classify_, X], modes = np.r_[self.modes_classify_, modes])
     
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION
