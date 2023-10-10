@@ -274,6 +274,9 @@ class Trajectories:
             
         return Segments
 
+        def is_empty(self):
+            return self.num_trajectories == 0
+
 
     def lin_reg(self, segments, diff_method, deg=1):
         x_list = self.x_list
