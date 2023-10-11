@@ -606,7 +606,7 @@ class HybridKernelRegressor:
             self.classifier_ = classifier.fit(X, modes)
 
             def event(t, x):
-                return self.classifier_boundary([x])
+                return self.classifier_boundary([x], classifier=self.classifier_)
             event.direction = 0
             event.terminal = True
 
@@ -974,9 +974,9 @@ class HybridKernelRegressor:
 
         return [constraint_1, constraint_2]
 
-    def classifier_boundary(self, x, print_on=False):
+    def classifier_boundary(self, x, classifier, print_on=False):
         self.check_if_fitted()
-        decs = self.classifier_.decision_function(x)[0]
+        decs = classifier.decision_function(x)[0]
         num_modes = len(np.unique(self.modes_classify_))
         if num_modes > 2:
             i1, i2 = 0, 0
