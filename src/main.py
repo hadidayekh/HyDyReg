@@ -205,13 +205,14 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             print("Equivalence query is FALSE. Improving...")
             segments_eq = cexs_sul.segment_trajectories(seg_tol)
             X, X_dot, seg_res_eq = diff_method(np.array(cexs_sul.t_list), np.array(cexs_sul.x_list), segments=segments_eq, remove_seg=True)
-            X_classify = np.ndarray((0, X.shape[1]))
-            X_dot_classify = np.ndarray((0, X.shape[1]))
-            for k in tqdm(range(len(segments_eq))):
+            X_classify = X
+            X_dot_classify = X_dot
+            for k in range(len(segments_eq)):
                 if len(segments_eq[k]) > 2:
                     fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/10)
                     X_classify = np.r_[X_classify, fine_X_eq]
                     X_dot_classify = np.r_[X_dot_classify, fine_X_dot_eq]
+                    break
                     # model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
             
             # close_indices = np.abs(model.classifier_.decision_function(X)) < 1
@@ -223,8 +224,6 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             # X_dot = X_dot[close_indices]
             # print(X.size)
 
-            X_classify = np.r_[X_classify, X]
-            X_dot_classify = np.r_[X_dot_classify, X_dot]
             model.improve_classification(X_classify, X_dot_classify, classifier)
             if exp_name == 'ham' or exp_name == 'poly3_2modes_nonlinclass':
                 coefs = get_SVC_boundary_eq_dim2_poly2(model.classifier_)
