@@ -109,6 +109,7 @@ class SNDS:
     def generate_points_between_segments(self, trajectories, segments, seg_tol, timestep='default'):
         t_list = trajectories.t_list
         x_list = trajectories.x_list
+        final_X, final_X_dot = np.array([]), np.array([])
         if timestep == 'default':
             timestep = (t_list[0][1] - t_list[0][0])/10
         first = True
