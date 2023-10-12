@@ -1,5 +1,4 @@
-from cmath import sqrt
-from math import floor
+from math import floor, sqrt
 import sys
 
 # setting path to access parent directory files
@@ -21,18 +20,20 @@ save_plots = False
 seg_tol = 0.1
 
 nmodes = 4
-radii = 1/nmodes
+radii = 1.0/nmodes
+print(radii)
 def labelfun(x, nmodes=nmodes):
     d = x[0]**2 + x[1]**2
-    label = floor(d/(radii**2))
+    d = sqrt(d)
+    label = floor(d/radii)
     return label if label < nmodes else nmodes-1
 
 
 eventlist = []
 params = []
 for j in range(1,nmodes):
-    def event(t, x, j=j):
-        return x[0]**2 + x[1]**2 - (radii*j)**2
+    def event(t, x, k=j):
+        return x[0]**2 + x[1]**2 - (radii*k)**2
     event.direction = 0
     event.terminal = True
     eventlist.append(event)
@@ -45,10 +46,10 @@ for j in range(1, nmodes+1):
     D, V = np.linalg.eig(Aorg)
     D = np.diag(D)
 
-    epsilon_1 = -0.5*j
+    epsilon_1 = -2*j
     epsilon_2 = 0
     
-    E = np.array([[epsilon_1, beta], [beta, epsilon_2]])
+    E = np.array([[epsilon_1, 0], [0, epsilon_2]])
     
     #eigenvalues
     D1 = D + E
