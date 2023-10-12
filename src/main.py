@@ -51,6 +51,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             plotting_function = draw_trajectories_ND
     # Simulate trajectories given initial conditions
     trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
+    traj_test_sul = sul.simulate_trajectory(time_step_test, time_range_test, x0s_test)
     
     # Segmenting the given trajectories
     segments = trajectories.segment_trajectories(seg_tol)
@@ -153,7 +154,6 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     comp_traj_train_RD = compare_trajs(trajectories, trajs_learned, measure="RD")
 
     # Simulating trajectories on test data
-    traj_test_sul = sul.simulate_trajectory(time_step_test, time_range_test, x0s_test)
     traj_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
 
     comp_traj_test_MSE = compare_trajs(traj_test_learned, traj_test_sul, measure="MSE")
