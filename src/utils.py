@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.svm import SVC
 import sobol
 def which_segment(i, segments):
     r = 0
@@ -133,6 +134,82 @@ def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig
 
     return eq_string
 
+def get_SVC_boundary(model_SVC : SVC):
+    return
+    # sv = model_SVC.support_vectors_
+    # if model_SVC.kernel == 'poly' and model_SVC.degree == 2 and sv.shape[1] == 2:
+    #     dc = model_SVC.dual_coef_[0]
+    #     n = sv.shape[0]
+
+    #     x0 = sv.T[0]
+    #     x1 = sv.T[1]
+
+    #     coef1_squared = 0
+    #     coef2_squared = 0
+    #     coef12 = 0
+    #     coef1 = 0
+    #     coef2 = 0
+
+    #     g = model_SVC.gamma
+    #     c = model_SVC.coef0
+
+    #     for i in range(n):
+    #         coef1_squared += g**2 * dc[i] * x0[i]**2
+    #         coef2_squared += g**2 * dc[i] * x1[i]**2
+    #         coef12 += 2*g**2 * dc[i] * x0[i] * x1[i]
+    #         coef1 += 2*g*c * dc[i] * x0[i]
+    #         coef2 += 2*g*c * dc[i] * x1[i]
+
+    #     if c == 0:
+    #         print(f"x0^2 + {coef2_squared/coef1_squared:.3f} x1^2 + {coef12/coef1_squared:.3f} x0x1 + {model_SVC.intercept_[0]/coef1_squared}")
+    #     else:
+    #         print(f"x0^2 + {coef2_squared/coef1_squared:.3f} x1^2 + {coef12/coef1_squared:.3f} x0x1 + {coef1/coef1_squared:.3f} x0 + {coef2/coef1_squared:.3f} x1 + {model_SVC.intercept_[0]/coef1_squared:.3f}")
+
+    #     return (coef1_squared, coef2_squared, coef12, coef1, coef2, c**2 + model_SVC.intercept_)
+    if True:# model_SVC.kernel == 'linear':
+        # W = model_SVC.coef_
+        # B = model_SVC.intercept_
+
+        nclasses = len(model_SVC.estimators_)
+        assert nclasses != 2
+        if nclasses > 1:
+            for i in range(nclasses):
+                for j in range(i+1, nclasses):
+                    for k in range(2):
+                        w = model_SVC.estimators_[i].coef_[0] - model_SVC.estimators_[j].coef_[0]
+                        b = model_SVC.estimators_[i].intercept_[0] - model_SVC.estimators_[j].intercept_[0]
+                        s = f'boundary between modes {i} and {j}: '
+                        b = b / w[k]
+                        w = w / w[k]
+                        # print(w)
+                        for d in range(w.shape[0]):
+                            s += f'{w[d]:.3f} x{d} + '
+                        s += f'{b:.3f}'
+                        print(s)
+            for i in range(nclasses):
+                for k in range(2):
+                    w = model_SVC.estimators_[i].coef_[0]
+                    b = model_SVC.estimators_[i].intercept_[0]
+                    s = 'boundary ' + str(i) + ":"
+                    b = b / w[k]
+                    w = w / w[k]
+                    for d in range(w.shape[0]):
+                        s += f'{w[d]:.3f} x{d} + '
+                    s += f'{b:.3f}'
+                    print(s)
+        else:
+            w = model_SVC.estimators_[0].coef_[0]
+            b = model_SVC.estimators_[0].intercept_[0]
+            for k in range(2):
+                b = b / w[k]
+                w = w / w[k]
+                s = f'boundary between modes: '
+                for d in range(w.shape[0]):
+                    s += f'{w[d]:.3f} x{d} + '
+                s += f'{b:.3f}'
+                print(s)
+    else:
+        raise NotImplementedError
 
 def get_SVC_boundary_eq_dim2_poly2(model_SVC):
     if model_SVC.kernel != 'poly' or model_SVC.degree != 2:

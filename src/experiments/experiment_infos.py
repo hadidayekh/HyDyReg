@@ -10,8 +10,9 @@ from snds import SNDS, SNDS_linear
 from main import learn_system
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
-path_to_InferDynamic = ''
+path_to_InferDynamic = '/Users/dayekhh/Documents/git-repos/InferDynamic'
 sys.path.insert(0, path_to_InferDynamic)
 from infer_multi_ch import infer_model, test_model
 # def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none')):
@@ -36,7 +37,7 @@ def isolette():
     a2 = -0.026
     a3 = 98.5
 
-    labelfun = lambda x : 0 if x[0] < a3 else 1
+    labelfun = lambda x : 1 if x[0] < a3 else 0
 
     event1 = lambda t, x : x[0] - a3
     event1.terminal = True
@@ -46,9 +47,9 @@ def isolette():
 
     # Can use the linear SUL for this wrapper with parameters:
     params = [[[a1, -a1, 0],
-            [0, 0, 1]],
+            [0, 0, -1]],
             [[a2, -a2, 0],
-            [0, 0, -1]]]
+            [0, 0, +1]]]
 
     params = np.array(params)
 
@@ -281,15 +282,15 @@ exp_infos = {
         'time_step' : 0.25,
         'time_range' : 25,
         'x0s' : [[105.5, 80], [97.5, 100]],
-        'time_step_test' : 0.1,
-        'time_range_test' : 15,
+        'time_step_test' : 0.25,
+        'time_range_test' : 25,
         'x0s_test' : [[98, 99]],
         'nmodes' : 2,
         'poly_degree' : 1,
         'seg_tol' : 0.01,
         'boundary_deg' : 1,
-        'classifier' : SVC(C=1e10, kernel="linear"),
-        'eq_query_bounds' : np.array([[90, 106], [70, 110]]),
+        'classifier' : LogisticRegression(penalty='none', multi_class='ovr'),
+        'eq_query_bounds' : np.array([[95, 105], [70, 110]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
     } ,
@@ -305,7 +306,7 @@ exp_infos = {
         'poly_degree' : 1,
         'seg_tol' : 0.5,
         'boundary_deg' : 1,
-        'classifier' : SVC(C=1e10, kernel="linear"),
+        'classifier' : LogisticRegression(penalty='none', multi_class='ovr'),
         'eq_query_bounds' : np.array([[-2, 3], [-1, 8]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
@@ -322,7 +323,7 @@ exp_infos = {
         'poly_degree' : 2,
         'seg_tol' : 0.25,
         'boundary_deg' : 1,
-        'classifier' : SVC(C=1e10, kernel="linear"),
+        'classifier' : LogisticRegression(penalty='none', multi_class='ovr'),
         'eq_query_bounds' : np.array([[0, 8], [0, 8], [0, 8]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
@@ -339,7 +340,7 @@ exp_infos = {
         'poly_degree' : 2,
         'seg_tol' : 0.1,
         'boundary_deg' : 1,
-        'classifier' :  SVC(C=1e10, kernel="linear"),
+        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial'),
         'eq_query_bounds' : np.array([[-6,7], [-5, 15]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
@@ -373,7 +374,7 @@ exp_infos = {
         'poly_degree' : 2,
         'seg_tol' : 0.01,
         'boundary_deg' : 1,
-        'classifier' : SVC(C=1e10, kernel="linear"),
+        'classifier' : LogisticRegression(penalty='none', multi_class='ovr'),
         'eq_query_bounds' : np.array([[3.5, 6], [-1, 1], [-4, 4], [-5, 5]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
@@ -390,7 +391,7 @@ exp_infos = {
         'poly_degree' : 3,
         'seg_tol' : 0.15,
         'boundary_deg' : 1,
-        'classifier' : SVC(C=1e10, kernel="linear"),
+        'classifier' : LogisticRegression(penalty='none', multi_class='ovr'),
         'eq_query_bounds' : np.array([[-4, 4], [-6, 12]]),
         'eq_query_ntrajs' : 50,
         'eq_query_tol' : 0.1
@@ -415,60 +416,66 @@ exp_infos = {
 }
 
 exps = list(exp_infos.keys())
-exps=['isolette']
+# exps=['poly2_3modes']
 for exp_title in exps:
 # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
     np.random.seed(0)
     exp = exp_infos[exp_title]
-    try:
-        sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2 = learn_system(exp_name = exp_title,
-                    sul =              exp['sul'],
-                    time_step =        exp['time_step'],
-                    time_range =       exp['time_range'],
-                    x0s =              exp['x0s'],
-                    time_step_test =   exp['time_step_test'],
-                    time_range_test =  exp['time_range_test'],
-                    x0s_test =         exp['x0s_test'],
-                    nmodes =           exp['nmodes'],
-                    poly_degree =      exp['poly_degree'],
-                    seg_tol =          exp['seg_tol'],
-                    classifier =       exp['classifier'],
-                    do_eq_query =      True,
-                    eq_query_bounds=   exp['eq_query_bounds'],
-                    eq_query_ntrajs=   exp['eq_query_ntrajs'],
-                    eq_query_tol=      exp['eq_query_tol'],
-                    sampling_method=   'random' ,
-                    C_space =          [0, 0.001, 0.01, 0.1, 1],
-                    write_on =         True,
-                    deltas =           0.001,
-                    break_at_low_MSE = False,
-                    apply_LR =         False)
+    # try:
+    sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2 = learn_system(exp_name = exp_title,
+                sul =              exp['sul'],
+                time_step =        exp['time_step'],
+                time_range =       exp['time_range'],
+                x0s =              exp['x0s'],
+                time_step_test =   exp['time_step_test'],
+                time_range_test =  exp['time_range_test'],
+                x0s_test =         exp['x0s_test'],
+                nmodes =           exp['nmodes'],
+                poly_degree =      exp['poly_degree'],
+                seg_tol =          exp['seg_tol'],
+                classifier =       exp['classifier'],
+                do_eq_query =      False,
+                eq_query_bounds=   exp['eq_query_bounds'],
+                eq_query_ntrajs=   exp['eq_query_ntrajs'],
+                eq_query_tol=      exp['eq_query_tol'],
+                sampling_method=   'random' ,
+                C_space =          [0, 0.001, 0.01, 0.1, 1],
+                write_on =         True,
+                deltas =           0.001,
+                break_at_low_MSE = False,
+                apply_LR =         False)
 
-        X_dot_sul = sul.get_derivatives(traj_test_sul)
-        X_dot_learned = learned_SNDS.get_derivatives(traj_test_sul)
-       
-        print("Test derivatives RD:", np.mean(relative_diff(X_dot_sul, X_dot_learned)))
+    X_dot_sul = sul.get_derivatives(traj_test_sul)
+    X_dot_learned = learned_SNDS.get_derivatives(traj_test_sul)
+    
+    print("Test derivatives RD:", np.mean(relative_diff(X_dot_sul, X_dot_learned)))
 
 
-        if exp['nmodes'] == 2 or exp['nmodes'] == 3:
+    if exp['nmodes'] == 2 or exp['nmodes'] == 3:
 
-            methods = ['kmeans', 'dbscan', 'merge', 'piecelinear', 'tolmerge', 'piecelinear1']
+        methods = ['tolmerge', 'piecelinear']
 
-            for method in methods:
-                print()
-                print(method)
-                if exp['nmodes'] == 2:
+        for method in methods:
+            print()
+            print(method)
+            mergeps = [0.01]
+            if exp['nmodes'] == 2:
+                for mergeep in mergeps:
                     P, G, boundary = infer_model(
                                 trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['boundary_deg'],
-                                num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep = 0.01, method=method, verbose=False)
+                                num_mode=exp['nmodes'], modelist=exp['sul'].eqs, event=exp['sul'].eventlist[0], ep=0.01, mergeep = mergeep, method=method, verbose=False)
+                    modelist = exp['sul'].eqs
+                    event = exp['sul'].eventlist[0]
                     print(test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist[0], exp['poly_degree'], exp['boundary_deg']))
-                else:
+            else:
+                for mergeep in mergeps:
+                    print(mergeep)
                     P, G, boundary = infer_model(
                                 trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['boundary_deg'],
-                                num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep = 0.01, method=method, verbose=False, labeltest=exp['sul'].labelfun)
-                    print(test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist, exp['poly_degree'], exp['boundary_deg']))
-    except Exception as e:
-        print(e)
-        print("Experiment " + exp_title + " failed.")
+                                num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False, labeltest=exp['sul'].labelfun)
+                    print(test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist, exp['poly_degree'], exp['boundary_deg'], labeltest=exp['sul'].labelfun))
+    # except Exception as e:
+    #     print(e)
+    #     print("Experiment " + exp_title + " failed.")
 
 plt.show()

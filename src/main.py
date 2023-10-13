@@ -134,12 +134,11 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
-    if exp_name == 'ham' or exp_name == 'poly3_2modes_nonlinclass':
-        get_SVC_boundary_eq_dim2_poly2(model.classifier_)
+    get_SVC_boundary(model.classifier_)
     # print(model.gen_full_latex_eq())
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
     model.improve_classification(fine_X, fine_X_dot, classifier)
-    # get_SVC_boundary_eq_dim2_poly2(model.classifier_)
+    get_SVC_boundary(model.classifier_)
 
 
     # Compute training error
@@ -225,8 +224,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             # print(X.size)
 
             model.improve_classification(X_classify, X_dot_classify, classifier)
-            if exp_name == 'ham' or exp_name == 'poly3_2modes_nonlinclass':
-                coefs = get_SVC_boundary_eq_dim2_poly2(model.classifier_)
+            get_SVC_boundary(model.classifier_)
+
 
             learned_SNDS = model.to_SNDS()
             print("Rechecking equivalence query...")
@@ -273,7 +272,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             f4, a4 = plotting_function(traj_test_learned2, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
             plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data after EQ improvements'
             plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
-            f2.suptitle(textwrap.fill(plot_title, width=60))
+            f4.suptitle(textwrap.fill(plot_title, width=60))
 
         if write_on:
             file3.write(model.gen_full_latex_eq())
