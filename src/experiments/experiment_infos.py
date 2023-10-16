@@ -12,9 +12,16 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
-path_to_InferDynamic = '/Users/dayekhh/Documents/git-repos/InferDynamic'
-sys.path.insert(0, path_to_InferDynamic)
-from infer_multi_ch import infer_model, test_model
+compare_with_inferDynamic = True
+if compare_with_inferDynamic:
+    try:
+        f = open("pathtoinferdynamic.txt", 'r')
+        path_to_InferDynamic = f.read()
+        sys.path.insert(0, path_to_InferDynamic)
+        from infer_multi_ch import infer_model, test_model
+    except:
+        print("Cannot open path to infer dynamic file.")
+        compare_with_inferDynamic = False
 # def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none')):
 
 '''
@@ -434,7 +441,7 @@ for exp_title in exps:
                 poly_degree =      exp['poly_degree'],
                 seg_tol =          exp['seg_tol'],
                 classifier =       exp['classifier'],
-                do_eq_query =      False,
+                do_eq_query =      True,
                 eq_query_bounds=   exp['eq_query_bounds'],
                 eq_query_ntrajs=   exp['eq_query_ntrajs'],
                 eq_query_tol=      exp['eq_query_tol'],
@@ -450,30 +457,30 @@ for exp_title in exps:
     
     print("Test derivatives RD:", np.mean(relative_diff(X_dot_sul, X_dot_learned)))
 
+    if compare_with_inferDynamic:
+        if exp['nmodes'] == 2 or exp['nmodes'] == 3:
 
-    if exp['nmodes'] == 2 or exp['nmodes'] == 3:
+            methods = ['tolmerge', 'piecelinear']
 
-        methods = ['tolmerge', 'piecelinear']
-
-        for method in methods:
-            print()
-            print(method)
-            mergeps = [0.01]
-            if exp['nmodes'] == 2:
-                for mergeep in mergeps:
-                    P, G, boundary = infer_model(
-                                trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['boundary_deg'],
-                                num_mode=exp['nmodes'], modelist=exp['sul'].eqs, event=exp['sul'].eventlist[0], ep=0.01, mergeep = mergeep, method=method, verbose=False)
-                    modelist = exp['sul'].eqs
-                    event = exp['sul'].eventlist[0]
-                    print(test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist[0], exp['poly_degree'], exp['boundary_deg']))
-            else:
-                for mergeep in mergeps:
-                    print(mergeep)
-                    P, G, boundary = infer_model(
-                                trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['boundary_deg'],
-                                num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False, labeltest=exp['sul'].labelfun)
-                    print(test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist, exp['poly_degree'], exp['boundary_deg'], labeltest=exp['sul'].labelfun))
+            for method in methods:
+                print()
+                print(method)
+                mergeps = [0.01]
+                if exp['nmodes'] == 2:
+                    for mergeep in mergeps:
+                        P, G, boundary = infer_model(
+                                    trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['boundary_deg'],
+                                    num_mode=exp['nmodes'], modelist=exp['sul'].eqs, event=exp['sul'].eventlist[0], ep=0.01, mergeep = mergeep, method=method, verbose=False)
+                        modelist = exp['sul'].eqs
+                        event = exp['sul'].eventlist[0]
+                        print(test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist[0], exp['poly_degree'], exp['boundary_deg']))
+                else:
+                    for mergeep in mergeps:
+                        print(mergeep)
+                        P, G, boundary = infer_model(
+                                    trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['boundary_deg'],
+                                    num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False, labeltest=exp['sul'].labelfun)
+                        print(test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist, exp['poly_degree'], exp['boundary_deg'], labeltest=exp['sul'].labelfun))
     # except Exception as e:
     #     print(e)
     #     print("Experiment " + exp_title + " failed.")
