@@ -75,29 +75,33 @@ def parametric(nmodes):
 nmodes = 3
 radii = 1.0/nmodes
 sul = parametric(nmodes)
+learn = True
+
 
 x0s = np.random.random((5, 2))*2 - 1
 
 time_step = 0.01
 time_range = 10
 
-# Simulating trajectories
-trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
-segments = trajectories.segment_trajectories(0.1)
+if not learn:
+    # Simulating trajectories
+    trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
+    segments = trajectories.segment_trajectories(0.1)
 
-# Plotting results
-plot_title = exp_title + 'trajs=' + str(len(x0s)) + ' ts=' + str(time_step) + ' T=' + str(time_range)
+    # Plotting results
+    plot_title = exp_title + 'trajs=' + str(len(x0s)) + ' ts=' + str(time_step) + ' T=' + str(time_range)
 
-fig1, ax1 = plotting.draw_trajectories_2D(trajectories, mark_beginning=True, segments=segments)
+    fig1, ax1 = plotting.draw_trajectories_2D(trajectories, mark_beginning=True, segments=segments)
 
-x0 = np.linspace(-1,1,100)
-x1 = np.linspace(-1,1,100)
-xx, yy = np.meshgrid(x0,x1)
+    x0 = np.linspace(-1,1,100)
+    x1 = np.linspace(-1,1,100)
+    xx, yy = np.meshgrid(x0,x1)
 
-for j in range(1, nmodes):
-    print('hooo',j)
-    zz = xx**2 + yy**2 - (radii*j)**2
-    ax1.contour(xx, yy, zz, levels=[0], colors=['k'])
+    for j in range(1, nmodes):
+        print('hooo',j)
+        zz = xx**2 + yy**2 - (radii*j)**2
+        ax1.contour(xx, yy, zz, levels=[0], colors=['k'])
+
 
 
 plt.show()
