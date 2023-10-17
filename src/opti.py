@@ -30,10 +30,14 @@ x_dot.T is DxN
 """
 
 class HybridKernelRegressor:
-    def __init__(self, train_coefs, n, deg=1, kernels_list=None, kargs_list=None):
+    def __init__(self, train_coefs, n, deg=1, classifier_poly_trans=False, classifier_poly_deg=None, kernels_list=None, kargs_list=None):
         self.train_coefs = train_coefs
         self.n = n
         self.deg = deg
+        self.classifier_poly_trans = classifier_poly_trans
+        if classifier_poly_trans:
+            assert not classifier_poly_deg is None
+        self.classifier_poly_deg = classifier_poly_deg
         if not train_coefs and (kernels_list is None or kargs_list is None):
             raise Exception("When train_coefs is False, kernels_list and kargs_list must be provided.")
         if not train_coefs:
@@ -598,19 +602,38 @@ class HybridKernelRegressor:
         if X is None:
             X = self.Xfit_
             modes = self.get_modes()
-        if self.n > 2:
-            #classifier = OneVsRestClassifier(classifier)
-            pass
+        
         num_modes = len(np.unique(modes))
-        if num_modes > 1:
-            self.classifier_ = classifier.fit(X, modes)
 
-            def event(t, x):
-                return self.classifier_boundary([x], classifier=self.classifier_)
+        do_poly_transform = self.classifier_poly_trans
+        if do_poly_transform:
+            classifier_deg = self.classifier_poly_deg
+            classifier_poly = PolynomialFeatures(degree=classifier_deg, include_bias=False)
+            X_class_trans = classifier_poly.fit_transform(X)
+            self.classifier_poly_ = classifier_poly
+        else:
+            X_class_trans = X
+        
+        if num_modes > 1:
+            self.classifier_ = classifier.fit(X_class_trans, modes)
+
+            if not do_poly_transform:
+                def event(t, x):
+                    return self.classifier_boundary([x], classifier=self.classifier_)
+                lf = lambda x, c=self.classifier_ : c.predict([x])[0]
+            else:
+                def event(t, x):
+                    x = classifier_poly.fit_transform([x])
+                    return self.classifier_boundary(x, classifier=self.classifier_)
+
+                def lf(x, c=self.classifier_):
+                    x = classifier_poly.fit_transform([x])
+                    return c.predict(x)[0]
+            
             event.direction = 0
             event.terminal = True
 
-            self.labelfun_ = lambda x, c=self.classifier_ : c.predict([x])[0]
+            self.labelfun_ = lf
             self.eventlist_ = event
         else:
             self.labelfun_ = lambda x : modes[0]

@@ -18,7 +18,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random'):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random'):
     D = len(x0s[0])   
     if write_on:
         dir_plots = "experi-plots/"
@@ -64,7 +64,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     # Splitting the data into train and validation per segment
     X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val = train_test_split_segments(X, X_dot, seg_res, seg_all, test_size=0.2)
     # Define the model
-    model_curr = HybridKernelRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list, kargs_list=kargs_list)
+    model_curr = HybridKernelRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list, kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
 
     print("Starting " + exp_name + "\n")
     # Starting the hyperparamater tuning
@@ -134,12 +134,17 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
-    get_SVC_boundary(model.classifier_)
+    if classifier_poly_trans:
+        print_classifier_boundaries(model.classifier_, model.classifier_poly_)
+    else:
+        print_classifier_boundaries(model.classifier_)
     # print(model.gen_full_latex_eq())
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
     model.improve_classification(fine_X, fine_X_dot, classifier)
-    get_SVC_boundary(model.classifier_)
-
+    if classifier_poly_trans:
+        print_classifier_boundaries(model.classifier_, model.classifier_poly_)
+    else:
+        print_classifier_boundaries(model.classifier_)
 
     # Compute training error
     X_dot_pred = model.predict(X)
@@ -224,7 +229,10 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             # print(X.size)
 
             model.improve_classification(X_classify, X_dot_classify, classifier)
-            get_SVC_boundary(model.classifier_)
+            if classifier_poly_trans:
+                print_classifier_boundaries(model.classifier_, model.classifier_poly_)
+            else:
+                print_classifier_boundaries(model.classifier_)
 
 
             learned_SNDS = model.to_SNDS()
@@ -248,7 +256,11 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     comp_traj_test_RD = compare_trajs(traj_test_learned2, traj_test_sul, measure="RD")
     print("Test RD of trajectories = ", comp_traj_test_RD)
 
-    print(not (model.classifier_.predict(model.X_classify_) - model.modes_classify_).any())
+    if classifier_poly_trans:
+        X_class_trans = model.classifier_poly_.fit_transform(model.X_classify_)
+        print(not (model.classifier_.predict(X_class_trans) - model.modes_classify_).any())
+    else:
+        print(not (model.classifier_.predict(model.X_classify_) - model.modes_classify_).any())
     
     if with_plots:
         
