@@ -25,7 +25,13 @@ def train_test_split_segments(X, Xdot, segments, segments_per_point, test_size=N
             X_curr      = X   [segments[r]:]
             Xdot_curr   = Xdot[segments[r]:]
 
-        X_train_seg, X_val_seg, Xdot_train_seg, Xdot_val_seg = train_test_split(X_curr, Xdot_curr, test_size=test_size)
+        if X_curr.shape[0] == 1:
+            X_train_seg = X_curr
+            X_val_seg = np.ndarray((0, X_curr.shape[1]))
+            Xdot_train_seg = Xdot_curr
+            Xdot_val_seg = np.ndarray((0, X_curr.shape[1]))
+        else:
+            X_train_seg, X_val_seg, Xdot_train_seg, Xdot_val_seg = train_test_split(X_curr, Xdot_curr, test_size=test_size)
 
         seg_curr    = segments_per_point[segments[r]]
         
