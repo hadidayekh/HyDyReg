@@ -18,7 +18,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random'):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random'):
     D = len(x0s[0])   
     if write_on:
         dir_plots = "experi-plots/"
@@ -49,6 +49,10 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             plotting_function = draw_trajectories_3D
         else:
             plotting_function = draw_trajectories_ND
+    
+    if random_test_set:
+        x0s_test = generate_random_points(10, eq_query_bounds, random_generator=np.random.default_rng(0))
+
     # Simulate trajectories given initial conditions
     trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
     traj_test_sul = sul.simulate_trajectory(time_step_test, time_range_test, x0s_test)
@@ -65,7 +69,6 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val = train_test_split_segments(X, X_dot, seg_res, seg_all, test_size=0.2)
     # Define the model
     model_curr = HybridKernelRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list, kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
-
     print("Starting " + exp_name + "\n")
     # Starting the hyperparamater tuning
     Cs = []
@@ -138,9 +141,16 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         print_classifier_boundaries(model.classifier_, model.classifier_poly_)
     else:
         print_classifier_boundaries(model.classifier_)
+    
+    learned_SNDS = model.to_SNDS()
+    traj_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
+    RD1 = compare_trajs(traj_test_learned, traj_test_sul, measure="RD")
+
     # print(model.gen_full_latex_eq())
+    start = time.time()
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
     model.improve_classification(fine_X, fine_X_dot, classifier)
+    time_active = time.time() - start
     if classifier_poly_trans:
         print_classifier_boundaries(model.classifier_, model.classifier_poly_)
     else:
@@ -162,6 +172,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     comp_traj_test_MSE = compare_trajs(traj_test_learned, traj_test_sul, measure="MSE")
     comp_traj_test_RD = compare_trajs(traj_test_learned, traj_test_sul, measure="RD")
+
+    RD2 = comp_traj_test_RD
     
     if print_on:
         print('Training MSE of X dot after classification =', MSE_all)
@@ -188,6 +200,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     oldmodel = copy.deepcopy(model)
     if do_eq_query:
+        start = time.time()
         print("Checking equivalence query...")
         eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method)
         sul_trajs = copy.deepcopy(cexs_sul)
@@ -252,9 +265,11 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
         if eq_query:
             print("Equivalence query is TRUE!")
-    traj_test_learned2 = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
-    comp_traj_test_RD = compare_trajs(traj_test_learned2, traj_test_sul, measure="RD")
-    print("Test RD of trajectories = ", comp_traj_test_RD)
+
+        time_EQ = time.time() - start
+    traj_test_learned3 = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
+    RD3 = compare_trajs(traj_test_learned3, traj_test_sul, measure="RD")
+    print("Test RD of trajectories = ", RD3)
 
     if classifier_poly_trans:
         X_class_trans = model.classifier_poly_.fit_transform(model.X_classify_)
@@ -281,7 +296,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
         if do_eq_query:
             f4, a4 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
-            f4, a4 = plotting_function(traj_test_learned2, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+            f4, a4 = plotting_function(traj_test_learned3, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
             plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data after EQ improvements'
             plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
             f4.suptitle(textwrap.fill(plot_title, width=60))
@@ -296,7 +311,13 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
         print()
 
-        return sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2
+    X_dot_sul = sul.get_derivatives(traj_test_sul)
+    X_dot_learned = learned_SNDS.get_derivatives(traj_test_sul)
+    
+    RD_dot = np.mean(relative_diff(X_dot_sul, X_dot_learned))
+
+    data = [exp_name, RD1, RD2, RD3, t_best_C, time_active, time_EQ, count, RD_dot] if do_eq_query else [exp_name, RD1, t_best_C, RD_dot]
+    return sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned3, data
 
 
 def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1):

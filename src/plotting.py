@@ -374,3 +374,15 @@ def plot_classifier_linear(classifier, X, modes, fig=None, ax=None, colors=['b',
     ax.set_ylim(ymin, ymax)
     return fig, ax
 
+def plot_train_test_2D(X_train, X_test):
+    X0train = X_train.T[0]
+    X1train = X_train.T[1]
+    X0test = X_test.T[0]
+    X1test = X_test.T[1]
+
+    f, a = plt.subplots()
+
+    a.scatter(X0train, X1train, s=2, marker='.')
+    a.scatter(X0test, X1test, s=2, marker='+')
+
+    return f,a

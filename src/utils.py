@@ -218,42 +218,44 @@ def get_SVC_boundary(model_SVC : SVC):
         raise NotImplementedError
 
 def print_classifier_boundaries(classifier, polyfeatures=None):
-    W = classifier.coef_
-    B = classifier.intercept_
-    ncoef = W.shape[0]
-    D = W.shape[1]
+    try:
+        W = classifier.coef_
+        B = classifier.intercept_
+        ncoef = W.shape[0]
+        D = W.shape[1]
 
-    if not polyfeatures is None:
-        fn = [f'x{i}' for i in range(polyfeatures.n_features_in_)]
-        fn = polyfeatures.get_feature_names_out(fn)
-    else:
-        fn = [f'x{i}' for i in range(D)]
-    
-    if ncoef == 1:
-        w = W[0]
-        b = B[0]
-        max_w = w[np.argmax(np.abs(w))]
-        w = w / max_w
-        b = b / max_w
-        s = "Classifier boundary: "
-        for d in range(D):
-            s += f'{w[d]:.3f} {fn[d]} + '
-        s += f'{b}'
-        print(s)
-    else:
-        for i in range(ncoef):
-            for j in range(i+1, ncoef):
-                s = f"Classifier boundary between {i} and {j}: "
-                w = W[i] - W[j]
-                b = B[i] - B[j]
-                max_w = w[np.argmax(np.abs(w))]
-                w = w / max_w
-                b = b / max_w
-                for d in range(D):
-                    s += f'{w[d]:.3f} {fn[d]} + '
-                s += f'{b}'
-                print(s)
-
+        if not polyfeatures is None:
+            fn = [f'x{i}' for i in range(polyfeatures.n_features_in_)]
+            fn = polyfeatures.get_feature_names_out(fn)
+        else:
+            fn = [f'x{i}' for i in range(D)]
+        
+        if ncoef == 1:
+            w = W[0]
+            b = B[0]
+            max_w = w[np.argmax(np.abs(w))]
+            w = w / max_w
+            b = b / max_w
+            s = "Classifier boundary: "
+            for d in range(D):
+                s += f'{w[d]:.3f} {fn[d]} + '
+            s += f'{b}'
+            print(s)
+        else:
+            for i in range(ncoef):
+                for j in range(i+1, ncoef):
+                    s = f"Classifier boundary between {i} and {j}: "
+                    w = W[i] - W[j]
+                    b = B[i] - B[j]
+                    max_w = w[np.argmax(np.abs(w))]
+                    w = w / max_w
+                    b = b / max_w
+                    for d in range(D):
+                        s += f'{w[d]:.3f} {fn[d]} + '
+                    s += f'{b}'
+                    print(s)
+    except:
+        print("Could not print boundary.")
 def get_SVC_boundary_eq_dim2_poly2(model_SVC):
     if model_SVC.kernel != 'poly' or model_SVC.degree != 2:
         raise NotImplementedError
@@ -284,3 +286,16 @@ def check_SVC(model_SVC, X, coefs):
     for i in range(N):
         yc[i] = coefs[0]*X[i][0]**2 + coefs[1]*X[i][1]**2 + coefs[2]*X[i][0]*X[i][1] + coefs[3]
     return y, yc, ydc
+
+def print_experi_data(DATA):
+    # Data is made of exp_name, RD1, RD2, RD3, t_best_C, t_active, t_EQ, count, RDdot, RDmerge, tmerge, RDpwa, tpwa
+    for d in DATA:
+        exp_name, RD1, RD2, RD3, t1, t2, t3, count, RD_dot, RD_merge, t_merge, RD_piecelinear, t_piecelinear = d
+        s = d[0] + ' & '
+        for i in range(1, 7):
+            s += f'{d[i]:.4f} & '
+        s += str(d[7]) + ' & '
+        for i in range(8, 12):
+            s += f'{d[i]:.4f} & '
+        s += f'{d[12]:.4f}'
+        print(s)
