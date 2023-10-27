@@ -289,13 +289,18 @@ def check_SVC(model_SVC, X, coefs):
 
 def print_experi_data(DATA):
     # Data is made of exp_name, RD1, RD2, RD3, t_best_C, t_active, t_EQ, count, RDdot, RDmerge, tmerge, RDpwa, tpwa
-    for d in DATA:
+    for i in range(len(DATA)):
+        d = DATA[i]
         exp_name, RD1, RD2, RD3, t1, t2, t3, count, RD_dot, RD_merge, t_merge, RD_piecelinear, t_piecelinear = d
         s = d[0] + ' & '
-        for i in range(1, 7):
-            s += f'{d[i]:.4f} & '
-        s += str(d[7]) + ' & '
-        for i in range(8, 12):
-            s += f'{d[i]:.4f} & '
-        s += f'{d[12]:.4f}'
+        for i in range(1, 4): #rd1,rd2,rd3
+            s += f'{d[i]:.5f} & '
+        for i in range(4, 7): #t1,t2,t3
+            s += f'{d[i]:.1f} & '
+        s += str(d[7]) + ' & ' #count
+        s += f'{d[8]:.1e} & ' #rddot
+        s += f'{d[9]:.1e} & ' #rdmerge
+        s += f'{d[11]:.1e} & ' #rdpl
+        s += f'{d[10]:.1f} & ' #tmerge
+        s += f'{d[12]:.1f}\\\\'    #tpl
         print(s)
