@@ -2,7 +2,9 @@ from matplotlib import gridspec
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.inspection import DecisionBoundaryDisplay
 def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','k','m'], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
+
         if fig is None or axs is None:
             if(plot_xt):
                 fig = plt.figure(constrained_layout=True)
@@ -51,20 +53,20 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
             axs['x1'].set_xlabel('$t$')
             axs['x1'].set_ylabel('$x_1$')
 
-        # ADDING LABEL CONTROUR
         if not labelfun is None:
             xmin, xmax = ax.get_xlim()
             ymin, ymax = ax.get_ylim()
-            nx0 = np.linspace(xmin, xmax, 100)
-            nx1 = np.linspace(ymin, ymax, 100)
+            nx0 = np.linspace(xmin, xmax, 200)
+            nx1 = np.linspace(ymin, ymax, 200)
             x0,x1 = np.meshgrid(nx0, nx1)
-
             label_result = [[labelfun([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
 
             #TODO revisit
             #ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
             n = max([max(l) for l in label_result]) + 1
-            ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=ListedColormap(colors = ['b','r','y','k','m'][:n]), alpha=0.2, aspect='auto')
+            cmap = ListedColormap([plt.cm.Set2(i) for i in range(n)])
+            ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=cmap, alpha=0.5, aspect='auto')
+            ax.contour(x0, x1, label_result, levels=[0], colors=['k'], linewidths=0.75)
             
             ax.set_xlim(xmin,xmax)
             ax.set_ylim(ymin, ymax)
