@@ -474,7 +474,7 @@ for exp_title in exps:
                 deltas =                0.001,
                 break_at_low_MSE =      False,
                 apply_LR =              False,
-                with_plots=             False,
+                with_plots=             True,
                 print_on=False)
 
     print("Test derivatives RD:", data[-1])
