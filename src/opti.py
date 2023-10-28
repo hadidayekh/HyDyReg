@@ -4,7 +4,7 @@ import casadi
 import numpy as np
 import kernels
 from snds import SNDS, SNDS_linear
-from utils import which_segment, get_latex_eq
+from utils import *
 from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
@@ -815,7 +815,7 @@ class HybridKernelRegressor:
                     coefs = self.Omegas_[j][d]
                     print(coefs.T, " ", self.betas_[j][d])
 
-    def gen_full_latex_eq(self):
+    def gen_full_latex_eq(self, with_classifier_boundaries=True):
         self.check_if_fitted()
         if not self.train_coefs:
             raise NotImplementedError
@@ -833,6 +833,9 @@ class HybridKernelRegressor:
                 eq_string += f'\t\t\\xddim{{{d+1}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d]) + '\n'
                 eq_string += f'\t\\end{{aligned}}\\\\\n'
             eq_string += f'\\end{{cases}}\n\\]\n'
+
+        if with_classifier_boundaries:
+            eq_string += f'\n\n{get_latex_classifier_boundaries(self.classifier_, self.classifier_poly_ if self.classifier_poly_trans else None)}'
         return eq_string
 
     @staticmethod
