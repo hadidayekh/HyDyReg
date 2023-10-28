@@ -99,7 +99,7 @@ def generate_sobol_points(n_points, bounds, skip=0):
         x0s.T[d] = x0s.T[d] * (bounds[d][1] - bounds[d][0]) + bounds[d][0]
     return x0s
 
-def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig=4):
+def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig=3):
     coefs = np.around(coefs, round_dig)
     bias = round(bias, round_dig)
     powers = polyf.powers_
@@ -108,7 +108,7 @@ def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig
     assert nfeatures_out == len(coefs)
 
     def x_name(d):
-        x_name = f'\\xdim{{{d}}}'
+        x_name = f'\\xdim{{{d+1}}}'
         return x_name
 
     x_names = []
@@ -225,10 +225,10 @@ def print_classifier_boundaries(classifier, polyfeatures=None):
         D = W.shape[1]
 
         if not polyfeatures is None:
-            fn = [f'x{i}' for i in range(polyfeatures.n_features_in_)]
+            fn = [f'x{i+1}' for i in range(polyfeatures.n_features_in_)]
             fn = polyfeatures.get_feature_names_out(fn)
         else:
-            fn = [f'x{i}' for i in range(D)]
+            fn = [f'x{i+1}' for i in range(D)]
         
         if ncoef == 1:
             w = W[0]
@@ -239,7 +239,7 @@ def print_classifier_boundaries(classifier, polyfeatures=None):
             s = "Classifier boundary: "
             for d in range(D):
                 s += f'{w[d]:.3f} {fn[d]} + '
-            s += f'{b}'
+            s += f'{b:.3f}'
             print(s)
         else:
             for i in range(ncoef):
@@ -252,7 +252,7 @@ def print_classifier_boundaries(classifier, polyfeatures=None):
                     b = b / max_w
                     for d in range(D):
                         s += f'{w[d]:.3f} {fn[d]} + '
-                    s += f'{b}'
+                    s += f'{b:.3f}'
                     print(s)
     except:
         print("Could not print boundary.")

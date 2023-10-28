@@ -18,7 +18,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random'):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random', plot_xt=True):
     D = len(x0s[0])   
     if write_on:
         dir_plots = "experi-plots/"
@@ -143,8 +143,16 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         print_classifier_boundaries(model.classifier_)
     
     learned_SNDS = model.to_SNDS()
+    trajs_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
     traj_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
     RD1 = compare_trajs(traj_test_learned, traj_test_sul, measure="RD")
+    first_model = copy.deepcopy(model)
+
+    if with_plots:
+        ft, at = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+        ft, at = plotting_function(traj_test_learned, fig=ft, axs=at, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=first_model.labelfun_)
+        if write_on:
+            ft.savefig(dir_plots + exp_name + "_test.pdf")
 
     # print(model.gen_full_latex_eq())
     start = time.time()
@@ -162,7 +170,6 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     
     #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
     learned_SNDS = model.to_SNDS()
-    trajs_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
 
     comp_traj_train_MSE = compare_trajs(trajectories, trajs_learned, measure="MSE")
     comp_traj_train_RD = compare_trajs(trajectories, trajs_learned, measure="RD")
@@ -210,12 +217,15 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
         if with_plots:
             # if not cexs_sul.is_empty():
-            #         f3, a3 = plotting_function(cexs_sul, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
-            #         f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+            #         f3, a3 = plotting_function(cexs_sul, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            #         f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
                 
-            f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
-            f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
-            f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=None)
+            f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
+            f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
+
+            if write_on:
+                f3.savefig(dir_plots + exp_name + f"_EQ_{count}.pdf")
 
         while not eq_query and count < 100:
             count += 1
@@ -256,12 +266,15 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
             if with_plots:
                 # if not cexs_sul.is_empty():
-                #     f3, a3 = plotting_function(cexs_sul, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
-                #     f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+                #     f3, a3 = plotting_function(cexs_sul, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+                #     f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
                 
-                f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=True)
-                f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
-                f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=None)
+                f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+                f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
+                f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
+
+                if write_on:
+                    f3.savefig(dir_plots + exp_name + f"_EQ_{count}.pdf")
 
         if eq_query:
             print("Equivalence query is TRUE!")
@@ -280,31 +293,34 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     if with_plots:
         
         # Plotting training data
-        f1, a1 = plotting_function(trajectories, label='Original trajectories', colors = ['b'], mark_beginning=True, plot_xt=True)
-        f1, a1 = plotting_function(trajs_learned, fig=f1, axs=a1, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=oldmodel.labelfun_)
+        f1, a1 = plotting_function(trajectories, label='Original trajectories', colors = ['b'], mark_beginning=True, plot_xt=plot_xt)
+        f1, a1 = plotting_function(trajs_learned, fig=f1, axs=a1, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=first_model.labelfun_)
         plot_title='Training data versus trajectories simulated from the learning model with the same intial conditions as the training data'
         plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
-        f1.suptitle(textwrap.fill(plot_title, width=60))
+        # f1.suptitle(textwrap.fill(plot_title, width=60))
 
 
         # Plotting test data
-        f2, a2 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
-        f2, a2 = plotting_function(traj_test_learned, fig=f2, axs=a2, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=oldmodel.labelfun_)
+        f2, a2 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+        f2, a2 = plotting_function(traj_test_learned, fig=f2, axs=a2, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=oldmodel.labelfun_)
         plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data before EQ improvements'
         plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
-        f2.suptitle(textwrap.fill(plot_title, width=60))
+        # f2.suptitle(textwrap.fill(plot_title, width=60))
 
         if do_eq_query:
-            f4, a4 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=True)
-            f4, a4 = plotting_function(traj_test_learned3, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=True, labelfun=model.labelfun_)
+            f4, a4 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            f4, a4 = plotting_function(traj_test_learned3, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
             plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data after EQ improvements'
             plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
-            f4.suptitle(textwrap.fill(plot_title, width=60))
+            # f4.suptitle(textwrap.fill(plot_title, width=60))
 
         if write_on:
             file3.write(model.gen_full_latex_eq())
             f1.savefig(dir_plots + exp_name + "_training.pdf")
-            f2.savefig(dir_plots + exp_name + "_test.pdf")
+            f2.savefig(dir_plots + exp_name + "_test_gen.pdf")
+            if do_eq_query:
+                if count > 1:
+                    f4.savefig(dir_plots + exp_name + "_test_EQ.pdf")
             file.close()
             file2.close()
             file3.close()

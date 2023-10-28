@@ -42,16 +42,16 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
                     
         
-        ax.set_ylabel('$x_1$')
-        ax.set_xlabel('$x_0$')
+        ax.set_ylabel('$x_2$')
+        ax.set_xlabel('$x_1$')
         if not label is None:
             ax.legend()
 
         if plot_xt:
             axs['x0'].set_xlabel('$t$')
-            axs['x0'].set_ylabel('$x_0$')
+            axs['x0'].set_ylabel('$x_1$')
             axs['x1'].set_xlabel('$t$')
-            axs['x1'].set_ylabel('$x_1$')
+            axs['x1'].set_ylabel('$x_2$')
 
         if not labelfun is None:
             xmin, xmax = ax.get_xlim()
@@ -64,9 +64,12 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
             #TODO revisit
             #ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
             n = max([max(l) for l in label_result]) + 1
-            cmap = ListedColormap([plt.cm.Set2(i) for i in range(n)])
+            cmap = ListedColormap([plt.cm.Set3(i) for i in range(n)])
+            # cmap=ListedColormap(colors = ['b','r','y','k','m'][:n])
             ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=cmap, alpha=0.5, aspect='auto')
-            ax.contour(x0, x1, label_result, levels=[0], colors=['k'], linewidths=0.75)
+            # cnt =ax.contour(x0, x1, label_result, levels=[0], colors=['k'], linewidths=0.75)
+            # for c in cnt.collections:
+            #     c.set_rasterized(True)
             
             ax.set_xlim(xmin,xmax)
             ax.set_ylim(ymin, ymax)
@@ -115,19 +118,19 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
                         axs['x2'].scatter(trajectories.t_list[i][seg_index], x2[seg_index], marker='|', c='r', linewidths=0.7)
 
                     
-        
-        ax.set_ylabel('$x_1$')
-        ax.set_xlabel('$x_0$')
+
+        ax.set_ylabel('$x_2$')
+        ax.set_xlabel('$x_1$')
         if not label is None:
             ax.legend()
 
         if plot_xt:
             axs['x0'].set_xlabel('$t$')
-            axs['x0'].set_ylabel('$x_0$')
+            axs['x0'].set_ylabel('$x_1$')
             axs['x1'].set_xlabel('$t$')
-            axs['x1'].set_ylabel('$x_1$')
+            axs['x1'].set_ylabel('$x_2$')
             axs['x2'].set_xlabel('$t$')
-            axs['x2'].set_ylabel('$x_2$')
+            axs['x2'].set_ylabel('$x_3$')
 
         # ADDING LABEL CONTROUR (TODO REVISIT)
         # if not labelfun is None:

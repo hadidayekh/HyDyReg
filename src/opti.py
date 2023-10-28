@@ -827,10 +827,10 @@ class HybridKernelRegressor:
         
         eq_string = ""
         for j in range(n):
-            eq_string += f'\\textbf{{Mode {j}:}}\n\\[\n\\begin{{cases}}\n'
+            eq_string += f'\\textbf{{Mode {j+1}:}}\n\\[\n\\begin{{cases}}\n'
             for d in range(D):
                 eq_string += f'\t\\begin{{aligned}}\n'
-                eq_string += f'\t\t\\xddim{{{d}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d]) + '\n'
+                eq_string += f'\t\t\\xddim{{{d+1}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d]) + '\n'
                 eq_string += f'\t\\end{{aligned}}\\\\\n'
             eq_string += f'\\end{{cases}}\n\\]\n'
         return eq_string
