@@ -1,18 +1,19 @@
+from sklearn.svm import SVC
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.linear_model import LogisticRegression
+import matplotlib.pyplot as plt
+from main import learn_system
+from snds import SNDS, SNDS_linear
+from utils import *
 import time
 import numpy as np
 import sys
 import pickle
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning) # setting ignore as a parameter and further adding category
- 
+# setting ignore as a parameter and further adding category
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 sys.path.append('./')
-from utils import *
-from snds import SNDS, SNDS_linear
-from main import learn_system
-import matplotlib.pyplot as plt
-from sklearn.linear_model import LogisticRegression
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import SVC
 compare_with_inferDynamic = True
 if compare_with_inferDynamic:
     try:
@@ -39,15 +40,16 @@ poly_degree
 classifier
 '''
 
+
 def isolette():
     # Paramters of Isolette model
     a1 = -0.026
     a2 = -0.026
     a3 = 98.5
 
-    labelfun = lambda x : 1 if x[0] < a3 else 0
+    def labelfun(x): return 1 if x[0] < a3 else 0
 
-    event1 = lambda t, x : x[0] - a3
+    def event1(t, x): return x[0] - a3
     event1.terminal = True
     event1.direction = 0
 
@@ -55,13 +57,14 @@ def isolette():
 
     # Can use the linear SUL for this wrapper with parameters:
     params = [[[a1, -a1, 0],
-            [0, 0, -1]],
-            [[a2, -a2, 0],
-            [0, 0, +1]]]
+               [0, 0, -1]],
+              [[a2, -a2, 0],
+               [0, 0, +1]]]
 
     params = np.array(params)
 
     return SNDS_linear(params, eventlist, labelfun)
+
 
 def affine_3modes():
     # Label function to decide which mode
@@ -73,40 +76,38 @@ def affine_3modes():
         else:
             return 2
 
-
     # Events to be tracked by the IVP solver
-    event1 = lambda t, x : x[0] - 1
+    def event1(t, x): return x[0] - 1
     event1.terminal = True
     event1.direction = 0
 
-    event2 = lambda t, x : x[1] - 2
+    def event2(t, x): return x[1] - 2
     event2.terminal = True
     event2.direction = 0
 
     eventlist = [event2, event1]
 
+    a00, a01, a03 = -2, -2, -1
+    a10, a11, a13 = 4, -1, 0
 
-    a00, a01, a03 =  -2, -2, -1
-    a10, a11, a13 =  4, -1, 0
+    b00, b01, b03 = -3, 2, 0
+    b10, b11, b13 = -4, -1, 0
 
-    b00, b01, b03 =  -3, 2, 0
-    b10, b11, b13 =  -4, -1, 0
-
-    c00, c01, c03 =  0.1, 0.1, 1
-    c10, c11, c13 =  -0.3, 0.2, -2
+    c00, c01, c03 = 0.1, 0.1, 1
+    c10, c11, c13 = -0.3, 0.2, -2
 
     params = [[[a00, a01, a03],
-            [a10, a11, a13]],
-            [[b00, b01, b03],
-            [b10, b11, b13]],
-            [[c00, c01, c03],
-            [c10, c11, c13]]]
+               [a10, a11, a13]],
+              [[b00, b01, b03],
+               [b10, b11, b13]],
+              [[c00, c01, c03],
+               [c10, c11, c13]]]
 
     params = np.array(params)
 
-
     ##### DEFINING SNDS #####
     return SNDS_linear(params, eventlist, labelfun)
+
 
 def lorentz_attractor():
     # Label function to decide which mode
@@ -117,7 +118,7 @@ def lorentz_attractor():
             return 1
 
     # Events to be tracked by the IVP solver
-    event = lambda t, x : x[1] + x[0]
+    def event(t, x): return x[1] + x[0]
     event.terminal = True
     event.direction = 0
 
@@ -131,20 +132,20 @@ def lorentz_attractor():
     rho2 = 46.92
 
     def eq1(t, x):
-        return [ sigma1 * (x[1] - x[0]),
-        x[0]*(rho1 - x[2]) - x[1],
-        x[0]*x[1] - beta1*x[2] ]
+        return [sigma1 * (x[1] - x[0]),
+                x[0]*(rho1 - x[2]) - x[1],
+                x[0]*x[1] - beta1*x[2]]
 
     def eq2(t, x):
-        return [ sigma2 * (x[1] - x[0]),
-        x[0]*(rho2 - x[2]) - x[1],
-        x[0]*x[1] - beta2*x[2] ]
+        return [sigma2 * (x[1] - x[0]),
+                x[0]*(rho2 - x[2]) - x[1],
+                x[0]*x[1] - beta2*x[2]]
 
     eqs = [eq1, eq2]
 
-
     ##### DEFINING SNDS #####
     return SNDS(2, 3, eqs, eventlist, labelfun)
+
 
 def poly2_3modes():
     # Label function to decide which mode
@@ -158,23 +159,24 @@ def poly2_3modes():
             return 2
 
     # Events to be tracked by the IVP solver
-    event1 = lambda t, x : x[1]
+    def event1(t, x): return x[1]
     event1.terminal = True
     event1.direction = 0
-    event2 = lambda t, x : x[0]
+    def event2(t, x): return x[0]
     event2.terminal = True
     event2.direction = 0
 
     eventlist = [event1, event2]
 
     # Defining equations
-    eq0 = lambda t, x: [-7, -x[0]]
-    eq1 = lambda t, x: [0.5*x[0]**2 + 0.5*x[1], -9*x[0] + 3]
-    eq2 = lambda t, x: [5, -0.1*x[0] - 10]
+    def eq0(t, x): return [-7, -x[0]]
+    def eq1(t, x): return [0.5*x[0]**2 + 0.5*x[1], -9*x[0] + 3]
+    def eq2(t, x): return [5, -0.1*x[0] - 10]
     eqs = [eq0, eq1, eq2]
 
     ##### DEFINING SNDS #####
     return SNDS(3, 2, eqs, eventlist, labelfun)
+
 
 def poly3_2modes_nonlinclass():
     # Label function to decide which mode
@@ -184,27 +186,28 @@ def poly3_2modes_nonlinclass():
         else:
             return 1
 
-    event = lambda t, x : x[1] + 0.2*x[0]**2
+    def event(t, x): return x[1] + 0.2*x[0]**2
     event.terminal = True
     event.direction = 0
 
     eventlist = [event]
 
-    a1, a2, a3 =  0.1, 0.04, -0.9
+    a1, a2, a3 = 0.1, 0.04, -0.9
     b1, b2, b3 = -0.1, 0.06, -0.7
 
     def eq1(t, y):
-        return [ a1 * y[0]**2 + a2 * y[1]**3,
+        return [a1 * y[0]**2 + a2 * y[1]**3,
                 a3 * y[0]]
 
     def eq2(t, y):
-        return [ b1 * y[0]**2 + b2 * y[1]**3,
+        return [b1 * y[0]**2 + b2 * y[1]**3,
                 b3 * y[0]]
 
     eqs = [eq1, eq2]
 
     ##### DEFINING SNDS #####
     return SNDS(2, 2, eqs, eventlist, labelfun)
+
 
 def poly2_4d():
     # Label function to decide which mode
@@ -215,7 +218,7 @@ def poly2_4d():
             return 1
 
     # Events to be tracked by the IVP solver
-    event = lambda t, x : x[2]
+    def event(t, x): return x[2]
     event.terminal = True
     event.direction = 0
 
@@ -227,16 +230,16 @@ def poly2_4d():
     p = 0.1
 
     def eq1(t, x):
-        return [ - s * x[1],
-        x[0] - r1,
-        x[3],
-        -p * (x[2] + r2)**2 ]
+        return [- s * x[1],
+                x[0] - r1,
+                x[3],
+                -p * (x[2] + r2)**2]
 
     def eq2(t, x):
-        return [ - s * x[1],
-        x[0] - r1,
-        x[3],
-        p * (x[0] - x[2])**2 ]
+        return [- s * x[1],
+                x[0] - r1,
+                x[3],
+                p * (x[0] - x[2])**2]
 
     eqs = [eq1, eq2]
 
@@ -246,17 +249,19 @@ def poly2_4d():
 
 def bio_sys():
     def labelfun(x):
-        if x[0]-x[1]>=-3:
+        if x[0]-x[1] >= -3:
             return 0
         else:
             return 1
-    event = lambda t, x : x[0] - x[1] + 3
+
+    def event(t, x): return x[0] - x[1] + 3
     event.terminal = True
     event.direction = 0
     eventlist = [event]
 
     def eq1(t, x):
         return [-x[1], 2*x[0]]
+
     def eq2(t, x):
         return [-x[1], x[0]**3]
 
@@ -265,179 +270,181 @@ def bio_sys():
 
 def ham():
     def labelfun(x):
-        if x[0]**2+x[1]**2>=0.51:
+        if x[0]**2+x[1]**2 >= 0.51:
             return 0
         else:
             return 1
-    event = lambda t, x : x[0]**2+x[1]**2 - 0.51
+
+    def event(t, x): return x[0]**2+x[1]**2 - 0.51
     event.terminal = True
     event.direction = 0
     eventlist = [event]
 
     def eq1(t, x):
         return [x[1], -x[0]**3+x[0]]
+
     def eq2(t, x):
         return [-x[0]+x[1], -x[0]-x[1]]
-
 
     ##### DEFINING SNDS #####
     sul = SNDS(2, 2, [eq1, eq2], eventlist, labelfun)
     return sul
 
+
 exp_infos = {
-    'isolette' : {
-        'sul' : isolette(),
-        'time_step' : 0.25,
-        'time_range' : 25,
-        'x0s' : [[105.5, 80], [97.5, 100]],
-        'time_step_test' : 0.25,
-        'time_range_test' : 25,
-        'x0s_test' : [[98, 99]],
-        'random_test_set' : True,
-        'nmodes' : 2,
-        'poly_degree' : 1,
-        'seg_tol' : 0.01,
-        'classifier_poly_deg' : 1,
-        'classifier_poly_trans' : False,
-        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial'),
-        'eq_query_bounds' : np.array([[95, 105], [70, 110]]),
-        'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.1
-    } ,
-    'affine_3modes' : {
-        'sul' : affine_3modes(),
-        'time_step' : 0.04,
-        'time_range' : 4,
-        'x0s' : [[-2, 4], [1.5, 10], [0,5]],
-        'time_step_test' : 0.04,
-        'time_range_test' : 2,
-        'x0s_test' : [[2,12], [-4, 10]],
-        'random_test_set' : True,
-        'nmodes' : 3,
-        'poly_degree' : 1,
-        'seg_tol' : 0.5,
-        'classifier_poly_deg' : 1,
-        'classifier_poly_trans' : False,
-        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial'),
-        'eq_query_bounds' : np.array([[-2, 3], [-1, 8]]),
-        'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.1
-    } ,
-    'lorentz_attractor' : {
-        'sul' : lorentz_attractor(),
-        'time_step' : 0.005,
-        'time_range' : 1,
-        'x0s' : [[5,5,5], [2,2,2]],
-        'random_test_set' : True,
-        'time_step_test' : 0.005,
-        'time_range_test' : 1,
-        'x0s_test' : [[3,3,3]],
-        'nmodes' : 2,
-        'poly_degree' : 2,
-        'seg_tol' : 0.5,
-        'classifier_poly_deg' : 1,
-        'classifier_poly_trans' : False,
-        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial'),
-        'eq_query_bounds' : np.array([[0, 8], [0, 8], [0, 8]]),
-        'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.1
-    } ,
-    'poly2_3modes' : {
-        'sul' : poly2_3modes(),
-        'time_step' : 0.04,
-        'time_range' : 4,
-        'x0s' : [[-1,1],[2,-3]],
-        'time_step_test' : 0.04,
-        'time_range_test' : 4,
-        'x0s_test' : [[1,4]],
-        'random_test_set' : True,
-        'nmodes' : 3,
-        'poly_degree' : 2,
-        'seg_tol' : 0.1,
-        'classifier_poly_deg' : 1,
-        'classifier_poly_trans' : False,
-        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial'),
-        'eq_query_bounds' : np.array([[-6,7], [-5, 15]]),
-        'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.1
-    } ,
-    'poly3_2modes_nonlinclass' : {
-        'sul' : poly3_2modes_nonlinclass(),
-        'time_step' : 0.04,
-        'time_range' : 8,
-        'x0s' : [[0,4], [0,4.5], [0,5]],
-        'time_step_test' : 0.04,
-        'time_range_test' : 8,
-        'x0s_test' : [[0,2.5]],
-        'random_test_set' : True,
-        'nmodes' : 2,
-        'poly_degree' : 3,
-        'seg_tol' : 0.5,
-        'classifier_poly_deg' : 2,
-        'classifier_poly_trans' : True,
-        'classifier' : LogisticRegression(penalty='none'), 
+    'isolette': {
+        'sul': isolette(),
+        'time_step': 0.25,
+        'time_range': 25,
+        'x0s': [[105.5, 80], [97.5, 100]],
+        'time_step_test': 0.25,
+        'time_range_test': 25,
+        'x0s_test': [[98, 99]],
+        'random_test_set': True,
+        'nmodes': 2,
+        'poly_degree': 1,
+        'seg_tol': 0.01,
+        'classifier_poly_deg': 1,
+        'classifier_poly_trans': False,
+        'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
+        'eq_query_bounds': np.array([[95, 105], [70, 110]]),
+        'eq_query_ntrajs': 50,
+        'eq_query_tol': 0.1
+    },
+    'affine_3modes': {
+        'sul': affine_3modes(),
+        'time_step': 0.04,
+        'time_range': 4,
+        'x0s': [[-2, 4], [1.5, 10], [0, 5]],
+        'time_step_test': 0.04,
+        'time_range_test': 2,
+        'x0s_test': [[2, 12], [-4, 10]],
+        'random_test_set': True,
+        'nmodes': 3,
+        'poly_degree': 1,
+        'seg_tol': 0.5,
+        'classifier_poly_deg': 1,
+        'classifier_poly_trans': False,
+        'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
+        'eq_query_bounds': np.array([[-2, 3], [-1, 8]]),
+        'eq_query_ntrajs': 50,
+        'eq_query_tol': 0.1
+    },
+    'lorentz_attractor': {
+        'sul': lorentz_attractor(),
+        'time_step': 0.005,
+        'time_range': 1,
+        'x0s': [[5, 5, 5], [2, 2, 2]],
+        'random_test_set': True,
+        'time_step_test': 0.005,
+        'time_range_test': 1,
+        'x0s_test': [[3, 3, 3]],
+        'nmodes': 2,
+        'poly_degree': 2,
+        'seg_tol': 0.5,
+        'classifier_poly_deg': 1,
+        'classifier_poly_trans': False,
+        'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
+        'eq_query_bounds': np.array([[0, 8], [0, 8], [0, 8]]),
+        'eq_query_ntrajs': 50,
+        'eq_query_tol': 0.1
+    },
+    'poly2_3modes': {
+        'sul': poly2_3modes(),
+        'time_step': 0.04,
+        'time_range': 4,
+        'x0s': [[-1, 1], [2, -3]],
+        'time_step_test': 0.04,
+        'time_range_test': 4,
+        'x0s_test': [[1, 4]],
+        'random_test_set': True,
+        'nmodes': 3,
+        'poly_degree': 2,
+        'seg_tol': 0.1,
+        'classifier_poly_deg': 1,
+        'classifier_poly_trans': False,
+        'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
+        'eq_query_bounds': np.array([[-6, 7], [-5, 15]]),
+        'eq_query_ntrajs': 50,
+        'eq_query_tol': 0.1
+    },
+    'poly3_2modes_nonlinclass': {
+        'sul': poly3_2modes_nonlinclass(),
+        'time_step': 0.04,
+        'time_range': 8,
+        'x0s': [[0, 4], [0, 4.5], [0, 5]],
+        'time_step_test': 0.04,
+        'time_range_test': 8,
+        'x0s_test': [[0, 2.5]],
+        'random_test_set': True,
+        'nmodes': 2,
+        'poly_degree': 3,
+        'seg_tol': 0.5,
+        'classifier_poly_deg': 2,
+        'classifier_poly_trans': True,
+        'classifier': LogisticRegression(penalty='none'),
         # 'classifier' : SVC(C=1e10, degree=2, kernel="poly", gamma=1, coef0=1),
-        'eq_query_bounds' : np.array([[-1, 1], [-8, 5]]),
-        'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.1
-    } ,
-    'poly2_4d' : {
-        'sul' : poly2_4d(),
-        'time_step' : 0.05,
-        'time_range' : 5,
-        'x0s' : [[6,0.7,2,0], [4,0.1,3.1,0], [5.9,0.2,-3,0], [4.1,0.5,2,0]],
-        'time_step_test' : 0.01,
-        'time_range_test' : 2,
-        'x0s_test' : [[4.6,0.13,2,0], [5.3,0.17,-2,0]],
-        'random_test_set' : True,
-        'nmodes' : 2,
-        'poly_degree' : 2,
-        'seg_tol' : 0.01,
-        'classifier_poly_deg' : 1,
-        'classifier_poly_trans' : False,
-        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial'),
-        'eq_query_bounds' : np.array([[3.5, 6], [-1, 1], [-4, 4], [-5, 5]]),
-        'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.1
+        'eq_query_bounds': np.array([[-1, 1], [-8, 5]]),
+        'eq_query_ntrajs': 50,
+        'eq_query_tol': 0.1
     },
-    'bio_sys' : {
-        'sul' : bio_sys(),
-        'time_step' : 0.01,
-        'time_range' : 3,
-        'x0s' : [[1, 7], [0.9, -1.1], [2,3], [4,6]],
-        'time_step_test' : 0.01,
-        'time_range_test' : 2.5,
-        'x0s_test' : [[1, 7], [0.9, -1.1], [2,3], [4,6], [0.1,0.1]],
-        'random_test_set' : True,
-        'nmodes' : 2,
-        'poly_degree' : 3,
-        'seg_tol' : 0.15,
-        'classifier_poly_deg' : 1,
-        'classifier_poly_trans' : False,
-        'classifier' : LogisticRegression(penalty='none', multi_class='multinomial'),
-        'eq_query_bounds' : np.array([[-4, 4], [-6, 12]]),
-        'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.1
+    'poly2_4d': {
+        'sul': poly2_4d(),
+        'time_step': 0.05,
+        'time_range': 5,
+        'x0s': [[6, 0.7, 2, 0], [4, 0.1, 3.1, 0], [5.9, 0.2, -3, 0], [4.1, 0.5, 2, 0]],
+        'time_step_test': 0.01,
+        'time_range_test': 2,
+        'x0s_test': [[4.6, 0.13, 2, 0], [5.3, 0.17, -2, 0]],
+        'random_test_set': True,
+        'nmodes': 2,
+        'poly_degree': 2,
+        'seg_tol': 0.01,
+        'classifier_poly_deg': 1,
+        'classifier_poly_trans': False,
+        'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
+        'eq_query_bounds': np.array([[3.5, 6], [-1, 1], [-4, 4], [-5, 5]]),
+        'eq_query_ntrajs': 50,
+        'eq_query_tol': 0.1
     },
-    'ham' : {
-        'sul' : ham(),
-        'time_step' : 0.075,
-        'time_range' : 10,
-        'x0s' : [[1, 1], [0.9, -1.1], [-.9,0.3], [0.4,0.6], [0.1,0.1], [0.3, 0.1]],
-        'time_step_test' : 0.1,
-        'time_range_test' : 5,
-        'x0s_test' : [[1.1, 0.7], [0.5, -0.8], [-1,0.3], [-0.3,0.6], [-0.4,1.3]],
-        'random_test_set' : True,
-        'nmodes' : 2,
-        'poly_degree' : 3,
-        'seg_tol' : 0.15,
-        'classifier_poly_deg' : 2,
-        'classifier_poly_trans' : True,
-        'classifier' : LogisticRegression(penalty='none'),
+    'bio_sys': {
+        'sul': bio_sys(),
+        'time_step': 0.01,
+        'time_range': 3,
+        'x0s': [[1, 7], [0.9, -1.1], [2, 3], [4, 6]],
+        'time_step_test': 0.01,
+        'time_range_test': 2.5,
+        'x0s_test': [[1, 7], [0.9, -1.1], [2, 3], [4, 6], [0.1, 0.1]],
+        'random_test_set': True,
+        'nmodes': 2,
+        'poly_degree': 3,
+        'seg_tol': 0.15,
+        'classifier_poly_deg': 1,
+        'classifier_poly_trans': False,
+        'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
+        'eq_query_bounds': np.array([[-4, 4], [-6, 12]]),
+        'eq_query_ntrajs': 50,
+        'eq_query_tol': 0.1
+    },
+    'ham': {
+        'sul': ham(),
+        'time_step': 0.075,
+        'time_range': 10,
+        'x0s': [[1, 1], [0.9, -1.1], [-.9, 0.3], [0.4, 0.6], [0.1, 0.1], [0.3, 0.1]],
+        'time_step_test': 0.1,
+        'time_range_test': 5,
+        'x0s_test': [[1.1, 0.7], [0.5, -0.8], [-1, 0.3], [-0.3, 0.6], [-0.4, 1.3]],
+        'random_test_set': True,
+        'nmodes': 2,
+        'poly_degree': 3,
+        'seg_tol': 0.15,
+        'classifier_poly_deg': 2,
+        'classifier_poly_trans': True,
+        'classifier': LogisticRegression(penalty='none'),
         # 'classifier' : SVC(C=1e10, kernel="poly", degree=2, gamma=1, coef0=0),
-        'eq_query_bounds' : np.array([[-1.5, 1.5], [-1, 1]]),
-        'eq_query_ntrajs' : 50,
-        'eq_query_tol' : 0.1
+        'eq_query_bounds': np.array([[-1.5, 1.5], [-1, 1]]),
+        'eq_query_ntrajs': 50,
+        'eq_query_tol': 0.1
     }
 }
 
@@ -445,37 +452,41 @@ DATA = []
 exps = list(exp_infos.keys())
 # exps=['isolette']
 for exp_title in exps:
-# for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
+    # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
     np.random.seed(0)
     exp = exp_infos[exp_title]
     # try:
-    sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2, data = learn_system(exp_name = exp_title,
-                sul =                   exp['sul'],
-                time_step =             exp['time_step'],
-                time_range =            exp['time_range'],
-                x0s =                   exp['x0s'],
-                time_step_test =        exp['time_step_test'],
-                time_range_test =       exp['time_range_test'],
-                x0s_test =              exp['x0s_test'],
-                random_test_set =       exp['random_test_set'],
-                nmodes =                exp['nmodes'],
-                poly_degree =           exp['poly_degree'],
-                seg_tol =               exp['seg_tol'],
-                classifier =            exp['classifier'],
-                classifier_poly_deg =   exp['classifier_poly_deg'],
-                classifier_poly_trans = exp['classifier_poly_trans'],
-                do_eq_query =           True,
-                eq_query_bounds =       exp['eq_query_bounds'],
-                eq_query_ntrajs =       exp['eq_query_ntrajs'],
-                eq_query_tol =          exp['eq_query_tol'],
-                sampling_method =       'random' ,
-                C_space =               [0, 0.001, 0.01, 0.1, 1],
-                write_on =              True,
-                deltas =                0.001,
-                break_at_low_MSE =      False,
-                apply_LR =              False,
-                with_plots=             True,
-                print_on=False)
+    sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2, data = learn_system(exp_name=exp_title,
+                                                                                            sul=exp['sul'],
+                                                                                            time_step=exp['time_step'],
+                                                                                            time_range=exp['time_range'],
+                                                                                            x0s=exp['x0s'],
+                                                                                            time_step_test=exp['time_step_test'],
+                                                                                            time_range_test=exp['time_range_test'],
+                                                                                            x0s_test=exp['x0s_test'],
+                                                                                            random_test_set=exp['random_test_set'],
+                                                                                            nmodes=exp['nmodes'],
+                                                                                            poly_degree=exp['poly_degree'],
+                                                                                            seg_tol=exp['seg_tol'],
+                                                                                            classifier=exp['classifier'],
+                                                                                            classifier_poly_deg=exp[
+                                                                                                'classifier_poly_deg'],
+                                                                                            classifier_poly_trans=exp[
+                                                                                                'classifier_poly_trans'],
+                                                                                            do_eq_query=True,
+                                                                                            eq_query_bounds=exp['eq_query_bounds'],
+                                                                                            eq_query_ntrajs=exp['eq_query_ntrajs'],
+                                                                                            eq_query_tol=exp['eq_query_tol'],
+                                                                                            sampling_method='random',
+                                                                                            C_space=[
+                                                                                                0, 0.001, 0.01, 0.1, 1],
+                                                                                            write_on=True,
+                                                                                            deltas=0.001,
+                                                                                            break_at_low_MSE=False,
+                                                                                            apply_LR=False,
+                                                                                            with_plots=True,
+                                                                                            plot_xt=False,
+                                                                                            print_on=False)
 
     print("Test derivatives RD:", data[-1])
 
@@ -492,12 +503,14 @@ for exp_title in exps:
                     for mergeep in mergeps:
                         start = time.time()
                         P, G, boundary = infer_model(
-                                    trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['classifier_poly_deg'],
-                                    num_mode=exp['nmodes'], modelist=exp['sul'].eqs, event=exp['sul'].eventlist[0], ep=0.01, mergeep = mergeep, method=method, verbose=False)
+                            trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp[
+                                'poly_degree'], boundary_order=exp['classifier_poly_deg'],
+                            num_mode=exp['nmodes'], modelist=exp['sul'].eqs, event=exp['sul'].eventlist[0], ep=0.01, mergeep=mergeep, method=method, verbose=False)
                         infer_time = time.time() - start
                         modelist = exp['sul'].eqs
                         event = exp['sul'].eventlist[0]
-                        res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist[0], exp['poly_degree'], exp['classifier_poly_deg'])
+                        res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
+                                         exp['sul'].eventlist[0], exp['poly_degree'], exp['classifier_poly_deg'])
                         print(res)
                         data.append(res)
                         data.append(infer_time)
@@ -505,10 +518,12 @@ for exp_title in exps:
                     for mergeep in mergeps:
                         start = time.time()
                         P, G, boundary = infer_model(
-                                    trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp['poly_degree'], boundary_order=exp['classifier_poly_deg'],
-                                    num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False, labeltest=exp['sul'].labelfun)
+                            trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp[
+                                'poly_degree'], boundary_order=exp['classifier_poly_deg'],
+                            num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep=mergeep, method=method, verbose=False, labeltest=exp['sul'].labelfun)
                         infer_time = time.time() - start
-                        res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs, exp['sul'].eventlist, exp['poly_degree'], exp['classifier_poly_deg'], labeltest=exp['sul'].labelfun)
+                        res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
+                                         exp['sul'].eventlist, exp['poly_degree'], exp['classifier_poly_deg'], labeltest=exp['sul'].labelfun)
                         print(res)
                         data.append(res)
                         data.append(infer_time)
