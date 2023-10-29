@@ -1,3 +1,6 @@
+import sys
+sys.path.append('./')
+
 from sklearn.svm import SVC
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -7,13 +10,11 @@ from snds import SNDS, SNDS_linear
 from utils import *
 import time
 import numpy as np
-import sys
 import pickle
 import warnings
 # setting ignore as a parameter and further adding category
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-sys.path.append('./')
 compare_with_inferDynamic = True
 if compare_with_inferDynamic:
     try:
@@ -450,7 +451,7 @@ exp_infos = {
 
 DATA = []
 exps = list(exp_infos.keys())
-# exps=['isolette']
+# exps=['poly2_3modes']
 for exp_title in exps:
     # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
     np.random.seed(0)

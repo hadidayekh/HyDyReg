@@ -204,7 +204,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         file2.write(f"$\\text{{RD}}_{{\\text{{test}}}} =$ {comp_traj_test_RD:.3e}\n")
 
 
-
+    dpi=None
     oldmodel = copy.deepcopy(model)
     if do_eq_query:
         start = time.time()
@@ -225,7 +225,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
 
             if write_on:
-                f3.savefig(dir_plots + exp_name + f"_EQ_{count}.pdf")
+                f3.savefig(dir_plots + exp_name + f"_EQ_{count}.pdf", dpi=dpi)
 
         while not eq_query and count < 100:
             count += 1
@@ -274,7 +274,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                 f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
 
                 if write_on:
-                    f3.savefig(dir_plots + exp_name + f"_EQ_{count}.pdf")
+                    f3.savefig(dir_plots + exp_name + f"_EQ_{count}.pdf", dpi=dpi)
 
         if eq_query:
             print("Equivalence query is TRUE!")
@@ -316,11 +316,11 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
         if write_on:
             file3.write(model.gen_full_latex_eq())
-            f1.savefig(dir_plots + exp_name + "_training.pdf")
-            f2.savefig(dir_plots + exp_name + "_test_gen.pdf")
+            f1.savefig(dir_plots + exp_name + "_training.pdf", dpi=dpi)
+            f2.savefig(dir_plots + exp_name + "_test_gen.pdf", dpi=dpi)
             if do_eq_query:
                 if count > 1:
-                    f4.savefig(dir_plots + exp_name + "_test_EQ.pdf")
+                    f4.savefig(dir_plots + exp_name + "_test_EQ.pdf", dpi=dpi)
             file.close()
             file2.close()
             file3.close()

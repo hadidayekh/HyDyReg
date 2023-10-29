@@ -85,7 +85,7 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
                 axs = fig.subplot_mosaic([['main', 'main', 'main'], ['x0', 'x1', 'x2']], gridspec_kw={'height_ratios': [2, 1]}, per_subplot_kw={'main' : {'projection': '3d'}})
                 ax = axs['main']
             else:
-                fig,axs = plt.subplots()
+                fig,axs = plt.subplots(subplot_kw={'projection':'3d'})
                 ax = axs
         
         assert trajectories.d == 3 or trajectories.d is None, "Cannot draw in 3D, the dimension is not 3."
@@ -97,7 +97,6 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
             x0 = x.T[0]
             x1 = x.T[1]
             x2 = x.T[2]
-
             ax.scatter(x0, x1, x2, c=colors[i % len(colors)], s=2, label = label if i == 0 else None)
             if mark_beginning:
                 ax.scatter(x0[0], x1[0], x2[0], c='b', s=6)
@@ -387,7 +386,8 @@ def plot_train_test_2D(X_train, X_test):
 
     f, a = plt.subplots()
 
-    a.scatter(X0train, X1train, s=2, marker='.')
-    a.scatter(X0test, X1test, s=2, marker='+')
+    a.scatter(X0train, X1train, marker='.', label="Training points")
+    a.scatter(X0test, X1test, marker='+', label="Validation points")
+    a.legend()
 
     return f,a
