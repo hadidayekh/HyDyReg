@@ -18,8 +18,10 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random', plot_xt=True):
-    D = len(x0s[0])   
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random', plot_xt=False):
+    D = len(x0s[0])
+    save_ext = '.png'
+    dpi=None
     if write_on:
         dir_plots = "experi-plots/"
         dir = "experi-info/" + exp_name + "/"
@@ -152,7 +154,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         ft, at = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
         ft, at = plotting_function(traj_test_learned, fig=ft, axs=at, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=first_model.labelfun_)
         if write_on:
-            ft.savefig(dir_plots + exp_name + "_test.pdf")
+            ft.savefig(dir_plots + exp_name + "_test" + save_ext, dpi=dpi)
 
     # print(model.gen_full_latex_eq())
     start = time.time()
@@ -204,7 +206,6 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         file2.write(f"$\\text{{RD}}_{{\\text{{test}}}} =$ {comp_traj_test_RD:.3e}\n")
 
 
-    dpi=None
     oldmodel = copy.deepcopy(model)
     if do_eq_query:
         start = time.time()
@@ -225,7 +226,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
 
             if write_on:
-                f3.savefig(dir_plots + exp_name + f"_EQ_{count}.pdf", dpi=dpi)
+                f3.savefig(dir_plots + exp_name + f"_EQ_{count}" + save_ext, dpi=dpi)
 
         while not eq_query and count < 100:
             count += 1
@@ -274,7 +275,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                 f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
 
                 if write_on:
-                    f3.savefig(dir_plots + exp_name + f"_EQ_{count}.pdf", dpi=dpi)
+                    f3.savefig(dir_plots + exp_name + f"_EQ_{count}" + save_ext, dpi=dpi)
 
         if eq_query:
             print("Equivalence query is TRUE!")
@@ -316,11 +317,11 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
         if write_on:
             file3.write(model.gen_full_latex_eq())
-            f1.savefig(dir_plots + exp_name + "_training.pdf", dpi=dpi)
-            f2.savefig(dir_plots + exp_name + "_test_gen.pdf", dpi=dpi)
+            f1.savefig(dir_plots + exp_name + "_training" + save_ext, dpi=dpi)
+            f2.savefig(dir_plots + exp_name + "_test_gen" + save_ext, dpi=dpi)
             if do_eq_query:
                 if count > 1:
-                    f4.savefig(dir_plots + exp_name + "_test_EQ.pdf", dpi=dpi)
+                    f4.savefig(dir_plots + exp_name + "_test_EQ" + save_ext, dpi=dpi)
             file.close()
             file2.close()
             file3.close()
