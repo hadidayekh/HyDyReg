@@ -388,6 +388,8 @@ def plot_train_test_2D(X_train, X_test):
 
     a.scatter(X0train, X1train, marker='.', label="Training points")
     a.scatter(X0test, X1test, marker='+', label="Validation points")
+    a.set_xlabel("$x^{(1)}$")
+    a.set_ylabel("$x^{(2)}$")
     a.legend()
 
     return f,a
