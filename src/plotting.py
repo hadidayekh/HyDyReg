@@ -42,16 +42,16 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
                     
         
-        ax.set_ylabel('$x_2$')
-        ax.set_xlabel('$x_1$')
+        ax.set_ylabel('$x^{(2)}$')
+        ax.set_xlabel('$x^{(1)}$')
         if not label is None:
             ax.legend()
 
         if plot_xt:
             axs['x0'].set_xlabel('$t$')
-            axs['x0'].set_ylabel('$x_1$')
+            axs['x0'].set_ylabel('$x^{(1)}$')
             axs['x1'].set_xlabel('$t$')
-            axs['x1'].set_ylabel('$x_2$')
+            axs['x1'].set_ylabel('$x^{(2)}$')
 
         if not labelfun is None:
             xmin, xmax = ax.get_xlim()
@@ -118,18 +118,18 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
                     
 
-        ax.set_ylabel('$x_2$')
-        ax.set_xlabel('$x_1$')
+        ax.set_ylabel('$x^{(2)}$')
+        ax.set_xlabel('$x^{(1)}$')
         if not label is None:
             ax.legend()
 
         if plot_xt:
             axs['x0'].set_xlabel('$t$')
-            axs['x0'].set_ylabel('$x_1$')
+            axs['x0'].set_ylabel('$x^{(1)}$')
             axs['x1'].set_xlabel('$t$')
-            axs['x1'].set_ylabel('$x_2$')
+            axs['x1'].set_ylabel('$x^{(2)}$')
             axs['x2'].set_xlabel('$t$')
-            axs['x2'].set_ylabel('$x_3$')
+            axs['x2'].set_ylabel('$x^{(3)}$')
 
         # ADDING LABEL CONTROUR (TODO REVISIT)
         # if not labelfun is None:
@@ -171,7 +171,7 @@ def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','
             # Calculate the number of rows and columns based on the number of plots
             rows = (num_plots + 1) // 2
             cols = 2
-            gs = gridspec.GridSpec(rows, 4)
+            gs = gridspec.GridSpec(rows, 4, hspace=0.4,wspace=0.8)
             axs = []
             for i in range(num_plots - 1):
                 if i % 2 == 0:
@@ -192,7 +192,7 @@ def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','
                 for seg_index in segments[i]:
                     ax.scatter(trajectories.t_list[i][seg_index], x.T[j][seg_index], marker='|', c='r', linewidths=0.7)
             ax.set_xlabel('$t$')
-            ax.set_ylabel('$x_' + str(j+1) + '$')
+            ax.set_ylabel('$x^{(' + str(j+1) + ')}$')
             if not label is None:
                 ax.legend()
 
