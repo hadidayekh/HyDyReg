@@ -192,7 +192,7 @@ def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','
                 for seg_index in segments[i]:
                     ax.scatter(trajectories.t_list[i][seg_index], x.T[j][seg_index], marker='|', c='r', linewidths=0.7)
             ax.set_xlabel('$t$')
-            ax.set_ylabel('$x_' + str(j) + '$')
+            ax.set_ylabel('$x_' + str(j+1) + '$')
             if not label is None:
                 ax.legend()
 
