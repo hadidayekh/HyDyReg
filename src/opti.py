@@ -304,6 +304,61 @@ class HybridKernelRegressor:
         self.Xfit_ = X
         self.Xfit_trans_ = X_trans
 
+        self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
+
+    def augment_fit(self, X, X_dot, good_R2=98):
+        if not self.train_coefs:
+            raise NotImplementedError
+        # X and X dot belong to one segment
+        N_new = X.shape[0]
+        if self.deg > 1:
+            X_trans = self.poly.fit_transform(X)
+        else:
+            X_trans = X
+        
+        LRs = []
+        R2s = np.ndarray((self.n,))
+        for j in range(self.n):
+            LR = LinearRegression()
+            Xfit_trans_j = self.get_points_of_mode(j)
+            aug_X = np.r_[Xfit_trans_j, X_trans]
+
+            LR.fit(aug_X, X_dot)
+            R2 = LR.score(aug_X, X_dot)
+
+            LRs.append(LR)
+            R2s[j] = R2
+        
+        R2 = np.max(R2s)
+        if R2 > good_R2:
+            mode = np.argmax(R2s)
+            LR = LRs[mode]
+            self.Omegas_[mode] = LR.coef_
+            self.betas_[mode] = LR.intercept_
+            self.Xfit_ = np.r_[self.Xfit_, X]
+            self.Xfit_trans_ = np.r_[self.Xfit_trans_, X_trans]
+
+        else:
+            mode = self.n
+            self.n = self.n + 1
+            LR = LinearRegression()
+            LR.fit(X_trans, X_dot)
+
+            self.Omegas_ = np.r_[self.Omegas_, LR.coef_]
+            self.betas_ = np.r_[self.betas_, LR.intercept_]
+
+        modes_new = np.array([mode] * N_new)
+        self.modes_ = np.r_[self.modes_, modes_new]
+
+
+    def get_points_of_mode(self, j):
+        self.check_if_fitted()
+        assert j < self.n
+
+        indices = np.where(self.modesfit_ == j)
+        return self.Xfit_trans_[indices]
+
+
     def fit_LR(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
             raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
