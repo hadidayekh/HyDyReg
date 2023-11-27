@@ -18,7 +18,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random', plot_xt=False):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=10, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=True):
     D = len(x0s[0])
     save_ext = '.png'
     dpi=None
@@ -233,6 +233,33 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             print("Equivalence query is FALSE. Improving...")
             segments_eq = cexs_sul.segment_trajectories(seg_tol)
             X, X_dot, seg_res_eq = diff_method(np.array(cexs_sul.t_list), np.array(cexs_sul.x_list), segments=segments_eq, remove_seg=True)
+
+            if improve_cont:
+                print("Checking to improve continuous dynamics...")
+                D = X.shape[1]
+                improved = False
+                for i in range(len(seg_res_eq) - 1):
+                    X_curr = X[seg_res_eq[i]:seg_res_eq[i+1]]
+                    X_dot_curr = X_dot[seg_res_eq[i]:seg_res_eq[i+1]]
+                    if not model.compare_with_dynamics(X_curr, X_dot_curr):
+                        if not improved:
+                            print("Improving continuous dynamics...")
+                        model.augment_fit(X_curr, X_dot_curr)
+                        improved = True
+                
+                X_curr = X[seg_res_eq[-1]:]
+                X_dot_curr = X_dot[seg_res_eq[-1]:]
+                if not model.compare_with_dynamics(X_curr, X_dot_curr):
+                    if not improved:
+                        print("Improving continuous dynamics...")
+                    model.augment_fit(X_curr, X_dot_curr)
+                    improved = True
+                if improved:
+                    print("Done improving continuous dynamics.")
+                else:
+                    print("No continuous dynamic improvement needed.")
+
+
             X_classify = X
             X_dot_classify = X_dot
             for k in range(len(segments_eq)):
@@ -276,6 +303,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
                 if write_on:
                     f3.savefig(dir_plots + exp_name + f"_EQ_{count}" + save_ext, dpi=dpi)
+
+                plt.show()
 
         if eq_query:
             print("Equivalence query is TRUE!")

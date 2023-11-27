@@ -303,10 +303,19 @@ class HybridKernelRegressor:
         # self.Chis_ = Chis_sol
         self.Xfit_ = X
         self.Xfit_trans_ = X_trans
+        self.X_dot_fit_ = X_dot
 
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
-    def augment_fit(self, X, X_dot, good_R2=98):
+    def compare_with_dynamics(self, X, Xdot, tol=0.1):
+        RDs = np.ndarray((self.n,))
+        for j in range(self.n):
+            Xdot_pred = self.predict(X, lambda x: j)
+            RDs[j] = np.mean(relative_diff(Xdot, Xdot_pred))
+        min_RD = np.min(RDs)
+        return min_RD < tol
+
+    def augment_fit(self, X, X_dot, good_R2=0.1):
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
@@ -320,35 +329,37 @@ class HybridKernelRegressor:
         R2s = np.ndarray((self.n,))
         for j in range(self.n):
             LR = LinearRegression()
-            Xfit_trans_j = self.get_points_of_mode(j)
+            Xfit_trans_j, X_dot_j = self.get_points_of_mode(j)
             aug_X = np.r_[Xfit_trans_j, X_trans]
+            aug_X_dot = np.r_[X_dot_j, X_dot]
 
-            LR.fit(aug_X, X_dot)
-            R2 = LR.score(aug_X, X_dot)
+            LR.fit(aug_X, aug_X_dot)
+            aug_X_dot_pred = LR.predict(aug_X)
+            R2 = np.mean(relative_diff(aug_X_dot, aug_X_dot_pred))
 
             LRs.append(LR)
             R2s[j] = R2
         
-        R2 = np.max(R2s)
-        if R2 > good_R2:
-            mode = np.argmax(R2s)
+        R2 = np.min(R2s)
+        if R2 < good_R2:
+            mode = np.argmin(R2s)
             LR = LRs[mode]
             self.Omegas_[mode] = LR.coef_
             self.betas_[mode] = LR.intercept_
             self.Xfit_ = np.r_[self.Xfit_, X]
             self.Xfit_trans_ = np.r_[self.Xfit_trans_, X_trans]
+            self.X_dot_fit_ = np.r_[self.X_dot_fit_, X_dot]
 
         else:
             mode = self.n
             self.n = self.n + 1
             LR = LinearRegression()
             LR.fit(X_trans, X_dot)
-
-            self.Omegas_ = np.r_[self.Omegas_, LR.coef_]
-            self.betas_ = np.r_[self.betas_, LR.intercept_]
+            self.Omegas_ = np.r_[self.Omegas_, LR.coef_.reshape((1, LR.coef_.shape[0], LR.coef_.shape[1]))]
+            self.betas_ = np.r_[self.betas_, LR.intercept_.reshape((1, LR.intercept_.shape[0]))]
 
         modes_new = np.array([mode] * N_new)
-        self.modes_ = np.r_[self.modes_, modes_new]
+        self.modes_ = np.r_[self.modesfit_, modes_new]
 
 
     def get_points_of_mode(self, j):
@@ -356,8 +367,7 @@ class HybridKernelRegressor:
         assert j < self.n
 
         indices = np.where(self.modesfit_ == j)
-        return self.Xfit_trans_[indices]
-
+        return self.Xfit_trans_[indices], self.X_dot_fit_[indices]
 
     def fit_LR(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
