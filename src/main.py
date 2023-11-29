@@ -62,14 +62,14 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         x0s_test = generate_random_points(10, eq_query_bounds, random_generator=np.random.default_rng(0))
 
     # Simulate trajectories given initial conditions
-    trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
-    traj_test_sul = sul.simulate_trajectory(time_step_test, time_range_test, x0s_test)
+    trajs_train_sul = sul.simulate_trajectory(time_step, time_range, x0s)
+    trajs_test_sul = sul.simulate_trajectory(time_step_test, time_range_test, x0s_test)
     
     # Segmenting the given trajectories
-    segments = trajectories.segment_trajectories(seg_tol)
+    segments = trajs_train_sul.segment_trajectories(seg_tol)
 
     # Extracting the derivatives and updated segment indices
-    X, X_dot, seg_res = diff_method(np.array(trajectories.t_list), np.array(trajectories.x_list), segments=segments, remove_seg=True)
+    X, X_dot, seg_res = diff_method(np.array(trajs_train_sul.t_list), np.array(trajs_train_sul.x_list), segments=segments, remove_seg=True)
     # Finding segment of each point
     seg_all = which_segment_all(X.shape[0], seg_res)
 
@@ -155,7 +155,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     
     # print(model.gen_full_latex_eq())
     start = time.time()
-    # fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
+    # fine_X, fine_X_dot = sul.generate_points_between_segments(trajs_train_sul, segments, seg_tol/10)
     # model.improve_classification(fine_X, fine_X_dot, classifier)
     time_active = time.time() - start
     if classifier_poly_trans:
@@ -264,14 +264,14 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         trajs_train_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
         trajs_test_learned = first_learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
 
-        train_RD = compare_trajs(trajectories, trajs_train_learned, measure="RD")
-        test_RD = compare_trajs(trajs_test_learned, traj_test_sul, measure="RD")
+        train_RD = compare_trajs(trajs_train_sul, trajs_train_learned, measure="RD")
+        test_RD = compare_trajs(trajs_test_learned, trajs_test_sul, measure="RD")
 
         if with_plots:
-            ftrain, atrain = plotting_function(trajectories, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            ftrain, atrain = plotting_function(trajs_train_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
             ftrain, atrain = plotting_function(trajs_train_learned, fig=ftrain, axs=atrain, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
 
-            ftest, atest = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            ftest, atest = plotting_function(trajs_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
             ftest, atest = plotting_function(trajs_test_learned, fig=ftest, axs=atest, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
             if write_on:
                 ftrain.savefig(dir_plots + exp_name + "_training" + fig_suffix + save_ext, dpi=dpi)
@@ -288,8 +288,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         train_RD3, test_RD3 = compute_errors_and_plot(model, fig_suffix="_EQ")
 
     # Computing final RD between derivatives
-    X_dot_sul = sul.get_derivatives(traj_test_sul)
-    X_dot_learned = learned_SNDS.get_derivatives(traj_test_sul)
+    X_dot_sul = sul.get_derivatives(trajs_test_sul)
+    X_dot_learned = learned_SNDS.get_derivatives(trajs_test_sul)
     RD_dot = np.mean(relative_diff(X_dot_sul, X_dot_learned))
     
     if print_on:
@@ -329,7 +329,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         file3.close()
 
     data = [exp_name, test_RD1, test_RD2, test_RD3, t_best_C, time_active, time_EQ, count, RD_dot] if do_eq_query else [exp_name, test_RD1, t_best_C, RD_dot]
-    return sul, learned_SNDS, trajectories, traj_test_sul, data
+    return sul, learned_SNDS, trajs_train_sul, trajs_test_sul, data
 
 
 def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1):
