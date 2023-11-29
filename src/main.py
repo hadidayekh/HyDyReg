@@ -172,7 +172,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     model_active_before_EQ = copy.deepcopy(model)
 
     if do_eq_query:
-        def plot_eq_query(count):
+        def plot_eq_query(sul_trajs, cexs_learned, conforming_trajs_learned, count):
             f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
             f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
             f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
@@ -188,7 +188,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         count = 1
 
         if with_plots:
-            plot_eq_query(count)
+            plot_eq_query(sul_trajs, cexs_learned, conforming_trajs_learned, count)
 
         while not eq_query and count < 100:
             count += 1
@@ -247,7 +247,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             sul_trajs.append_trajs(conforming_trajs_sul)
 
             if with_plots:
-                plot_eq_query(count)
+                plot_eq_query(sul_trajs, cexs_learned, conforming_trajs_learned, count)
                 # plt.show()
 
         if eq_query:
