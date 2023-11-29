@@ -22,7 +22,9 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     D = len(x0s[0])
     save_ext = '.png'
     dpi=None
+    
     if write_on:
+        # Setting up files
         dir_plots = "experi-plots/"
         dir = "experi-info/" + exp_name + "/"
         dir2 = "experi-info/latex-files/"
@@ -34,6 +36,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         file2 = open(dir2 + exp_name + "-results.tex", 'w')
         file3 = open(dir2 + exp_name + "-eqs.tex", 'w')
 
+        # Writing initial conditions of training data
         file2.write(f'Initial conditions = ')
         for i in range(len(x0s)):
             file2.write('[')
@@ -44,7 +47,10 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             else:
                 file2.write(f'${x0s[i][D-1]}$], ')
         file2.write(f'Time step = ${time_step}$\\\\\nTime range = ${time_range}$\\\\\nSegmentation tolerance = ${seg_tol}$\\\\\n')
+    
+    
     if with_plots:
+        # Getting the correct plotting function according to the dimension of the data
         if D == 2:
             plotting_function = draw_trajectories_2D
         elif D == 3:
@@ -144,22 +150,13 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     else:
         print_classifier_boundaries(model.classifier_)
     
-    learned_SNDS = model.to_SNDS()
-    trajs_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
-    traj_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
-    RD1 = compare_trajs(traj_test_learned, traj_test_sul, measure="RD")
+    first_learned_SNDS = model.to_SNDS()
     first_model = copy.deepcopy(model)
-
-    if with_plots:
-        ft, at = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-        ft, at = plotting_function(traj_test_learned, fig=ft, axs=at, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=first_model.labelfun_)
-        if write_on:
-            ft.savefig(dir_plots + exp_name + "_test" + save_ext, dpi=dpi)
-
+    
     # print(model.gen_full_latex_eq())
     start = time.time()
-    fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
-    model.improve_classification(fine_X, fine_X_dot, classifier)
+    # fine_X, fine_X_dot = sul.generate_points_between_segments(trajectories, segments, seg_tol/10)
+    # model.improve_classification(fine_X, fine_X_dot, classifier)
     time_active = time.time() - start
     if classifier_poly_trans:
         print_classifier_boundaries(model.classifier_, model.classifier_poly_)
@@ -171,56 +168,19 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     MSE_all = mean_squared_error(X_dot, X_dot_pred)
     
     #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
-    learned_SNDS = model.to_SNDS()
+    learned_SNDS_active_before_EQ = model.to_SNDS()
+    model_active_before_EQ = copy.deepcopy(model)
 
-    comp_traj_train_MSE = compare_trajs(trajectories, trajs_learned, measure="MSE")
-    comp_traj_train_RD = compare_trajs(trajectories, trajs_learned, measure="RD")
-
-    # Simulating trajectories on test data
-    traj_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
-
-    comp_traj_test_MSE = compare_trajs(traj_test_learned, traj_test_sul, measure="MSE")
-    comp_traj_test_RD = compare_trajs(traj_test_learned, traj_test_sul, measure="RD")
-
-    RD2 = comp_traj_test_RD
-    
-    if print_on:
-        print('Training MSE of X dot after classification =', MSE_all)
-        print("Training MSE of trajectories after classification =", comp_traj_train_MSE)
-        print("Test MSE of trajectories = ", comp_traj_test_MSE)
-        print("Training RD of trajectories after classification =", comp_traj_train_RD)
-        print("Test RD of trajectories = ", comp_traj_test_RD)
-
-    
-    if write_on:
-        file.write('Training MSE of X dot after classification = ' + str(MSE_all) + "\n")
-        file.write("Training MSE of trajectories after classification = " + str(comp_traj_train_MSE) + "\n")
-        file.write("Test MSE of trajectories = " + str(comp_traj_test_MSE) + "\n")
-        file.write("Training RD of trajectories after classification = " + str(comp_traj_train_RD) + "\n")
-        file.write("Test RD of trajectories = " + str(comp_traj_test_RD) + "\n")
-
-        file2.write(f"$\\text{{MSE}}_{{\\text{{dot}}}} =$ {MSE_all:.3e}\\\\\n")
-        file2.write(f"$\\text{{MSE}}_{{\\text{{train}}}} =$ {comp_traj_train_MSE:.3e}\\\\\n")
-        file2.write(f"$\\text{{MSE}}_{{\\text{{test}}}} =$ {comp_traj_test_MSE:.3e}\\\\\n")
-        file2.write(f"$\\text{{RD}}_{{\\text{{train}}}} =$ {comp_traj_train_RD:.3e}\\\\\n")
-        file2.write(f"$\\text{{RD}}_{{\\text{{test}}}} =$ {comp_traj_test_RD:.3e}\n")
-
-
-    oldmodel = copy.deepcopy(model)
     if do_eq_query:
+        learned_SNDS = learned_SNDS_active_before_EQ
         start = time.time()
         print("Checking equivalence query...")
         eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method)
         sul_trajs = copy.deepcopy(cexs_sul)
         sul_trajs.append_trajs(conforming_trajs_sul)
-        # eq_query, eq_trajs_sul, eq_trajs_learned_system = equivalence_query(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol)
         count = 1
 
         if with_plots:
-            # if not cexs_sul.is_empty():
-            #         f3, a3 = plotting_function(cexs_sul, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-            #         f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
-                
             f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
             f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
             f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
@@ -234,6 +194,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             segments_eq = cexs_sul.segment_trajectories(seg_tol)
             X, X_dot, seg_res_eq = diff_method(np.array(cexs_sul.t_list), np.array(cexs_sul.x_list), segments=segments_eq, remove_seg=True)
 
+            # Improve continuous dynamics if necessary
             if improve_cont:
                 print("Checking to improve continuous dynamics...")
                 D = X.shape[1]
@@ -259,26 +220,17 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                 else:
                     print("No continuous dynamic improvement needed.")
 
-
+            # Improving classifier / discrete dynamics
             X_classify = X
             X_dot_classify = X_dot
             for k in range(len(segments_eq)):
+                # If at least one trajectories contains multiple segments, generate fine points between segments
                 if len(segments_eq[k]) > 2:
                     fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/10)
                     X_classify = np.r_[X_classify, fine_X_eq]
                     X_dot_classify = np.r_[X_dot_classify, fine_X_dot_eq]
+                    # The function generate_points_between_segments will already deal with all trajectories --> break.
                     break
-                    # model.improve_classification(fine_X_eq, fine_X_dot_eq, classifier)
-            
-            # close_indices = np.abs(model.classifier_.decision_function(X)) < 1
-            # print(X.size)
-            # plt.scatter(X.T[0], X.T[1], c='k', s=2)
-            # X = X[close_indices]
-            # plt.scatter(X.T[0], X.T[1], c='r', s=2)
-
-            # X_dot = X_dot[close_indices]
-            # print(X.size)
-
             model.improve_classification(X_classify, X_dot_classify, classifier)
             if classifier_poly_trans:
                 print_classifier_boundaries(model.classifier_, model.classifier_poly_)
@@ -293,77 +245,91 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             sul_trajs.append_trajs(conforming_trajs_sul)
 
             if with_plots:
-                # if not cexs_sul.is_empty():
-                #     f3, a3 = plotting_function(cexs_sul, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-                #     f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
-                
                 f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
                 f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
                 f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
-
                 if write_on:
                     f3.savefig(dir_plots + exp_name + f"_EQ_{count}" + save_ext, dpi=dpi)
-
-                plt.show()
+                # plt.show()
 
         if eq_query:
             print("Equivalence query is TRUE!")
 
         time_EQ = time.time() - start
-    traj_test_learned3 = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
-    RD3 = compare_trajs(traj_test_learned3, traj_test_sul, measure="RD")
-    print("Test RD of trajectories = ", RD3)
+    
+    
+    def compute_errors_and_plot(model : HybridKernelRegressor, fig_suffix = ""):
+        learned_SNDS = model.to_SNDS()
+
+        trajs_train_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
+        trajs_test_learned = first_learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
+
+        train_RD = compare_trajs(trajectories, trajs_train_learned, measure="RD")
+        test_RD = compare_trajs(trajs_test_learned, traj_test_sul, measure="RD")
+
+        if with_plots:
+            ftrain, atrain = plotting_function(trajectories, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            ftrain, atrain = plotting_function(trajs_train_learned, fig=ftrain, axs=atrain, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
+
+            ftest, atest = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            ftest, atest = plotting_function(trajs_test_learned, fig=ftest, axs=atest, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
+            if write_on:
+                ftrain.savefig(dir_plots + exp_name + "_training" + fig_suffix + save_ext, dpi=dpi)
+                ftest.savefig(dir_plots + exp_name + "_test" + fig_suffix + save_ext, dpi=dpi)
+
+        return train_RD, test_RD
+
+
+
+    ################### COMPUTING TRAINING AND TEST ERRORS AT EACH STAGE ##############################
+    train_RD1, test_RD1 = compute_errors_and_plot(first_model)
+    train_RD2, test_RD2 = compute_errors_and_plot(model_active_before_EQ, fig_suffix="_gen")
+    if do_eq_query:
+        train_RD3, test_RD3 = compute_errors_and_plot(model, fig_suffix="_EQ")
+
+    # Computing final RD between derivatives
+    X_dot_sul = sul.get_derivatives(traj_test_sul)
+    X_dot_learned = learned_SNDS.get_derivatives(traj_test_sul)
+    RD_dot = np.mean(relative_diff(X_dot_sul, X_dot_learned))
+    
+    if print_on:
+        print(f"Training RD of trajectories before active learning = {train_RD1:.3e}")
+        print(f"Test RD of trajectories before active learning = {test_RD1:.3e}")
+        print(f"Training RD of trajectories with active learning before equivalence queries = {train_RD2:.3e}")
+        print(f"Test RD of trajectories with active learning before equivalence queries = {test_RD2:.3e}")
+        print(f"Training RD of trajectories after equivalence queries = {train_RD3:.3e}")
+        print(f"Test RD of trajectories after equivalence queries = {test_RD3:.3e}")
+
+    
+    if write_on:
+        file.write(f"Training RD of trajectories before active learning = {train_RD1:.3e}\n")
+        file.write(f"Test RD of trajectories before active learning = {test_RD1:.3e}\n")
+        file.write(f"Training RD of trajectories with active learning before equivalence queries = {train_RD2:.3e}\n")
+        file.write(f"Test RD of trajectories with active learning before equivalence queries = {test_RD2:.3e}\n")
+        file.write(f"Training RD of trajectories after equivalence queries = {train_RD3:.3e}\n")
+        file.write(f"Test RD of trajectories after equivalence queries = {test_RD3:.3e}\n")
+
+        file2.write(f"$\\text{{RD1}}_{{\\text{{train}}}} =$ {train_RD1:.3e}\\\\\n")
+        file2.write(f"$\\text{{RD1}}_{{\\text{{test}}}} =$ {test_RD1:.3e}\n")
+        file2.write(f"$\\text{{RD2}}_{{\\text{{train}}}} =$ {train_RD2:.3e}\\\\\n")
+        file2.write(f"$\\text{{RD2}}_{{\\text{{test}}}} =$ {test_RD2:.3e}\n")
+        file2.write(f"$\\text{{RD3}}_{{\\text{{train}}}} =$ {train_RD3:.3e}\\\\\n")
+        file2.write(f"$\\text{{RD3}}_{{\\text{{test}}}} =$ {test_RD3:.3e}\n")
 
     if classifier_poly_trans:
         X_class_trans = model.classifier_poly_.fit_transform(model.X_classify_)
         print(not (model.classifier_.predict(X_class_trans) - model.modes_classify_).any())
     else:
         print(not (model.classifier_.predict(model.X_classify_) - model.modes_classify_).any())
-    
-    if with_plots:
-        
-        # Plotting training data
-        f1, a1 = plotting_function(trajectories, label='Original trajectories', colors = ['b'], mark_beginning=True, plot_xt=plot_xt)
-        f1, a1 = plotting_function(trajs_learned, fig=f1, axs=a1, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=first_model.labelfun_)
-        plot_title='Training data versus trajectories simulated from the learning model with the same intial conditions as the training data'
-        plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
-        # f1.suptitle(textwrap.fill(plot_title, width=60))
 
+    if write_on:
+        file3.write(model.gen_full_latex_eq())
+        file.close()
+        file2.close()
+        file3.close()
 
-        # Plotting test data
-        f2, a2 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-        f2, a2 = plotting_function(traj_test_learned, fig=f2, axs=a2, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=oldmodel.labelfun_)
-        plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data before EQ improvements'
-        plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
-        # f2.suptitle(textwrap.fill(plot_title, width=60))
-
-        if do_eq_query:
-            f4, a4 = plotting_function(traj_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-            f4, a4 = plotting_function(traj_test_learned3, fig=f4, axs=a4, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
-            plot_title='Test data versus trajectories simulated from the learning model with the same intial conditions as the test data after EQ improvements'
-            plot_title += ', as well as the mode state space partitioning.' if D==2 else '.'
-            # f4.suptitle(textwrap.fill(plot_title, width=60))
-
-        if write_on:
-            file3.write(model.gen_full_latex_eq())
-            f1.savefig(dir_plots + exp_name + "_training" + save_ext, dpi=dpi)
-            f2.savefig(dir_plots + exp_name + "_test_gen" + save_ext, dpi=dpi)
-            if do_eq_query:
-                if count > 1:
-                    f4.savefig(dir_plots + exp_name + "_test_EQ" + save_ext, dpi=dpi)
-            file.close()
-            file2.close()
-            file3.close()
-
-        print()
-
-    X_dot_sul = sul.get_derivatives(traj_test_sul)
-    X_dot_learned = learned_SNDS.get_derivatives(traj_test_sul)
-    
-    RD_dot = np.mean(relative_diff(X_dot_sul, X_dot_learned))
-
-    data = [exp_name, RD1, RD2, RD3, t_best_C, time_active, time_EQ, count, RD_dot] if do_eq_query else [exp_name, RD1, t_best_C, RD_dot]
-    return sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned3, data
+    data = [exp_name, test_RD1, test_RD2, test_RD3, t_best_C, time_active, time_EQ, count, RD_dot] if do_eq_query else [exp_name, test_RD1, t_best_C, RD_dot]
+    return sul, learned_SNDS, trajectories, traj_test_sul, data
 
 
 def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1):
@@ -414,6 +380,7 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
             cexs_sul.append_trajs(sul_traj)
             cexs_learned.append_trajs(learned_traj)
             cexs_RD += comp_traj_test_RD
+            # return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned
         else:
             conforming_trajs_sul.append_trajs(sul_traj)
             conforming_trajs_learned.append_trajs(sul_traj)

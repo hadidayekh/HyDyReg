@@ -457,7 +457,7 @@ for exp_title in exps:
     np.random.seed(0)
     exp = exp_infos[exp_title]
     # try:
-    sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2, data = learn_system(exp_name=exp_title,
+    sul, learned_SNDS, trajectories, traj_test_sul, data = learn_system(exp_name=exp_title,
                                                                                             sul=exp['sul'],
                                                                                             time_step=exp['time_step'],
                                                                                             time_range=exp['time_range'],
