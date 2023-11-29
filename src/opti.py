@@ -315,7 +315,7 @@ class HybridKernelRegressor:
         min_RD = np.min(RDs)
         return min_RD < tol
 
-    def augment_fit(self, X, X_dot, good_R2=0.1):
+    def augment_fit(self, X, X_dot, good_RD=0.1):
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
@@ -326,7 +326,7 @@ class HybridKernelRegressor:
             X_trans = X
         
         LRs = []
-        R2s = np.ndarray((self.n,))
+        RDs = np.ndarray((self.n,))
         for j in range(self.n):
             LR = LinearRegression()
             Xfit_trans_j, X_dot_j = self.get_points_of_mode(j)
@@ -335,14 +335,14 @@ class HybridKernelRegressor:
 
             LR.fit(aug_X, aug_X_dot)
             aug_X_dot_pred = LR.predict(aug_X)
-            R2 = np.mean(relative_diff(aug_X_dot, aug_X_dot_pred))
+            RD = np.mean(relative_diff(aug_X_dot, aug_X_dot_pred))
 
             LRs.append(LR)
-            R2s[j] = R2
+            RDs[j] = RD
         
-        R2 = np.min(R2s)
-        if R2 < good_R2:
-            mode = np.argmin(R2s)
+        RD = np.min(RDs)
+        if RD < good_RD:
+            mode = np.argmin(RDs)
             LR = LRs[mode]
             self.Omegas_[mode] = LR.coef_
             self.betas_[mode] = LR.intercept_
@@ -361,6 +361,8 @@ class HybridKernelRegressor:
         modes_new = np.array([mode] * N_new)
         self.modes_ = np.r_[self.modesfit_, modes_new]
 
+        self.reassign_modes()
+
 
     def get_points_of_mode(self, j):
         self.check_if_fitted()
@@ -368,6 +370,28 @@ class HybridKernelRegressor:
 
         indices = np.where(self.modesfit_ == j)
         return self.Xfit_trans_[indices], self.X_dot_fit_[indices]
+
+    def reassign_modes(self):
+        X = self.X_classify_
+        X_dot = self.X_dot_classify_
+        N = X.shape[0]
+        D = X.shape[1]
+        X_dot_pred_diff = np.ndarray((self.n, N, D))
+        for j in range(self.n):
+            X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)
+        X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
+        self.modes_classify_ = np.argmin(X_dot_pred_diff, axis=0)
+
+        X = self.Xfit_
+        X_dot = self.X_dot_fit_
+        N = X.shape[0]
+        D = X.shape[1]
+        X_dot_pred_diff = np.ndarray((self.n, N, D))
+        for j in range(self.n):
+            X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)
+        X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
+        self.modesfit_ = np.argmin(X_dot_pred_diff, axis=0)
+            
 
     def fit_LR(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
@@ -662,10 +686,11 @@ class HybridKernelRegressor:
         self.Xfit_   = X
         self.Xfit_trans_ = X_trans
 
-    def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None):
+    def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None, X_dot=None):
         self.check_if_fitted()
         if X is None:
             X = self.Xfit_
+            X_dot = self.X_dot_fit_
             modes = self.get_modes()
         
         num_modes = len(np.unique(modes))
@@ -704,6 +729,7 @@ class HybridKernelRegressor:
             self.labelfun_ = lambda x : modes[0]
             self.eventlist_ = None
         self.X_classify_ = X
+        self.X_dot_classify_ = X_dot
         self.modes_classify_ = modes
 
     def improve_classification(self, X, X_dot, classifier=None):
@@ -716,7 +742,7 @@ class HybridKernelRegressor:
         
         X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
         modes = np.argmin(X_dot_pred_diff, axis=0)
-        self.classify_modes(classifier = clone(self.classifier_), X = np.r_[self.X_classify_, X], modes = np.r_[self.modes_classify_, modes])
+        self.classify_modes(classifier = clone(self.classifier_), X = np.r_[self.X_classify_, X], modes = np.r_[self.modes_classify_, modes], X_dot = np.r_[self.X_dot_classify_, X_dot])
     
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION
