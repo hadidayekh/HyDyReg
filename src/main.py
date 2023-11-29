@@ -150,7 +150,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     else:
         print_classifier_boundaries(model.classifier_)
     
-    first_learned_SNDS = model.to_SNDS()
+    first_learned_SNDS = copy.deepcopy(model.to_SNDS())
     first_model = copy.deepcopy(model)
     
     # print(model.gen_full_latex_eq())
@@ -168,7 +168,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     MSE_all = mean_squared_error(X_dot, X_dot_pred)
     
     #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
-    learned_SNDS_active_before_EQ = model.to_SNDS()
+    learned_SNDS_active_before_EQ = copy.deepcopy(model.to_SNDS())
     model_active_before_EQ = copy.deepcopy(model)
 
     if do_eq_query:
@@ -219,6 +219,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                     improved = True
                 if improved:
                     print("Done improving continuous dynamics.")
+                    print(model.Omegas_, model.betas_)
                 else:
                     print("No continuous dynamic improvement needed.")
 
@@ -260,7 +261,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         learned_SNDS = model.to_SNDS()
 
         trajs_train_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
-        trajs_test_learned = first_learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
+        trajs_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
 
         train_RD = compare_trajs(trajs_train_sul, trajs_train_learned, measure="RD")
         test_RD = compare_trajs(trajs_test_learned, trajs_test_sul, measure="RD")
