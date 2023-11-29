@@ -155,8 +155,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     
     # print(model.gen_full_latex_eq())
     start = time.time()
-    # fine_X, fine_X_dot = sul.generate_points_between_segments(trajs_train_sul, segments, seg_tol/10)
-    # model.improve_classification(fine_X, fine_X_dot, classifier)
+    fine_X, fine_X_dot = sul.generate_points_between_segments(trajs_train_sul, segments, seg_tol/10)
+    model.improve_classification(fine_X, fine_X_dot, classifier)
     time_active = time.time() - start
     if classifier_poly_trans:
         print_classifier_boundaries(model.classifier_, model.classifier_poly_)
