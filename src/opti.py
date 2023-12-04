@@ -307,7 +307,7 @@ class HybridKernelRegressor:
 
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
-    def compare_with_dynamics(self, X, Xdot, tol=0.1):
+    def compare_with_dynamics(self, X, Xdot, tol=0.05):
         RDs = np.ndarray((self.n,))
         for j in range(self.n):
             Xdot_pred = self.predict(X, lambda x: j)
@@ -315,7 +315,7 @@ class HybridKernelRegressor:
         min_RD = np.min(RDs)
         return min_RD < tol
 
-    def augment_fit(self, X, X_dot, good_RD=0.1):
+    def augment_fit(self, X, X_dot, good_RD=0.05):
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
@@ -390,7 +390,13 @@ class HybridKernelRegressor:
         for j in range(self.n):
             X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)
         X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
-        self.modesfit_ = np.argmin(X_dot_pred_diff, axis=0)
+        new_modesfit_ = np.argmin(X_dot_pred_diff, axis=0)
+        new_modesfit_old = new_modesfit_[:len(self.modesfit_)]
+        diff = new_modesfit_old - self.modesfit_
+        changed_modes = np.unique(np.r_[self.modesfit_[diff != 0], new_modesfit_old[diff != 0]])
+        self.modesfit_ = new_modesfit_
+        for j in changed_modes:
+            self.retrain_continuous(j)
             
 
     def fit_LR(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
@@ -732,6 +738,15 @@ class HybridKernelRegressor:
         self.X_dot_classify_ = X_dot
         self.modes_classify_ = modes
 
+    def retrain_continuous(self, j):
+        X, Xdot = self.get_points_of_mode(j)
+        if X.shape[0] == 0:
+            return
+        LR = LinearRegression()
+        LR.fit(X, Xdot)
+        self.Omegas_[j] = LR.coef_
+        self.betas_[j] = LR.intercept_
+    
     def improve_classification(self, X, X_dot, classifier=None):
         self.check_if_fitted()
         if X.size == 0:

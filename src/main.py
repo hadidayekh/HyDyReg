@@ -153,6 +153,32 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     first_learned_SNDS = copy.deepcopy(model.to_SNDS())
     first_model = copy.deepcopy(model)
     
+    def compute_errors_and_plot(model : HybridKernelRegressor, fig_suffix = ""):
+        learned_SNDS = model.to_SNDS()
+
+        trajs_train_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
+        trajs_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
+
+        train_RD = compare_trajs(trajs_train_sul, trajs_train_learned, measure="RD")
+        test_RD = compare_trajs(trajs_test_learned, trajs_test_sul, measure="RD")
+
+        if with_plots:
+            ftrain, atrain = plotting_function(trajs_train_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            ftrain, atrain = plotting_function(trajs_train_learned, fig=ftrain, axs=atrain, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
+
+            ftest, atest = plotting_function(trajs_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            ftest, atest = plotting_function(trajs_test_learned, fig=ftest, axs=atest, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
+            if write_on:
+                ftrain.savefig(dir_plots + exp_name + "_training" + fig_suffix + save_ext, dpi=dpi)
+                ftest.savefig(dir_plots + exp_name + "_test" + fig_suffix + save_ext, dpi=dpi)
+
+        return train_RD, test_RD
+
+    # compute_errors_and_plot(first_model)
+    # plt.show()
+
+
+
     # print(model.gen_full_latex_eq())
     start = time.time()
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajs_train_sul, segments, seg_tol/10)
@@ -189,6 +215,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
         if with_plots:
             plot_eq_query(sul_trajs, cexs_learned, conforming_trajs_learned, count)
+            plt.show()
 
         while not eq_query and count < 100:
             count += 1
@@ -249,7 +276,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
             if with_plots:
                 plot_eq_query(sul_trajs, cexs_learned, conforming_trajs_learned, count)
-                # plt.show()
+                plt.show()
 
         if eq_query:
             print("Equivalence query is TRUE!")
@@ -257,26 +284,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         time_EQ = time.time() - start
     
     
-    def compute_errors_and_plot(model : HybridKernelRegressor, fig_suffix = ""):
-        learned_SNDS = model.to_SNDS()
-
-        trajs_train_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)
-        trajs_test_learned = learned_SNDS.simulate_trajectory(time_step_test, time_range_test, x0s_test)
-
-        train_RD = compare_trajs(trajs_train_sul, trajs_train_learned, measure="RD")
-        test_RD = compare_trajs(trajs_test_learned, trajs_test_sul, measure="RD")
-
-        if with_plots:
-            ftrain, atrain = plotting_function(trajs_train_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-            ftrain, atrain = plotting_function(trajs_train_learned, fig=ftrain, axs=atrain, colors=['m'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
-
-            ftest, atest = plotting_function(trajs_test_sul, colors=['b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-            ftest, atest = plotting_function(trajs_test_learned, fig=ftest, axs=atest, colors=['r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
-            if write_on:
-                ftrain.savefig(dir_plots + exp_name + "_training" + fig_suffix + save_ext, dpi=dpi)
-                ftest.savefig(dir_plots + exp_name + "_test" + fig_suffix + save_ext, dpi=dpi)
-
-        return train_RD, test_RD
+    
 
 
 

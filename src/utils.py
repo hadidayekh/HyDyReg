@@ -294,7 +294,6 @@ def get_latex_classifier_boundaries(classifier, polyfeatures=None):
                     for d in range(D):
                         s += f'{w[d]:.3f} {fn[d]} + '
                     s += f'{b:.3f}$\\\\\n'
-                    print(s)
                     S+=s
             return S
     except:
