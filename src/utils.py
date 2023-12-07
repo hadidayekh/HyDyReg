@@ -244,7 +244,7 @@ def print_classifier_boundaries(classifier, polyfeatures=None):
         else:
             for i in range(ncoef):
                 for j in range(i+1, ncoef):
-                    s = f"Classifier boundary between {i} and {j}: "
+                    s = f"Classifier boundary between {i:2d} and {j:2d}: "
                     w = W[i] - W[j]
                     b = B[i] - B[j]
                     max_w = w[np.argmax(np.abs(w))]
