@@ -18,7 +18,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=True):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=True, fit_active_only=True):
     D = len(x0s[0])
     save_ext = '.png'
     dpi=None
@@ -78,70 +78,75 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     # Define the model
     model_curr = HybridKernelRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list, kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
     print("Starting " + exp_name + "\n")
-    # Starting the hyperparamater tuning
-    Cs = []
-    MSEs = []
-    MSE_val = 1e9
-    total_time = 0
+    
+    if not fit_active_only:
+        # Starting the hyperparamater tuning
+        Cs = []
+        MSEs = []
+        MSE_val = 1e9
+        total_time = 0
 
-    C_tested = []
-    for i in range(len(C_space)):
-        t_start = time.time()
-        C_curr = C_space[i]
-        try:
-            # Fit the model with the current hyperparameter C_curr
-            model_curr.fit(X_train, Xdot_train, norm='L2', deltas=deltas, C=C_curr, segmentation='strict', segments=seg_train, apply_LR=apply_LR)
-            curr_time = time.time() - t_start
-            total_time += curr_time
-        except:
-            curr_time = time.time() - t_start
-            total_time += curr_time
-            print('C =', C_curr, 'failed.')
+        C_tested = []
+        for i in range(len(C_space)):
+            t_start = time.time()
+            C_curr = C_space[i]
+            try:
+                # Fit the model with the current hyperparameter C_curr
+                model_curr.fit(X_train, Xdot_train, norm='L2', deltas=deltas, C=C_curr, segmentation='strict', segments=seg_train, apply_LR=apply_LR)
+                curr_time = time.time() - t_start
+                total_time += curr_time
+            except:
+                curr_time = time.time() - t_start
+                total_time += curr_time
+                print('C =', C_curr, 'failed.')
+                if write_on:
+                    file.write('C = ' + str(C_curr) + ' failed.\n')
+                continue
+            finally:
+                C_tested.append(C_curr)
+            
+            # Deduce the modes of validation points and compute validation error
+            modes_val = get_modes_val(model_curr.Chis_segments_, seg_val)
+            Xdot_val_pred = model_curr.predict(X_val, labelfun=modes_val)
+            MSE_val_curr = mean_squared_error(Xdot_val_pred, Xdot_val)
+
+            # Compare with previous best error to find the new best
+            Cs.append(C_curr)
+            MSEs.append(MSE_val_curr)
+            if MSE_val_curr < MSE_val:
+                model = copy.deepcopy(model_curr)
+                MSE_val = MSE_val_curr
+                C = C_curr
+                t_best_C = curr_time
+
+            if print_on:
+                print("C =", C_curr, "MSE =", MSE_val_curr, 'time =', curr_time)
             if write_on:
-                file.write('C = ' + str(C_curr) + ' failed.\n')
-            continue
-        finally:
-            C_tested.append(C_curr)
-        
-        # Deduce the modes of validation points and compute validation error
-        modes_val = get_modes_val(model_curr.Chis_segments_, seg_val)
-        Xdot_val_pred = model_curr.predict(X_val, labelfun=modes_val)
-        MSE_val_curr = mean_squared_error(Xdot_val_pred, Xdot_val)
+                file.write("C = " + str(C_curr) + " MSE = " + str(MSE_val_curr) + ' time = ' + str(curr_time) + "\n")
 
-        # Compare with previous best error to find the new best
-        Cs.append(C_curr)
-        MSEs.append(MSE_val_curr)
-        if MSE_val_curr < MSE_val:
-            model = copy.deepcopy(model_curr)
-            MSE_val = MSE_val_curr
-            C = C_curr
-            t_best_C = curr_time
+            if break_at_low_MSE and MSE_val_curr < tol:
+                print("MSE low enough; no need to continue.")
+                break
+
 
         if print_on:
-            print("C =", C_curr, "MSE =", MSE_val_curr, 'time =', curr_time)
+            print("Best C =", C, "with MSE_val =", MSE_val)
+            print("Total time:", total_time)
+            print("Average time per C:", total_time/len(C_tested))
+
         if write_on:
-            file.write("C = " + str(C_curr) + " MSE = " + str(MSE_val_curr) + ' time = ' + str(curr_time) + "\n")
+            file.write("Best C = " + str(C) + " with MSE_val = " + str(MSE_val) + "\n")
+            file.write("Total time = " + str(total_time) + "\n")
+            file.write("Average time per C = " + str(total_time/len(C_space)) + "\n")
 
-        if break_at_low_MSE and MSE_val_curr < tol:
-            print("MSE low enough; no need to continue.")
-            break
-
-
-    if print_on:
-        print("Best C =", C, "with MSE_val =", MSE_val)
-        print("Total time:", total_time)
-        print("Average time per C:", total_time/len(C_tested))
-
-    if write_on:
-        file.write("Best C = " + str(C) + " with MSE_val = " + str(MSE_val) + "\n")
-        file.write("Total time = " + str(total_time) + "\n")
-        file.write("Average time per C = " + str(total_time/len(C_space)) + "\n")
-
-        file2.write(f"$C_{{\\text{{best}}}} = {C}$\\\\\n")
-        file2.write(f"$\\text{{MSE}}_{{\\text{{val}}}} =$ {MSE_val:.3e}\\\\\n")
-        file2.write(f"$t_{{C_{{\\text{{best}}}}}} = {t_best_C:.3f}$s\\\\\n")
-        file2.write(f"$t_{{\\text{{total}}}} = {total_time:.3f}$s\\\\\n")
-        file2.write(f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):.3f}$s\\\\\n")
+            file2.write(f"$C_{{\\text{{best}}}} = {C}$\\\\\n")
+            file2.write(f"$\\text{{MSE}}_{{\\text{{val}}}} =$ {MSE_val:.3e}\\\\\n")
+            file2.write(f"$t_{{C_{{\\text{{best}}}}}} = {t_best_C:.3f}$s\\\\\n")
+            file2.write(f"$t_{{\\text{{total}}}} = {total_time:.3f}$s\\\\\n")
+            file2.write(f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):.3f}$s\\\\\n")
+    else:
+        model = model_curr
+        model.fit_first_segment(X, X_dot, seg_res)
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
@@ -224,26 +229,37 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             X, X_dot, seg_res_eq = diff_method(np.array(cexs_sul.t_list), np.array(cexs_sul.x_list), segments=segments_eq, remove_seg=True)
 
             # Improve continuous dynamics if necessary
+            coor = plt.cm.Set3
             if improve_cont:
                 print("Checking to improve continuous dynamics...")
                 D = X.shape[1]
                 improved = False
+                f, a = plt.subplots()
                 for i in range(len(seg_res_eq) - 1):
+                    print("Segment", i,":")
                     X_curr = X[seg_res_eq[i]:seg_res_eq[i+1]]
                     X_dot_curr = X_dot[seg_res_eq[i]:seg_res_eq[i+1]]
+                    a.scatter(X_curr.T[0], X_curr.T[1], color=coor(i))
                     if not model.compare_with_dynamics(X_curr, X_dot_curr):
                         if not improved:
                             print("Improving continuous dynamics...")
                         model.augment_fit(X_curr, X_dot_curr)
                         improved = True
+                    # else:
+                    #     print("No need to improve for this segment.")
                 
                 X_curr = X[seg_res_eq[-1]:]
                 X_dot_curr = X_dot[seg_res_eq[-1]:]
+                a.scatter(X_curr.T[0], X_curr.T[1], color=coor(i+1))
+                plt.show()
+                print("Last segment", ":")
                 if not model.compare_with_dynamics(X_curr, X_dot_curr):
                     if not improved:
                         print("Improving continuous dynamics...")
                     model.augment_fit(X_curr, X_dot_curr)
                     improved = True
+                # else:
+                #     print("No need to improve for this segment.")
                 if improved:
                     print("Done improving continuous dynamics.")
                     print(model.Omegas_, model.betas_)
@@ -387,7 +403,7 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
             cexs_sul.append_trajs(sul_traj)
             cexs_learned.append_trajs(learned_traj)
             cexs_RD += comp_traj_test_RD
-            # return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned
+            return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned
         else:
             conforming_trajs_sul.append_trajs(sul_traj)
             conforming_trajs_learned.append_trajs(sul_traj)

@@ -307,15 +307,41 @@ class HybridKernelRegressor:
 
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
-    def compare_with_dynamics(self, X, Xdot, tol=0.05):
+    def fit_first_segment(self, X, X_dot, segments):
+        self.n = 1
+        X = X[segments[0]:segments[1]]
+        poly = PolynomialFeatures(degree=self.deg, include_bias=False)
+        X_trans = poly.fit_transform(X)
+        D = X.shape[1]
+        Q = X_trans.shape[1]
+        self.poly = poly
+        X_dot = X_dot[segments[0]:segments[1]]
+        LR = LinearRegression()
+        LR.fit(X, X_dot)
+        
+        self.Omegas_ = np.ndarray((1, D, Q))
+        self.betas_ = np.ndarray((1, D))
+
+        self.Omegas_[0] = LR.coef_
+        self.betas_[0] = LR.intercept_
+
+        self.Xfit_ = X
+        self.Xfit_trans_ = X_trans
+        self.X_dot_fit_ = X_dot
+
+        self.modesfit_ = np.array([0] * X.shape[0])
+    
+    def compare_with_dynamics(self, X, Xdot, tol=0.01):
         RDs = np.ndarray((self.n,))
         for j in range(self.n):
             Xdot_pred = self.predict(X, lambda x: j)
             RDs[j] = np.mean(relative_diff(Xdot, Xdot_pred))
         min_RD = np.min(RDs)
+        if min_RD < tol:
+            print("No need to improve, mode", np.argmin(RDs), "matches. RD =", min_RD)
         return min_RD < tol
 
-    def augment_fit(self, X, X_dot, good_RD=0.05):
+    def augment_fit(self, X, X_dot, good_RD=0.01):
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
@@ -334,15 +360,26 @@ class HybridKernelRegressor:
             aug_X_dot = np.r_[X_dot_j, X_dot]
 
             LR.fit(aug_X, aug_X_dot)
-            aug_X_dot_pred = LR.predict(aug_X)
-            RD = np.mean(relative_diff(aug_X_dot, aug_X_dot_pred))
+            # aug_X_dot_pred = LR.predict(aug_X)
+            # RD = np.mean(relative_diff(aug_X_dot, aug_X_dot_pred))
+            X_dot_pred = LR.predict(X_trans)
+            RD = np.mean(relative_diff(X_dot, X_dot_pred))
 
             LRs.append(LR)
             RDs[j] = RD
+            # import matplotlib.pyplot as plt
+            # if RD < good_RD:
+            #     f, a = plt.subplots()
+            #     a.scatter(Xfit_trans_j.T[0], Xfit_trans_j.T[1], c='b')
+            #     a.scatter(X_trans.T[0], X_trans.T[1], c='r')
+            #     a.set_title(f"Mode {j}")
+            #     print(Xfit_trans_j.shape)
+            #     plt.show()
         
         RD = np.min(RDs)
         if RD < good_RD:
             mode = np.argmin(RDs)
+            print("Merging with mode", mode)
             LR = LRs[mode]
             self.Omegas_[mode] = LR.coef_
             self.betas_[mode] = LR.intercept_
@@ -352,11 +389,15 @@ class HybridKernelRegressor:
 
         else:
             mode = self.n
+            print("Creating new mode", mode)
             self.n = self.n + 1
             LR = LinearRegression()
             LR.fit(X_trans, X_dot)
             self.Omegas_ = np.r_[self.Omegas_, LR.coef_.reshape((1, LR.coef_.shape[0], LR.coef_.shape[1]))]
             self.betas_ = np.r_[self.betas_, LR.intercept_.reshape((1, LR.intercept_.shape[0]))]
+            self.Xfit_ = np.r_[self.Xfit_, X]
+            self.Xfit_trans_ = np.r_[self.Xfit_trans_, X_trans]
+            self.X_dot_fit_ = np.r_[self.X_dot_fit_, X_dot]
 
         modes_new = np.array([mode] * N_new)
         self.modes_ = np.r_[self.modesfit_, modes_new]
@@ -697,7 +738,8 @@ class HybridKernelRegressor:
         if X is None:
             X = self.Xfit_
             X_dot = self.X_dot_fit_
-            modes = self.get_modes()
+            # modes = self.get_modes()
+            modes = self.modesfit_
         
         num_modes = len(np.unique(modes))
 
@@ -734,6 +776,7 @@ class HybridKernelRegressor:
         else:
             self.labelfun_ = lambda x : modes[0]
             self.eventlist_ = None
+            self.classifier_ = classifier
         self.X_classify_ = X
         self.X_dot_classify_ = X_dot
         self.modes_classify_ = modes
