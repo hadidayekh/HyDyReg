@@ -9,7 +9,7 @@ from diff_methods import diff_method_fps
 from opti import HybridKernelRegressor
 from sklearn.linear_model import LogisticRegression
 from plotting import *
-from snds import SNDS, Trajectories
+from snds import SNDS, Trajectories, SlidingMotionException
 from utils import *
 import matplotlib.pyplot as plt
 from sklearn.inspection import DecisionBoundaryDisplay
@@ -18,7 +18,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=True, fit_active_only=True):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=True, fit_active_only=True, stop_at_sliding_motion=True):
     D = len(x0s[0])
     save_ext = '.png'
     dpi=None
@@ -147,6 +147,14 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     else:
         model = model_curr
         model.fit_first_segment(X, X_dot, seg_res)
+        # model.classify_modes(classifier)
+        # for i in range(1, len(seg_res)-1):
+        #     X_curr = X[seg_res[i]:seg_res[i+1]]
+        #     X_dot_curr = X_dot[seg_res[i]:seg_res[i+1]]
+        #     model.augment_fit(X_curr, X_dot_curr)
+        # X_curr = X[seg_res[-1]:]
+        # X_dot_curr = X_dot[seg_res[-1]:]
+        # model.augment_fit(X_curr, X_dot_curr)
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
@@ -213,7 +221,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         learned_SNDS = learned_SNDS_active_before_EQ
         start = time.time()
         print("Checking equivalence query...")
-        eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method)
+        eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, stop_at_sliding_motion=stop_at_sliding_motion)
         sul_trajs = copy.deepcopy(cexs_sul)
         sul_trajs.append_trajs(conforming_trajs_sul)
         count = 1
@@ -234,12 +242,12 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                 print("Checking to improve continuous dynamics...")
                 D = X.shape[1]
                 improved = False
-                f, a = plt.subplots()
+                # f, a = plt.subplots()
                 for i in range(len(seg_res_eq) - 1):
                     print("Segment", i,":")
                     X_curr = X[seg_res_eq[i]:seg_res_eq[i+1]]
                     X_dot_curr = X_dot[seg_res_eq[i]:seg_res_eq[i+1]]
-                    a.scatter(X_curr.T[0], X_curr.T[1], color=coor(i))
+                    # a.scatter(X_curr.T[0], X_curr.T[1], color=coor(i))
                     if not model.compare_with_dynamics(X_curr, X_dot_curr):
                         if not improved:
                             print("Improving continuous dynamics...")
@@ -250,8 +258,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                 
                 X_curr = X[seg_res_eq[-1]:]
                 X_dot_curr = X_dot[seg_res_eq[-1]:]
-                a.scatter(X_curr.T[0], X_curr.T[1], color=coor(i+1))
-                plt.show()
+                # a.scatter(X_curr.T[0], X_curr.T[1], color=coor(i+1))
+                # plt.show()
                 print("Last segment", ":")
                 if not model.compare_with_dynamics(X_curr, X_dot_curr):
                     if not improved:
@@ -286,7 +294,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
             learned_SNDS = model.to_SNDS()
             print("Rechecking equivalence query...")
-            eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, sobol_skip=count*eq_query_ntrajs)
+            eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, sobol_skip=count*eq_query_ntrajs, stop_at_sliding_motion=stop_at_sliding_motion)
             sul_trajs = copy.deepcopy(cexs_sul)
             sul_trajs.append_trajs(conforming_trajs_sul)
 
@@ -371,7 +379,7 @@ def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_ste
     print(comp_traj_test_MSE, comp_traj_test_RD)
     return comp_traj_test_RD <= tol, sul_trajs, learned_trajs
 
-def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1, sampling_method='random', sobol_skip=0):
+def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1, sampling_method='random', sobol_skip=0, stop_at_sliding_motion=False):
     cexs_sul = Trajectories([],[])
     cexs_sul.d = sul.dim
     conforming_trajs_sul = Trajectories([],[])
@@ -393,8 +401,13 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
     for i in tqdm(range(n_trajs)):
         x0 = x0s[i]
         sul_traj = sul.simulate_trajectory(time_step, time_range, [x0])
-        learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0])
-
+        try:
+            learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0], stop_at_sliding_motion=stop_at_sliding_motion)
+        except SlidingMotionException:
+            cexs_sul.append_trajs(sul_traj)
+            # cexs_learned.append_trajs(learned_traj)
+            # cexs_RD += comp_traj_test_RD
+            return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned
 
         comp_traj_test_RD = compare_trajs(learned_traj, sul_traj, measure="RD")
         total_RD += comp_traj_test_RD

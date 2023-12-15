@@ -1,4 +1,5 @@
 from posixpath import dirname
+from time import sleep
 import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
@@ -11,6 +12,9 @@ from sklearn.preprocessing import PolynomialFeatures
 from typing_extensions import Self
 from diff_methods import diff_method_fps
 
+
+class SlidingMotionException(Exception):
+    pass
 class SNDS:
     '''
     A switched nonlinear dynamical system.
@@ -29,7 +33,7 @@ class SNDS:
         self.labelfun = labelfun
         self.eventlist = eventlist
 
-    def simulate_trajectory(self, step, T, x0s, t0=0):
+    def simulate_trajectory(self, step, T, x0s, t0=0, stop_at_sliding_motion=False):
         num = round(T/step + 1)
 
         t_list = []
@@ -45,6 +49,7 @@ class SNDS:
             t_points = np.linspace(t0, T+t0, num)
             status = 1
             ite = 0
+            t_point_prev = t_points[0]
             while status == 1:
                 ite = ite + 1
                 if len(t_points) == 0:
@@ -78,6 +83,10 @@ class SNDS:
                     
                     # update t_points to be the times after t_start
                     t_points = t_points[i:]
+                    if stop_at_sliding_motion and len(t_points) != 0:
+                        if t_points[0] == t_point_prev:
+                            raise SlidingMotionException
+                        t_point_prev = t_points[0]
                     # evaluate the solution at t_start to check which new intial condition to give to 
                     # the solver, and check the (possibly new) label
                     sol = x_object.sol
