@@ -9,7 +9,7 @@ from diff_methods import diff_method_fps
 from opti import HybridKernelRegressor
 from sklearn.linear_model import LogisticRegression
 from plotting import *
-from snds import SNDS, Trajectories, SlidingMotionException
+from snds import SNDS, Trajectories, SlidingMotionException, UnstableTrajException
 from utils import *
 import matplotlib.pyplot as plt
 from sklearn.inspection import DecisionBoundaryDisplay
@@ -145,6 +145,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             file2.write(f"$t_{{\\text{{total}}}} = {total_time:.3f}$s\\\\\n")
             file2.write(f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):.3f}$s\\\\\n")
     else:
+        t_best_C = 0
         model = model_curr
         model.fit_first_segment(X, X_dot, seg_res)
         # model.classify_modes(classifier)
@@ -202,6 +203,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     else:
         print_classifier_boundaries(model.classifier_)
 
+    print(model.Omegas_, model.betas_)
+
     # Compute training error
     X_dot_pred = model.predict(X)
     MSE_all = mean_squared_error(X_dot, X_dot_pred)
@@ -212,9 +215,9 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     if do_eq_query:
         def plot_eq_query(sul_trajs, cexs_learned, conforming_trajs_learned, count):
-            f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-            f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
-            f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
+            f3, a3 = plotting_function(sul_trajs, colors=['k'], label='From SUL', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
+            f3, a3 = plotting_function(cexs_learned, fig=f3, axs=a3, colors=['r'], label='From learned system / CEX', mark_beginning=True, plot_xt=plot_xt, labelfun=None)
+            f3, a3 = plotting_function(conforming_trajs_learned, fig=f3, axs=a3, colors=['g'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
             if write_on:
                 f3.savefig(dir_plots + exp_name + f"_EQ_{count}" + save_ext, dpi=dpi)
 
@@ -402,13 +405,17 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
         x0 = x0s[i]
         sul_traj = sul.simulate_trajectory(time_step, time_range, [x0])
         try:
-            learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0], stop_at_sliding_motion=stop_at_sliding_motion)
+            learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0], stop_at_sliding_motion=False, compare_with_traj=sul_traj)
         except SlidingMotionException:
             cexs_sul.append_trajs(sul_traj)
             # cexs_learned.append_trajs(learned_traj)
             # cexs_RD += comp_traj_test_RD
             return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned
 
+        if learned_traj.truncated:
+            cexs_sul.append_trajs(sul_traj)
+            cexs_learned.append_trajs(learned_traj)
+            return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned
         comp_traj_test_RD = compare_trajs(learned_traj, sul_traj, measure="RD")
         total_RD += comp_traj_test_RD
 
@@ -419,7 +426,7 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
             return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned
         else:
             conforming_trajs_sul.append_trajs(sul_traj)
-            conforming_trajs_learned.append_trajs(sul_traj)
+            conforming_trajs_learned.append_trajs(learned_traj)
 
     print("Total RD:", total_RD/n_trajs)
     if cexs_sul.num_trajectories > 0:

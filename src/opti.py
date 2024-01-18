@@ -317,7 +317,7 @@ class HybridKernelRegressor:
         self.poly = poly
         X_dot = X_dot[segments[0]:segments[1]]
         LR = LinearRegression()
-        LR.fit(X, X_dot)
+        LR.fit(X_trans, X_dot)
         
         self.Omegas_ = np.ndarray((1, D, Q))
         self.betas_ = np.ndarray((1, D))
@@ -774,6 +774,7 @@ class HybridKernelRegressor:
             self.labelfun_ = lf
             self.eventlist_ = event
         else:
+            print(modes[0])
             self.labelfun_ = lambda x : modes[0]
             self.eventlist_ = None
             self.classifier_ = classifier

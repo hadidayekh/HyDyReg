@@ -11,9 +11,12 @@ from tslearn.utils import to_time_series_dataset
 from sklearn.preprocessing import PolynomialFeatures
 from typing_extensions import Self
 from diff_methods import diff_method_fps
-
+from utils import relative_diff
 
 class SlidingMotionException(Exception):
+    pass
+
+class UnstableTrajException(Exception):
     pass
 class SNDS:
     '''
@@ -33,7 +36,11 @@ class SNDS:
         self.labelfun = labelfun
         self.eventlist = eventlist
 
-    def simulate_trajectory(self, step, T, x0s, t0=0, stop_at_sliding_motion=False):
+    def simulate_trajectory(self, step, T, x0s, t0=0, stop_at_sliding_motion=False, compare_with_traj=None, compare_tol=0.5):
+        compare = not compare_with_traj is None
+        if compare:
+            assert len(x0s) == compare_with_traj.num_trajectories
+            assert len(x0s) == 1
         num = round(T/step + 1)
 
         t_list = []
@@ -42,6 +49,11 @@ class SNDS:
         for k in range(len(x0s)):
             # initial condition in list
             x0 = x0s[k]
+            if compare:
+                xs_compare = compare_with_traj.x_list[k]
+                err = relative_diff(x0, xs_compare[0])
+                err_var = 0
+                erroneous = err > compare_tol
             # the mode of the initial condition
             label = self.labelfun(x0)
             t_start = t0
@@ -50,6 +62,7 @@ class SNDS:
             status = 1
             ite = 0
             t_point_prev = t_points[0]
+            p = 0
             while status == 1:
                 ite = ite + 1
                 if len(t_points) == 0:
@@ -61,7 +74,6 @@ class SNDS:
                 
                 # termination status, if 1 then a terminating event ocurred
                 status = x_object.status
-
                 # in case of a terminating event
                 if status == 1:
                     # x_object.t_events is a list of time lists of each event type 
@@ -107,12 +119,36 @@ class SNDS:
                 else:
                     X_points = np.r_[X_points, x_points]
 
+                if compare:
+                    for x in x_points:
+                        x_comp = xs_compare[p]
+                        err_temp = relative_diff(x, x_comp)
+                        err_var = err_temp - err
+                        err = err_temp
+                        print(err, err_var)
+                        if erroneous and p > 0 and err > compare_tol and err_var > 0:
+                            num_truncated = p+1
+                            T_truncated = t0 + step * num_truncated if num_truncated != num else T
+                            t_list.append(np.linspace(t0, t0+T_truncated, num_truncated))
+                            x_list.append(X_points)
+                            trajs = Trajectories(t_list, x_list)
+                            print(num_truncated, num)
+                            print(T_truncated, T)
+                            if num_truncated < num:
+                                trajs.truncated = True
+                            else:
+                                trajs.truncated = False
+                            return trajs
+                        p += 1
+                        erroneous = err > compare_tol
+
                 # if t_points.size == 1:
                 #     status = 0
 
             t_list.append(np.linspace(t0, t0+T, num))
             x_list.append(X_points)
         trajs = Trajectories(t_list, x_list)
+        trajs.truncated = False
         return trajs
 
     def generate_points_between_segments(self, trajectories, segments, seg_tol, timestep='default'):

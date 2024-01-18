@@ -310,7 +310,7 @@ exp_infos = {
         'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
         'eq_query_bounds': np.array([[95, 105], [70, 110]]),
         'eq_query_ntrajs': 50,
-        'eq_query_tol': 0.1
+        'eq_query_tol': 0.05
     },
     'affine_3modes': {
         'sul': affine_3modes(),
@@ -450,8 +450,7 @@ exp_infos = {
 }
 
 DATA = []
-exps = list(exp_infos.keys())
-# exps=['poly2_3modes']
+exps = list(exp_infos.keys())[3:]
 for exp_title in exps:
     # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
     np.random.seed(0)
@@ -487,7 +486,8 @@ for exp_title in exps:
                                                                                             apply_LR=False,
                                                                                             with_plots=True,
                                                                                             plot_xt=False,
-                                                                                            print_on=False)
+                                                                                            print_on=False,
+                                                                                            stop_at_sliding_motion=True)
 
     print("Test derivatives RD:", data[-1])
 
