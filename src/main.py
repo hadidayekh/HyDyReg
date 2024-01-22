@@ -387,7 +387,7 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
             cexs_RD += comp_traj_test_RD
         else:
             conforming_trajs_sul.append_trajs(sul_traj)
-            conforming_trajs_learned.append_trajs(sul_traj)
+            conforming_trajs_learned.append_trajs(learned_traj)
 
     print("Total RD:", total_RD/n_trajs)
     if cexs_sul.num_trajectories > 0:
