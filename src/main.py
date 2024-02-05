@@ -69,7 +69,10 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     segments = trajs_train_sul.segment_trajectories(seg_tol)
 
     # Extracting the derivatives and updated segment indices
-    X, X_dot, seg_res = diff_method(np.array(trajs_train_sul.t_list), np.array(trajs_train_sul.x_list), segments=segments, remove_seg=True)
+    if fit_active_only:
+        X, X_dot, seg_res = diff_method(np.array([trajs_train_sul.t_list[0]]), np.array([trajs_train_sul.x_list[0]]), segments=[segments[0]], remove_seg=True)
+    else:
+        X, X_dot, seg_res = diff_method(np.array(trajs_train_sul.t_list), np.array(trajs_train_sul.x_list), segments=segments, remove_seg=True)
     # Finding segment of each point
     seg_all = which_segment_all(X.shape[0], seg_res)
 
@@ -196,7 +199,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     # print(model.gen_full_latex_eq())
     start = time.time()
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajs_train_sul, segments, seg_tol/10)
-    model.improve_classification(fine_X, fine_X_dot, classifier)
+    # model.improve_classification(fine_X, fine_X_dot, classifier)
     time_active = time.time() - start
     if classifier_poly_trans:
         print_classifier_boundaries(model.classifier_, model.classifier_poly_)
@@ -247,8 +250,9 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                 improved = False
                 # f, a = plt.subplots()
                 for i in range(len(seg_res_eq) - 1):
-                    print("Segment", i,":")
+                    
                     X_curr = X[seg_res_eq[i]:seg_res_eq[i+1]]
+                    print("Segment", i, "with",X_curr.shape[0],"points:")
                     X_dot_curr = X_dot[seg_res_eq[i]:seg_res_eq[i+1]]
                     # a.scatter(X_curr.T[0], X_curr.T[1], color=coor(i))
                     if not model.compare_with_dynamics(X_curr, X_dot_curr):
@@ -294,7 +298,12 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             else:
                 print_classifier_boundaries(model.classifier_)
 
-
+            print("IS EVERYTHING WELL CLASSIFIED ?")
+            if classifier_poly_trans:
+                X_class_trans = model.classifier_poly_.fit_transform(model.X_classify_)
+                print(not (model.classifier_.predict(X_class_trans) - model.modes_classify_).any())
+            else:
+                print(not (model.classifier_.predict(model.X_classify_) - model.modes_classify_).any())
             learned_SNDS = model.to_SNDS()
             print("Rechecking equivalence query...")
             eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, sobol_skip=count*eq_query_ntrajs, stop_at_sliding_motion=stop_at_sliding_motion)
@@ -350,6 +359,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         file2.write(f"$\\text{{RD3}}_{{\\text{{train}}}} =$ {train_RD3:.3e}\\\\\n")
         file2.write(f"$\\text{{RD3}}_{{\\text{{test}}}} =$ {test_RD3:.3e}\n")
 
+
+    print("IS EVERYTHING WELL CLASSIFIED ?")
     if classifier_poly_trans:
         X_class_trans = model.classifier_poly_.fit_transform(model.X_classify_)
         print(not (model.classifier_.predict(X_class_trans) - model.modes_classify_).any())

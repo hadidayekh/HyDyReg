@@ -119,7 +119,7 @@ for nmodes in nmodes_list:
 
     eq_query_bounds = np.array([[-1.0,1.0], [-1.0,1.0]])
 
-    c = LogisticRegression(penalty='none', multi_class='multinomial', max_iter=1000)
+    c = LogisticRegression(penalty='none', multi_class='multinomial', max_iter=100000)
     # c = SVC(C=1e10, kernel='poly', degree=2, gamma=1)
 
     if not learn:

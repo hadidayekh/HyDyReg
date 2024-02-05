@@ -1,4 +1,5 @@
 from asyncio.proactor_events import _ProactorBaseWritePipeTransport
+from time import sleep
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 import casadi
 import numpy as np
@@ -309,15 +310,15 @@ class HybridKernelRegressor:
 
     def fit_first_segment(self, X, X_dot, segments):
         self.n = 1
-        X = X[segments[0]:segments[1]]
+        X_first = X[segments[0]:segments[1]]
         poly = PolynomialFeatures(degree=self.deg, include_bias=False)
-        X_trans = poly.fit_transform(X)
-        D = X.shape[1]
+        X_trans = poly.fit_transform(X_first)
+        D = X_first.shape[1]
         Q = X_trans.shape[1]
         self.poly = poly
-        X_dot = X_dot[segments[0]:segments[1]]
+        X_dot_first = X_dot[segments[0]:segments[1]]
         LR = LinearRegression()
-        LR.fit(X_trans, X_dot)
+        LR.fit(X_trans, X_dot_first)
         
         self.Omegas_ = np.ndarray((1, D, Q))
         self.betas_ = np.ndarray((1, D))
@@ -325,11 +326,24 @@ class HybridKernelRegressor:
         self.Omegas_[0] = LR.coef_
         self.betas_[0] = LR.intercept_
 
-        self.Xfit_ = X
+        self.Xfit_ = X_first
         self.Xfit_trans_ = X_trans
         self.X_dot_fit_ = X_dot
 
-        self.modesfit_ = np.array([0] * X.shape[0])
+        self.modesfit_ = np.array([0] * X_first.shape[0])
+
+        if len(segments) > 2:
+            for i in range(1, len(segments) - 1):
+                print("seg", i+1)
+                X_curr = X[segments[i]:segments[i+1]]
+                X_dot_curr = X_dot[segments[i]:segments[i+1]]
+                self.augment_fit(X_curr, X_dot_curr)
+            print("last seg")
+            X_curr = X[segments[-1]:]
+            X_dot_curr = X_dot[segments[-1]:]
+            self.augment_fit(X_curr, X_dot_curr)
+
+
     
     def compare_with_dynamics(self, X, Xdot, tol=0.01):
         RDs = np.ndarray((self.n,))
@@ -337,6 +351,7 @@ class HybridKernelRegressor:
             Xdot_pred = self.predict(X, lambda x: j)
             RDs[j] = np.mean(relative_diff(Xdot, Xdot_pred))
         min_RD = np.min(RDs)
+        print(RDs)
         if min_RD < tol:
             print("No need to improve, mode", np.argmin(RDs), "matches. RD =", min_RD)
         return min_RD < tol
@@ -362,13 +377,18 @@ class HybridKernelRegressor:
             LR.fit(aug_X, aug_X_dot)
             # aug_X_dot_pred = LR.predict(aug_X)
             # RD = np.mean(relative_diff(aug_X_dot, aug_X_dot_pred))
+
+            # Calculating RD for segment
             X_dot_pred = LR.predict(X_trans)
-            RD = np.mean(relative_diff(X_dot, X_dot_pred))
+            RD_seg = np.max(relative_diff(X_dot, X_dot_pred))
+            # Calculating RD for rest of the data
+            X_dot_pred_j = LR.predict(Xfit_trans_j)
+            RD_j = np.max(relative_diff(X_dot_j, X_dot_pred_j))
 
             LRs.append(LR)
-            RDs[j] = RD
+            RDs[j] = np.max([RD_seg, RD_j])
             # import matplotlib.pyplot as plt
-            # if RD < good_RD:
+            # if np.max([RD_seg, RD_j]) < good_RD:
             #     f, a = plt.subplots()
             #     a.scatter(Xfit_trans_j.T[0], Xfit_trans_j.T[1], c='b')
             #     a.scatter(X_trans.T[0], X_trans.T[1], c='r')
@@ -380,7 +400,17 @@ class HybridKernelRegressor:
         if RD < good_RD:
             mode = np.argmin(RDs)
             print("Merging with mode", mode)
+            # print(np.where(self.modesfit_ == mode))
             LR = LRs[mode]
+            # Xfit_trans_j, X_dot_j = self.get_points_of_mode(mode)
+            # X_dot_pred = LR.predict(X_trans)
+            # RD_seg = relative_diff(X_dot, X_dot_pred)
+            # # Calculating RD for rest of the data
+            # X_dot_pred_j = LR.predict(Xfit_trans_j)
+            # RD_j = relative_diff(X_dot_j, X_dot_pred_j)
+            # print(RD_seg, np.mean(RD_seg))
+            # print(RD_j, np.mean(RD_j))
+            
             self.Omegas_[mode] = LR.coef_
             self.betas_[mode] = LR.intercept_
             self.Xfit_ = np.r_[self.Xfit_, X]
@@ -390,6 +420,7 @@ class HybridKernelRegressor:
         else:
             mode = self.n
             print("Creating new mode", mode)
+            print("RD was not good:", RD)
             self.n = self.n + 1
             LR = LinearRegression()
             LR.fit(X_trans, X_dot)
@@ -400,9 +431,10 @@ class HybridKernelRegressor:
             self.X_dot_fit_ = np.r_[self.X_dot_fit_, X_dot]
 
         modes_new = np.array([mode] * N_new)
-        self.modes_ = np.r_[self.modesfit_, modes_new]
+        self.modesfit_ = np.r_[self.modesfit_, modes_new]
+        print(self.modesfit_)
 
-        self.reassign_modes()
+        # self.reassign_modes()
 
 
     def get_points_of_mode(self, j):

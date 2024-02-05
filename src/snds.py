@@ -125,7 +125,7 @@ class SNDS:
                         err_temp = relative_diff(x, x_comp)
                         err_var = err_temp - err
                         err = err_temp
-                        print(err, err_var)
+                        # print(err, err_var)
                         if erroneous and p > 0 and err > compare_tol and err_var > 0:
                             num_truncated = p+1
                             T_truncated = t0 + step * num_truncated if num_truncated != num else T
