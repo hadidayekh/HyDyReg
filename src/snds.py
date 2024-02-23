@@ -132,8 +132,8 @@ class SNDS:
                             t_list.append(np.linspace(t0, t0+T_truncated, num_truncated))
                             x_list.append(X_points)
                             trajs = Trajectories(t_list, x_list)
-                            print(num_truncated, num)
-                            print(T_truncated, T)
+                            # print(num_truncated, num)
+                            # print(T_truncated, T)
                             if num_truncated < num:
                                 trajs.truncated = True
                             else:
@@ -310,14 +310,18 @@ class Trajectories:
                         # greater than the tolerance, we start a new segment
                         #segments.append((current_start_index, i))
                         # current_start_index = i
-                        segments.append(i+2)
-                        # skip n points once we notice a change
-                        i = i+n
+                        segments.append(i-2)
+                        x_points = np.delete(x_points, np.s_[i-2:i+3], axis=0)
+                        t_points = np.delete(t_points, np.s_[i-2:i+3], axis=0)
+                        self.x_list[j] = x_points
+                        self.t_list[j] = t_points
+                        l = l - 5
+                        continue
                 i+=1
             # Add the final segment to the list of segments
             segments.append(l-1)
             Segments.append(segments)
-            
+
         return Segments
 
     def is_empty(self):
