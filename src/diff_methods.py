@@ -113,6 +113,7 @@ def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
                 X_dot[j] = (-x_points[j+4] + 8*x_points[j+3] - 8*x_points[j+1] + x_points[j]) / (12.0 * h)
         else:
             seg_curr = segments[i]
+            first = True
             for k in range(len(seg_curr)-1):
                 t_points_seg = t_points[seg_curr[k]:seg_curr[k+1]]
                 x_points_seg = x_points[seg_curr[k]:seg_curr[k+1]]
@@ -129,9 +130,10 @@ def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
                     X_seg[j] = x_points_seg[j+2]
                     X_dot_seg[j] = (-x_points_seg[j+4] + 8*x_points_seg[j+3] - 8*x_points_seg[j+1] + x_points_seg[j]) / (12.0 * h)
 
-                if (k==0):
+                if first:
                     X = X_seg
                     X_dot = X_dot_seg
+                    first = False
                 else:
                     # if multiple trajectories, concatenate them
                     X = np.r_[X, X_seg]
