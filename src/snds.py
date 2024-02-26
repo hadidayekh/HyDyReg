@@ -291,33 +291,33 @@ class Trajectories:
             n=3
             
             
-            i = 0
-            while i < l:
-                if i >= n and i < l -n:
-                    # Extract the time and x points for the current position and the
-                    # forward and backward positions
-                    current_time, current_value = t_points[i], x_points[i]
-                    forward_time_1, forward_value_1 = t_points[i+1], x_points[i+1]
-                    forward_time_2, forward_value_2 = t_points[i+2], x_points[i+2]
-                    backward_time_1, backward_value_1 = t_points[i-1], x_points[i-1]
-                    backward_time_2, backward_value_2 = t_points[i-2], x_points[i-2]
-                    
-                    forward_derivative = (-3*current_value + 4*forward_value_1 - forward_value_2) / (forward_time_2 - current_time)
-                    backward_derivative = (3*current_value - 4*backward_value_1 + backward_value_2) / (current_time - backward_time_2)
-                    
-                    if np.linalg.norm(forward_derivative - backward_derivative) > tol:
-                        # If the difference between the forward and backward derivatives is
-                        # greater than the tolerance, we start a new segment
-                        #segments.append((current_start_index, i))
-                        # current_start_index = i
-                        segments.append(i-2)
-                        x_points = np.delete(x_points, np.s_[i-2:i+3], axis=0)
-                        t_points = np.delete(t_points, np.s_[i-2:i+3], axis=0)
-                        self.x_list[j] = x_points
-                        self.t_list[j] = t_points
-                        l = l - 5
-                        continue
-                i+=1
+            i = n-1
+            while i <= l-n:
+                # Extract the time and x points for the current position and the
+                # forward and backward positions
+                current_time, current_value = t_points[i], x_points[i]
+                forward_time_1, forward_value_1 = t_points[i+1], x_points[i+1]
+                forward_time_2, forward_value_2 = t_points[i+2], x_points[i+2]
+                backward_time_1, backward_value_1 = t_points[i-1], x_points[i-1]
+                backward_time_2, backward_value_2 = t_points[i-2], x_points[i-2]
+                
+                forward_derivative = (-3*current_value + 4*forward_value_1 - forward_value_2) / (forward_time_2 - current_time)
+                backward_derivative = (3*current_value - 4*backward_value_1 + backward_value_2) / (current_time - backward_time_2)
+                
+                if np.linalg.norm(forward_derivative - backward_derivative) > tol:
+                    # If the difference between the forward and backward derivatives is
+                    # greater than the tolerance, we start a new segment
+                    #segments.append((current_start_index, i))
+                    # current_start_index = i
+                    segments.append(i-2)
+                    x_points = np.delete(x_points, np.s_[i-2:i+3], axis=0)
+                    t_points = np.delete(t_points, np.s_[i-2:i+3], axis=0)
+                    self.x_list[j] = x_points
+                    self.t_list[j] = t_points
+                    l = l - 5
+                    i=i+2
+                else:
+                    i+=1
             # Add the final segment to the list of segments
             segments.append(l-1)
             Segments.append(segments)
