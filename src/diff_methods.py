@@ -88,8 +88,8 @@ def diff_method_central(t_list, x_list, segments=[]):
 
 # Five point stencil differentiation method, using two points from the back and two from the front
 def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
-    nb_traj = t_list.shape[0] # number of arrays of t-points in t_list
-    assert(nb_traj == x_list.shape[0]) # should be equal to number of x-points in x_list
+    nb_traj = len(t_list) # number of arrays of t-points in t_list
+    assert(nb_traj == len(x_list)) # should be equal to number of x-points in x_list
     x_dim = x_list[0][0].shape[0] # dimension of each data point x
     seg_res = []
     for i in range(nb_traj):
@@ -112,11 +112,13 @@ def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
                 X[j] = x_points[j+2]
                 X_dot[j] = (-x_points[j+4] + 8*x_points[j+3] - 8*x_points[j+1] + x_points[j]) / (12.0 * h)
         else:
-            seg_curr = segments[i]
             first = True
-            for k in range(len(seg_curr)-1):
-                t_points_seg = t_points[seg_curr[k]:seg_curr[k+1]]
-                x_points_seg = x_points[seg_curr[k]:seg_curr[k+1]]
+            seg_curr = segments[i]
+            splitted_t_points = np.split(t_points, seg_curr)
+            splitted_x_points = np.split(x_points, seg_curr)
+            for k in range(len(seg_curr) + 1):
+                t_points_seg = splitted_t_points[k]
+                x_points_seg = splitted_x_points[k]
                 nb_points = t_points_seg.shape[0]
                 assert(nb_points == x_points_seg.shape[0])
                 # assuming t_points are equally spaced
@@ -164,6 +166,8 @@ def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
             for j in range(1, len(seg_curr) - 1):
                 seg_res.append(begin_index + seg_curr[j] - 2)
     if len(segments) > 0:
+        # print("HERE ARE THE SEGMENTS", final_X.shape, segments, seg_res)
+        # exit()
         return final_X, final_X_dot, seg_res
     else:
         return final_X, final_X_dot

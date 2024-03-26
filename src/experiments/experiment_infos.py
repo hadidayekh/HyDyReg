@@ -366,7 +366,7 @@ exp_infos = {
         'classifier_poly_trans': False,
         'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
         'eq_query_bounds': np.array([[-6, 7], [-5, 15]]),
-        'eq_query_ntrajs': 50,
+        'eq_query_ntrajs': 100,
         'eq_query_tol': 0.1
     },
     'poly3_2modes_nonlinclass': {
@@ -391,7 +391,7 @@ exp_infos = {
     },
     'poly2_4d': {
         'sul': poly2_4d(),
-        'time_step': 0.05,
+        'time_step': 0.03,
         'time_range': 5,
         'x0s': [[6, 0.7, 2, 0], [4, 0.1, 3.1, 0], [5.9, 0.2, -3, 0], [4.1, 0.5, 2, 0]],
         'time_step_test': 0.01,
@@ -450,7 +450,7 @@ exp_infos = {
 }
 
 DATA = []
-exps = list(exp_infos.keys())[3:]
+exps = [list(exp_infos.keys())[3]]
 for exp_title in exps:
     # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
     np.random.seed(0)

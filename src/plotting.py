@@ -1,9 +1,13 @@
+from math import hypot
+from turtle import color
 from matplotlib import gridspec
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.inspection import DecisionBoundaryDisplay
-def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','k','m'], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
+from opti import HybridKernelRegressor
+
+def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','orange','c','k','m'], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
 
         if fig is None or axs is None:
             if(plot_xt):
@@ -23,12 +27,20 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
             x0 = x.T[0]
             x1 = x.T[1]
 
-            ax.scatter(x0, x1, c=colors[i % len(colors)], s=2, label = label if i == 0 else None)
+            ax.scatter(x0, x1, c=plt.cm.tab10(i), s=2, label = label if i == 0 else None)
+            ax.plot(x0, x1, color=plt.cm.tab10(i), alpha=0.2)
             if mark_beginning:
-                ax.scatter(x0[0], x1[0], c='b', s=6)
+                ax.scatter(x0[0], x1[0], c='r', s=8)
             if len(segments) > 0:
-                for seg_index in segments[i]:
+                ax.plot(x0[:segments[i][0]], x1[:segments[i][0]], color=plt.cm.tab10(i), alpha=0.2)
+                for j in range(len(segments[i])-1):
+                    seg_index = segments[i][j]
                     ax.scatter(x0[seg_index], x1[seg_index], marker='|', c='r', linewidths=0.7)
+                    ax.plot(x0[segments[i][j]:segments[i][j+1]], x1[segments[i][j]:segments[i][j+1]], color=plt.cm.tab10(i), alpha=0.2)
+                seg_index = segments[i][-1]
+                ax.scatter(x0[seg_index], x1[seg_index], marker='|', c='r', linewidths=0.7)
+                ax.plot(x0[segments[i][-1]:], x1[segments[i][-1]:], color=plt.cm.tab10(i), alpha=0.2)
+
             
 
 
@@ -65,7 +77,10 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','y','c','
             #ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
             n = max([max(l) for l in label_result]) + 1
             cmap = ListedColormap([plt.cm.Set3(i) for i in range(n)])
-            # cmap=ListedColormap(colors = ['b','r','y','k','m'][:n])
+            c1 = plt.cm.tab20(np.linspace(0,19,20).astype(int))
+            c2 = plt.cm.Pastel2(np.linspace(0,7,8).astype(int))
+            cmap = ListedColormap(np.vstack((c1,c2)))
+            cmap = ListedColormap([cmap(i % n) for i in range(n)])          
             ax.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=cmap, alpha=0.5, aspect='auto')
             # cnt =ax.contour(x0, x1, label_result, levels=[0], colors=['k'], linewidths=0.75)
             # for c in cnt.collections:
@@ -393,3 +408,50 @@ def plot_train_test_2D(X_train, X_test):
     a.legend()
 
     return f,a
+
+def plot_Xfit(model : HybridKernelRegressor, with_contour=True):
+    X = model.Xfit_
+    modes = model.modesfit_
+    # X = model.X_classify_
+    # modes = model.modes_classify_
+    assert X.shape[1] == 2
+    c1 = plt.cm.tab20(np.linspace(0,19,20).astype(int))
+    c2 = plt.cm.Pastel2(np.linspace(0,7,8).astype(int))
+    colors = ListedColormap(np.vstack((c1,c2)))
+    Ncolors = colors.N
+
+    f, a = plt.subplots()
+    
+    for mode in np.unique(modes):
+        a.scatter(*X[modes==mode].T, color=colors(mode%Ncolors), label=f"Mode {mode+1}", s=3)
+
+    a.set_xlabel("$x^{(1)}$")
+    a.set_ylabel("$x^{(2)}$")
+    a.legend()
+
+
+    if with_contour:
+        labelfun = model.labelfun_
+        xmin, xmax = a.get_xlim()
+        ymin, ymax = a.get_ylim()
+        nx0 = np.linspace(xmin, xmax, 200)
+        nx1 = np.linspace(ymin, ymax, 200)
+        x0,x1 = np.meshgrid(nx0, nx1)
+        label_result = [[labelfun([x0[i,j], x1[i,j]]) for j in range(x1.shape[1])] for i in range(x0.shape[0])]
+
+        #TODO revisit
+        #ax.contourf(x0,x1,label_result, cmap=ListedColormap(colors = ['c','r','y','k','m']), alpha=0.1)
+        n = max([max(l) for l in label_result]) + 1
+        cmap = ListedColormap([plt.cm.Set3(i) for i in range(n)])
+        c1 = plt.cm.tab20(np.linspace(0,19,20).astype(int))
+        c2 = plt.cm.Pastel2(np.linspace(0,7,8).astype(int))
+        cmap = ListedColormap(np.vstack((c1,c2)))
+        cmap = ListedColormap([cmap(i % n) for i in range(n)])          
+        a.imshow(label_result, extent=(xmin,xmax,ymin,ymax), origin="lower", cmap=cmap, alpha=0.2, aspect='auto')
+        # cnt =ax.contour(x0, x1, label_result, levels=[0], colors=['k'], linewidths=0.75)
+        # for c in cnt.collections:
+        #     c.set_rasterized(True)
+        
+        a.set_xlim(xmin,xmax)
+        a.set_ylim(ymin, ymax)
+    return f, a

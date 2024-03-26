@@ -8,7 +8,7 @@ def which_segment(i, segments):
     r = 0
     while r < len(segments) and i >= segments[r]:
         r += 1
-    return r - 1
+    return r
 
 def which_segment_all(N, segments):
     segments_per_point = np.ndarray((N,), int)
@@ -247,7 +247,7 @@ def print_classifier_boundaries(classifier, polyfeatures=None):
                     s = f"Classifier boundary between {i:2d} and {j:2d}: "
                     w = W[i] - W[j]
                     b = B[i] - B[j]
-                    max_w = w[np.argmax(np.abs(w))]
+                    max_w = np.max(np.abs(w))
                     w = w / max_w
                     b = b / max_w
                     for d in range(D):
@@ -273,7 +273,7 @@ def get_latex_classifier_boundaries(classifier, polyfeatures=None):
         if ncoef == 1:
             w = W[0]
             b = B[0]
-            max_w = w[np.argmax(np.abs(w))]
+            max_w = np.max(np.abs(w))
             w = w / max_w
             b = b / max_w
             s = "Classifier boundary: $"

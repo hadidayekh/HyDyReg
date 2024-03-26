@@ -12,6 +12,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from typing_extensions import Self
 from diff_methods import diff_method_fps
 from utils import relative_diff
+from copy import deepcopy
 
 class SlidingMotionException(Exception):
     pass
@@ -70,7 +71,7 @@ class SNDS:
                 # solve the ivp according to the label  of x0 while tracking events in eventlist
                 x_object = solve_ivp(self.eqs[label], (t_start, t_end), x0,
                                     t_eval=t_points, method='RK45', rtol=1e-7, atol=1e-9,
-                                    max_step=step/10, events=self.eventlist, dense_output=True)
+                                    max_step=step/2, events=self.eventlist, dense_output=True)
                 
                 # termination status, if 1 then a terminating event ocurred
                 status = x_object.status
@@ -144,7 +145,8 @@ class SNDS:
 
                 # if t_points.size == 1:
                 #     status = 0
-
+            if status == -1:
+                raise SlidingMotionException
             t_list.append(np.linspace(t0, t0+T, num))
             x_list.append(X_points)
         trajs = Trajectories(t_list, x_list)
@@ -156,36 +158,38 @@ class SNDS:
         x_list = trajectories.x_list
         final_X, final_X_dot = np.array([]), np.array([])
         if timestep == 'default':
-            timestep = (t_list[0][1] - t_list[0][0])/10
+            timestep = (t_list[0][1] - t_list[0][0])/20
         first = True
+        # for every trajectory
         for i in range(len(t_list)):
             x_points = x_list[i]
             t_points = t_list[i]
             seg_curr = segments[i]
-            if len(seg_curr) < 3:
+            # if the trajectory contains only one segment, continue
+            if len(seg_curr) == 0:
                 continue
-            for r in range(1, len(seg_curr) - 1):
+            # otherwise, for each sgement
+            for r in range(len(seg_curr)):
                 seg_index = seg_curr[r]
+                if seg_index - 1 < 0:
+                    continue
                 try:
-                    x0 = x_points[seg_index - 3]
-                    t_start = t_points[seg_index - 3]
+                    x0 = x_points[seg_index - 1]
+                    t_start = t_points[seg_index - 1]
                 except:
                     x0 = x_points[0]
                     t_start = t_points[0]
                 try:
-                    t_end = t_points[seg_index + 3]
+                    t_end = t_points[seg_index]
                 except:
                     t_end = t_points[-1]
                 T = t_end - t_start
 
                 fine_trajs = self.simulate_trajectory(timestep, T, [x0], t_start)
                 segments_fine = fine_trajs.segment_trajectories(seg_tol)
-                # while len(segments_fine[0]) > 3:
-                #     print('i am here')
-                #     segments_fine = fine_trajs.segment_trajectories(seg_tol/2)
-                #     seg_tol /=2
-                X, X_dot, seg_res = diff_method_fps(np.array(fine_trajs.t_list), np.array(fine_trajs.x_list), segments_fine, remove_seg=True)
 
+                X, X_dot, seg_res = diff_method_fps(np.array(fine_trajs.t_list), np.array(fine_trajs.x_list), segments_fine, remove_seg=True)
+                
                 if first:
                     final_X = X
                     final_X_dot = X_dot
@@ -217,12 +221,18 @@ class Trajectories:
         self.t_list = t_list
         self.x_list = x_list
         self.num_trajectories = len(x_list)
+        self.segmented = False
         if self.num_trajectories > 0:
             self.d = x_list[0].shape[1]
         else:
             self.d = None
         
-
+    def return_unsegmented(self):
+        if self.segmented:
+            return Trajectories(self.og_t_list, self.og_x_list)
+        else:
+            return deepcopy(self)
+    
     def append_trajs(self, trajs : Self):
         assert self.d == trajs.d or self.d is None or trajs.d is None
         self.t_list.extend(trajs.t_list)
@@ -276,6 +286,8 @@ class Trajectories:
         return fig,axs
 
     def segment_trajectories(self, tol):
+        self.og_x_list = deepcopy(self.x_list)
+        self.og_t_list = deepcopy(self.t_list)
         Segments = []
         for j in range(len(self.x_list)):
             x_points = self.x_list[j]
@@ -285,7 +297,7 @@ class Trajectories:
             l = t_points.shape[0]
             assert l == x_points.shape[0], 't_points and x_points do not have the same length'
             
-            segments = [0]
+            segments = []
             current_start_index = 0
 
             n=3
@@ -308,20 +320,19 @@ class Trajectories:
                     # If the difference between the forward and backward derivatives is
                     # greater than the tolerance, we start a new segment
                     #segments.append((current_start_index, i))
-                    # current_start_index = i
-                    segments.append(i-2)
+                    current_start_index = i-2
                     x_points = np.delete(x_points, np.s_[i-2:i+3], axis=0)
                     t_points = np.delete(t_points, np.s_[i-2:i+3], axis=0)
                     self.x_list[j] = x_points
                     self.t_list[j] = t_points
                     l = l - 5
-                    i=i+2
+                    if current_start_index > 0 and current_start_index < l:
+                        segments.append(current_start_index)
+                    i = i + 2
                 else:
                     i+=1
-            # Add the final segment to the list of segments
-            segments.append(l-1)
             Segments.append(segments)
-
+        self.segmented = True
         return Segments
 
     def is_empty(self):

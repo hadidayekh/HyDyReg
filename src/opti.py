@@ -310,7 +310,8 @@ class HybridKernelRegressor:
 
     def fit_first_segment(self, X, X_dot, segments):
         self.n = 1
-        X_first = X[segments[0]:segments[1]]
+        X_first = X[segments[0]:segments[1]] if len(segments) > 1 else X[segments[0]:]
+        print("first segment with",X_first.shape[0],"points")
         poly = PolynomialFeatures(degree=self.deg, include_bias=False)
         X_trans = poly.fit_transform(X_first)
         D = X_first.shape[1]
@@ -332,14 +333,16 @@ class HybridKernelRegressor:
 
         self.modesfit_ = np.array([0] * X_first.shape[0])
 
-        if len(segments) > 2:
+        if len(segments) > 1:
             for i in range(1, len(segments) - 1):
                 print("seg", i+1)
                 X_curr = X[segments[i]:segments[i+1]]
+                print(X_curr.shape[0], "points")
                 X_dot_curr = X_dot[segments[i]:segments[i+1]]
                 self.augment_fit(X_curr, X_dot_curr)
             print("last seg")
             X_curr = X[segments[-1]:]
+            print(X_curr.shape[0], "points")
             X_dot_curr = X_dot[segments[-1]:]
             self.augment_fit(X_curr, X_dot_curr)
 
@@ -350,13 +353,17 @@ class HybridKernelRegressor:
         for j in range(self.n):
             Xdot_pred = self.predict(X, lambda x: j)
             RDs[j] = np.mean(relative_diff(Xdot, Xdot_pred))
+            # RDs[j] = np.linalg.norm(Xdot - Xdot_pred, ord='fro')
         min_RD = np.min(RDs)
         # print(RDs)
-        # if min_RD < tol:
-        #     print("No need to improve, mode", np.argmin(RDs), "matches. RD =", min_RD)
+        if min_RD < tol:
+            print("No need to improve, mode", np.argmin(RDs), f"matches. RD = {min_RD:.3e}")
+        else:
+            print(f"Need to improve, RD = {min_RD:.3e}")
+            print(RDs)
         return min_RD < tol, np.argmin(RDs)
 
-    def augment_fit(self, X, X_dot, good_RD=0.01):
+    def augment_fit(self, X, X_dot, good_RD=0.001):
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
@@ -383,9 +390,11 @@ class HybridKernelRegressor:
                 # Calculating RD for segment
                 X_dot_pred = LR.predict(X_trans)
                 RD_seg = np.mean(relative_diff(X_dot, X_dot_pred))
+                # RD_seg = np.linalg.norm(X_dot - X_dot_pred, ord='fro')
                 # Calculating RD for rest of the data
                 X_dot_pred_j = LR.predict(Xfit_trans_j)
                 RD_j = np.mean(relative_diff(X_dot_j, X_dot_pred_j))
+                # RD_j = np.linalg.norm(X_dot_j - X_dot_pred_j, ord='fro')
 
                 LRs.append(LR)
                 RDs[j] = np.max([RD_seg, RD_j])
@@ -393,15 +402,15 @@ class HybridKernelRegressor:
             RD = np.min(RDs)
             if RD < good_RD:
                 mode = np.argmin(RDs)
-                print("Merging with mode", mode)
+                print("Merging with mode", mode, "RD is", RD)
                 LR = LRs[mode]
                 self.Omegas_[mode] = LR.coef_
                 self.betas_[mode] = LR.intercept_
 
             else:
                 mode = self.n
-                print("Creating new mode", mode)
-                print("RD was not good:", RD)
+                print(f"Creating new mode {mode}; RD was not good: {RD:.3f}")
+                # print(RDs)
                 self.n = self.n + 1
                 LR = LinearRegression()
                 LR.fit(X_trans, X_dot)
@@ -414,7 +423,7 @@ class HybridKernelRegressor:
 
         modes_new = np.array([mode] * N_new)
         self.modesfit_ = np.r_[self.modesfit_, modes_new]
-
+        # print(self.gen_full_latex_eq(with_classifier_boundaries=False))
         # self.reassign_modes()
 
 
@@ -749,10 +758,18 @@ class HybridKernelRegressor:
     def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None, X_dot=None):
         self.check_if_fitted()
         if X is None:
-            X = self.Xfit_
-            X_dot = self.X_dot_fit_
-            # modes = self.get_modes()
-            modes = self.modesfit_
+            if hasattr(self, 'X_classify_'):
+                X = np.r_[self.Xfit_, self.X_classify_]
+                X_dot = np.r_[self.X_dot_fit_, self.X_dot_classify_]
+                modes = np.r_[self.modesfit_, self.modes_classify_]
+                _, unique_indices = np.unique(X, axis=0, return_index=True)
+                X = X[unique_indices]
+                X_dot = X_dot[unique_indices]
+                modes = modes[unique_indices]
+            else:
+                X = self.Xfit_
+                X_dot = self.X_dot_fit_
+                modes = self.modesfit_
         
         num_modes = len(np.unique(modes))
 
@@ -814,7 +831,11 @@ class HybridKernelRegressor:
         
         X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
         modes = np.argmin(X_dot_pred_diff, axis=0)
-        self.classify_modes(classifier = clone(self.classifier_), X = np.r_[self.X_classify_, X], modes = np.r_[self.modes_classify_, modes], X_dot = np.r_[self.X_dot_classify_, X_dot])
+        if hasattr(self, "X_classify_"):
+            X = np.r_[self.X_classify_, X]
+            X_dot = np.r_[self.X_dot_classify_, X_dot]
+            modes = np.r_[self.modes_classify_, modes]
+        self.classify_modes(classifier = clone(classifier), X = X, modes = modes, X_dot = X_dot)
     
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION

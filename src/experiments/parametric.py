@@ -110,6 +110,7 @@ for nmodes in nmodes_list:
 
     x0s = np.array([[-1.0, -1], [1,-1], [-1,1]])
     # x0s *= 1.5/sqrt(2)/nmodes
+    x0s = np.random.random((15, 2))*2 - 1
     x0s_test = np.random.random((5, 2))*4 - 2
 
     time_step = 0.001
@@ -157,7 +158,7 @@ for nmodes in nmodes_list:
         a1.set_ylabel('$x^{(2)}$')
 
     else:
-        sul, learned_SNDS, trajectories, traj_test_sul, data = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes=2, poly_degree=1, random_test_set=True, classifier_poly_trans=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=False, classifier = c, C_space = [0, 0.001, 0.01, 0.1, 1], write_on=True, deltas=0.001, tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False, improve_cont=True)
+        sul, learned_SNDS, trajectories, traj_test_sul, data = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes=2, poly_degree=1, random_test_set=True, classifier_poly_trans=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=False, classifier = c, C_space = [0, 0.001, 0.01, 0.1, 1], write_on=True, deltas=0.001, tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=100, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False, improve_cont=True)
 
         if compare_with_inferDynamic:
             if nmodes == 2 or nmodes == 3:
