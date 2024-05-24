@@ -39,7 +39,7 @@ class IncrementalClassifier:
         classifier.fit(X_trans, y)
         n = np.unique(y).shape[0]
         self.hyperplanes : List[Hyperplane] = []
-        self.region_matrix = np.zeros((n, n*(n-1)/2))
+        self.region_matrix = np.zeros((n, n*(n-1)//2))
         self.n = n # number of regions
         for i in range(n):
             for j in range(i+1, n):
@@ -47,14 +47,14 @@ class IncrementalClassifier:
                 b_ij = classifier.intercept_[i] - classifier.intercept_[j]
                 self.hyperplanes.append(Hyperplane(coef=w_ij, intercept=b_ij))
                 
-                h_index = i * n + j
+                h_index = i * (n - 1) - i*(i+1)//2 + j - 1
                 self.region_matrix[i][h_index] = +1
                 self.region_matrix[j][h_index] = -1
         self.p = len(self.hyperplanes) # number of hyperplanes
 
     def predict(self, X):
-        N = X_trans.shape[0]
-        y_pred = np.ndarray((N,))
+        N = X.shape[0]
+        y_pred = np.ndarray((N,), dtype=int)
         X_trans = self.poly.fit_transform(X)
         
         # get inequality signs for every point for every hyperplane
@@ -75,3 +75,16 @@ class IncrementalClassifier:
             y_pred[i] = y_i
 
         return y_pred
+
+
+from sklearn.datasets import make_classification
+X, y = make_classification(n_samples=10, n_features=2, n_informative=2, n_clusters_per_class=1, n_redundant=0, n_classes=4, random_state=1)
+
+model = IncrementalClassifier()
+
+model.fit(X, y)
+
+y_pred = model.predict(X)
+
+print(y)
+print(y_pred)
