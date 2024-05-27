@@ -137,16 +137,16 @@ class IncrementalClassifier:
             
 
             # redefine affected regions
-            for i in affected_regions:
+            for R in affected_regions:
                 A = [[1,0], [0,1], [-1,0], [0,-1]]
                 b = [1e6, 1e6, 1e6, 1e6]
                 for k in range(self.p):
-                    if self.region_matrix[i][k] != 0:
-                        A.append(self.region_matrix[i][k] * self.hyperplanes[k].w)
-                        b.append(self.region_matrix[i][k] * self.hyperplanes[k].b)
+                    if self.region_matrix[R][k] != 0:
+                        A.append(self.region_matrix[R][k] * self.hyperplanes[k].w)
+                        b.append(self.region_matrix[R][k] * self.hyperplanes[k].b)
                 A = -np.array(A)
                 b = np.array(b)
-                self.regions.append(pc.Polytope(A, b))
+                self.regions[R] = pc.Polytope(A, b)
             
 
 
@@ -204,7 +204,7 @@ y_pred = model.predict(X)
 Xn = np.array([[-4,0]])
 yn = np.array([0])
 
-model.plot_classi(X, y)
+fig, ax = model.plot_classi(X, y)
 
 
 model.partial_fit(Xn, yn)
