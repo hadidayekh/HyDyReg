@@ -118,7 +118,7 @@ class IncrementalClassifier:
             hyp_indices = self.region_matrix[y_i].nonzero()[0]
             unsat_hyp = []
             for h_ind in hyp_indices:
-                if self.hyperplanes[h_ind].get_sign([x_i]) <= 0:
+                if self.hyperplanes[h_ind].get_sign([x_i])[0] <= 0:
                     unsat_hyp.append(h_ind)
 
 
