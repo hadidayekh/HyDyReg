@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+import polytope as pc
 
 '''
 A polytope is represented by a set of hyperplanes h_i and is defined by a conjunction of these hyperplanes h_i(x) >= 0.
@@ -33,10 +34,10 @@ class Hyperplane:
         ax.plot([xmin, xmax], [ymin, ymax], lw=1, c='k', ls='--')
 
 
-class Polytope:
-    def __init__(self) -> None:
-        self.hyperplanes = []
-        pass
+# class Polytope:
+#     def __init__(self) -> None:
+#         self.hyperplanes = []
+#         pass
 
 class IncrementalClassifier:
     def __init__(self, poly_deg=1) -> None:
@@ -49,6 +50,7 @@ class IncrementalClassifier:
         classifier.fit(X_trans, y)
         n = np.unique(y).shape[0]
         self.hyperplanes : List[Hyperplane] = []
+        self.regions : List[pc.Polytope] = []
         self.region_matrix = np.zeros((n, n*(n-1)//2))
         self.n = n # number of regions
         for i in range(n):
@@ -62,24 +64,39 @@ class IncrementalClassifier:
                 self.region_matrix[j][h_index] = -1
         self.p = len(self.hyperplanes) # number of hyperplanes
 
+
+        for i in range(n):
+            A = [[1,0], [0,1], [-1,0], [0,-1]]
+            b = [1e6, 1e6, 1e6, 1e6]
+            for k in range(self.p):
+                if self.region_matrix[i][k] != 0:
+                    A.append(self.region_matrix[i][k] * self.hyperplanes[k].w)
+                    b.append(self.region_matrix[i][k] * self.hyperplanes[k].b)
+            A = -np.array(A)
+            b = np.array(b)
+            self.regions.append(pc.reduce(pc.Polytope(A, b)))
+
     def predict(self, X):
         N = X.shape[0]
         y_pred = np.ndarray((N,), dtype=int)
         X_trans = self.poly.fit_transform(X)
         
         # get inequality signs for every point for every hyperplane
-        hyp_sign_matrix = np.ndarray((self.p, N))
-        for i in range(self.p):
-            h =  self.hyperplanes[i]
-            hyp_sign_matrix[i] = h.get_sign(X_trans)
-        hyp_sign_matrix = hyp_sign_matrix.T # now the shape is N by p
+        # hyp_sign_matrix = np.ndarray((self.p, N))
+        # for i in range(self.p):
+        #     h =  self.hyperplanes[i]
+        #     hyp_sign_matrix[i] = h.get_sign(X_trans)
+        # hyp_sign_matrix = hyp_sign_matrix.T # now the shape is N by p
 
         # every point now needs to be compared with all regions
         for i in range(N):
             y_i = -1
             for j in range(self.n):
-                rj_xi = self.region_matrix[j] * hyp_sign_matrix[i]
-                if (rj_xi >= 0).all():
+                # rj_xi = self.region_matrix[j] * hyp_sign_matrix[i]
+                # if (rj_xi >= 0).all():
+                #     y_i = j
+                #     break
+                if X_trans[i] in self.regions[j]:
                     y_i = j
                     break
             y_pred[i] = y_i
@@ -91,6 +108,51 @@ class IncrementalClassifier:
         X_cex = X[y_pred != y]
         y_cex = y[y_pred != y]
 
+        for i in range(X_cex.shape[0]):
+            x_i = X_cex[i]
+            y_i = y_cex[i]
+            print(x_i, y_i)
+            # x_i does not belong to polytope y_i
+            # need to remove unsatisfied constraints in polytope y_i
+            
+            hyp_indices = self.region_matrix[y_i].nonzero()[0]
+            unsat_hyp = []
+            for h_ind in hyp_indices:
+                if self.hyperplanes[h_ind].get_sign([x_i]) <= 0:
+                    unsat_hyp.append(h_ind)
+
+
+            # first track regions that would be affected by this remove:
+            affected_regions = []
+            for h_ind in unsat_hyp:
+                affected_regions.extend(list(self.region_matrix.T[h_ind].nonzero()[0]))
+            affected_regions = np.unique(np.array(affected_regions))
+
+
+            # remove unsat hyp
+            for hyp in unsat_hyp:
+                del self.hyperplanes[hyp]
+                self.p -= 1
+            self.region_matrix = np.delete(self.region_matrix, unsat_hyp, axis=-1)
+            
+
+            # redefine affected regions
+            for i in affected_regions:
+                A = [[1,0], [0,1], [-1,0], [0,-1]]
+                b = [1e6, 1e6, 1e6, 1e6]
+                for k in range(self.p):
+                    if self.region_matrix[i][k] != 0:
+                        A.append(self.region_matrix[i][k] * self.hyperplanes[k].w)
+                        b.append(self.region_matrix[i][k] * self.hyperplanes[k].b)
+                A = -np.array(A)
+                b = np.array(b)
+                self.regions.append(pc.Polytope(A, b))
+            
+
+
+
+            
+
         pass
 
     def plot_classi(self, X, y, h = 0.05):
@@ -99,9 +161,10 @@ class IncrementalClassifier:
         fig, ax = plt.subplots()
 
         for i in range(n):
-            ax.scatter(*X[y == i].T, color=plt.cm.tab10(i), s=4)
+            ax.scatter(*X[y == i].T, color=plt.cm.tab10(i), s=4, label='Class '+ str(i))
 
-        ax.scatter(*X[y == -1].T, color='red', s=4)
+        if (X[y == -1].size > 0):
+            ax.scatter(*X[y == -1].T, color='red', s=4, label='Undefined')
 
 
         xmin, xmax = ax.get_xlim()
@@ -121,8 +184,11 @@ class IncrementalClassifier:
         colors.append('red')
         cmap = ListedColormap(colors)
         
-        ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
+        # ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
+        ax.legend()
 
+        for p in self.regions:
+            p.plot(ax)
         return fig, ax
 
 
@@ -135,7 +201,17 @@ model.fit(X, y)
 
 y_pred = model.predict(X)
 
+Xn = np.array([[-4,0]])
+yn = np.array([0])
+
 model.plot_classi(X, y)
+
+
+model.partial_fit(Xn, yn)
+
+model.plot_classi(X, y)
+
 plt.show()
 print(y)
 print(y_pred)
+
