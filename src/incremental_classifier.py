@@ -5,6 +5,7 @@ from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import polytope as pc
+from sklearn.base import clone
 
 '''
 A polytope is represented by a set of hyperplanes h_i and is defined by a conjunction of these hyperplanes h_i(x) >= 0.
@@ -53,6 +54,7 @@ class IncrementalClassifier:
         self.regions : List[pc.Polytope] = []
         self.region_matrix = np.zeros((n, n*(n-1)//2))
         self.n = n # number of regions
+        self.classifier = classifier
         for i in range(n):
             for j in range(i+1, n):
                 w_ij = classifier.coef_[i] - classifier.coef_[j]
@@ -64,17 +66,11 @@ class IncrementalClassifier:
                 self.region_matrix[j][h_index] = -1
         self.p = len(self.hyperplanes) # number of hyperplanes
 
+        self.regions = [None]*n
+        self.define_region_polytopes(range(n))
 
-        for i in range(n):
-            A = [[1,0], [0,1], [-1,0], [0,-1]]
-            b = [1e6, 1e6, 1e6, 1e6]
-            for k in range(self.p):
-                if self.region_matrix[i][k] != 0:
-                    A.append(self.region_matrix[i][k] * self.hyperplanes[k].w)
-                    b.append(self.region_matrix[i][k] * self.hyperplanes[k].b)
-            A = -np.array(A)
-            b = np.array(b)
-            self.regions.append(pc.reduce(pc.Polytope(A, b)))
+        self.X_ = X_trans
+        self.y_ = y
 
     def predict(self, X):
         N = X.shape[0]
@@ -103,10 +99,26 @@ class IncrementalClassifier:
 
         return y_pred
 
+    def define_region_polytopes(self, region_indices):
+        for R in region_indices:
+            A = [[1,0], [0,1], [-1,0], [0,-1]]
+            b = [1e6, 1e6, 1e6, 1e6]
+            for k in range(self.p):
+                if self.region_matrix[R][k] != 0:
+                    A.append(self.region_matrix[R][k] * self.hyperplanes[k].w)
+                    b.append(self.region_matrix[R][k] * self.hyperplanes[k].b)
+            A = -np.array(A)
+            b = np.array(b)
+            self.regions[R] = pc.reduce(pc.Polytope(A, b))
+
     def partial_fit(self, X, y):
         y_pred = self.predict(X)
         X_cex = X[y_pred != y]
         y_cex = y[y_pred != y]
+
+
+        X_all = np.r_[self.X_, X]
+        y_all = np.r_[self.y_, y]
 
         for i in range(X_cex.shape[0]):
             x_i = X_cex[i]
@@ -137,25 +149,47 @@ class IncrementalClassifier:
             
 
             # redefine affected regions
-            for R in affected_regions:
-                A = [[1,0], [0,1], [-1,0], [0,-1]]
-                b = [1e6, 1e6, 1e6, 1e6]
-                for k in range(self.p):
-                    if self.region_matrix[R][k] != 0:
-                        A.append(self.region_matrix[R][k] * self.hyperplanes[k].w)
-                        b.append(self.region_matrix[R][k] * self.hyperplanes[k].b)
-                A = -np.array(A)
-                b = np.array(b)
-                self.regions[R] = pc.Polytope(A, b)
+            self.define_region_polytopes(affected_regions)
+
+
+            # group all points in affected regions together:
             
+            X_affected = []
+            y_affected = []
+            for i in range(len(y_all)):
+                for R in affected_regions:
+                    if X_all[i] in self.regions[R]:
+                        X_affected.append(X_all[i])
+                        y_affected.append(y_all[i])
+                        break
+            X_affected = np.array(X_affected)
+            y_affected = np.array(y_affected)
+
+            LR = clone(self.classifier)
+            LR.fit(X_affected, y_affected)
+            classes = LR.classes_
+            print(classes)
+            if len(classes) == 2:
+                print(self.region_matrix)
+                h = Hyperplane(coef=LR.coef_[0], intercept=LR.intercept_[0])
+                col = np.zeros((self.n, 1))
+                col[classes[0]] = -1
+                col[classes[1]] = +1
+                self.hyperplanes.append(h)
+                self.p += 1
+                self.region_matrix = np.append(self.region_matrix, col, axis=-1)
+                print(self.region_matrix)
+                self.define_region_polytopes(classes)
+        
+        self.X_ = X_all
+        self.y_ = y_all
 
 
+    def plot_classi(self, X=None, y=None, res = 0.05):
+        if X is None or y is None:
+            X = self.X_
+            y = self.y_
 
-            
-
-        pass
-
-    def plot_classi(self, X, y, h = 0.05):
         n = np.unique(y).size
 
         fig, ax = plt.subplots()
@@ -177,7 +211,7 @@ class IncrementalClassifier:
         ax.set_ylim(ymin, ymax)
 
         
-        xx, yy = np.meshgrid(np.arange(xmin, xmax, h), np.arange(ymin, ymax, h))
+        xx, yy = np.meshgrid(np.arange(xmin, xmax, res), np.arange(ymin, ymax, res))
         Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
 
         colors = [plt.cm.tab10(i) for i in range(n)]
@@ -204,12 +238,12 @@ y_pred = model.predict(X)
 Xn = np.array([[-4,0]])
 yn = np.array([0])
 
-fig, ax = model.plot_classi(X, y)
+fig, ax = model.plot_classi()
 
 
 model.partial_fit(Xn, yn)
 
-model.plot_classi(X, y)
+model.plot_classi()
 
 plt.show()
 print(y)
