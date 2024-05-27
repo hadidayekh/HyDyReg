@@ -2,6 +2,8 @@ from typing import List
 from sklearn.preprocessing import PolynomialFeatures
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
 '''
 A polytope is represented by a set of hyperplanes h_i and is defined by a conjunction of these hyperplanes h_i(x) >= 0.
@@ -22,6 +24,14 @@ class Hyperplane:
 
     def get_sign(self, X_trans):
         return np.sign(X_trans @ self.w + self.b)
+
+    def plot_hyp(self, ax):
+        xmin, xmax = ax.get_xlim()
+        ymin = (-self.w[0]*xmin - self.b) / self.w[1]
+        ymax = (-self.w[0]*xmax - self.b) / self.w[1]
+
+        ax.plot([xmin, xmax], [ymin, ymax], lw=1, c='k', ls='--')
+
 
 class Polytope:
     def __init__(self) -> None:
@@ -76,6 +86,45 @@ class IncrementalClassifier:
 
         return y_pred
 
+    def partial_fit(self, X, y):
+        y_pred = self.predict(X)
+        X_cex = X[y_pred != y]
+        y_cex = y[y_pred != y]
+
+        pass
+
+    def plot_classi(self, X, y, h = 0.05):
+        n = np.unique(y).size
+
+        fig, ax = plt.subplots()
+
+        for i in range(n):
+            ax.scatter(*X[y == i].T, color=plt.cm.tab10(i), s=4)
+
+        ax.scatter(*X[y == -1].T, color='red', s=4)
+
+
+        xmin, xmax = ax.get_xlim()
+        ymin, ymax = ax.get_ylim()
+
+        for hyp in self.hyperplanes:
+            hyp.plot_hyp(ax)
+
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+
+        
+        xx, yy = np.meshgrid(np.arange(xmin, xmax, h), np.arange(ymin, ymax, h))
+        Z = self.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
+
+        colors = [plt.cm.tab10(i) for i in range(n)]
+        colors.append('red')
+        cmap = ListedColormap(colors)
+        
+        ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
+
+        return fig, ax
+
 
 from sklearn.datasets import make_classification
 X, y = make_classification(n_samples=10, n_features=2, n_informative=2, n_clusters_per_class=1, n_redundant=0, n_classes=4, random_state=1)
@@ -86,5 +135,7 @@ model.fit(X, y)
 
 y_pred = model.predict(X)
 
+model.plot_classi(X, y)
+plt.show()
 print(y)
 print(y_pred)
