@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import polytope as pc
 from sklearn.base import clone
+from labellines import labelLine, labelLines
 
 '''
 A polytope is represented by a set of hyperplanes h_i and is defined by a conjunction of these hyperplanes h_i(x) >= 0.
@@ -27,12 +28,12 @@ class Hyperplane:
     def get_sign(self, X_trans):
         return np.sign(X_trans @ self.w + self.b)
 
-    def plot_hyp(self, ax):
+    def plot_hyp(self, ax, label=None):
         xmin, xmax = ax.get_xlim()
         ymin = (-self.w[0]*xmin - self.b) / self.w[1]
         ymax = (-self.w[0]*xmax - self.b) / self.w[1]
 
-        ax.plot([xmin, xmax], [ymin, ymax], lw=1, c='k', ls='--')
+        ax.plot([xmin, xmax], [ymin, ymax], lw=1, c='k', ls='--', label=label)
 
 
 # class Polytope:
@@ -130,7 +131,7 @@ class IncrementalClassifier:
             hyp_indices = self.region_matrix[y_i].nonzero()[0]
             unsat_hyp = []
             for h_ind in hyp_indices:
-                if self.hyperplanes[h_ind].get_sign([x_i])[0] <= 0:
+                if self.hyperplanes[h_ind].get_sign([x_i])[0] != self.region_matrix[y_i][h_ind]:
                     unsat_hyp.append(h_ind)
 
 
@@ -142,6 +143,9 @@ class IncrementalClassifier:
 
 
             # remove unsat hyp
+            print(unsat_hyp, 'fhal;kdjfa;s')
+            print(affected_regions)
+            unsat_hyp.sort(reverse=True)
             for hyp in unsat_hyp:
                 del self.hyperplanes[hyp]
                 self.p -= 1
@@ -156,11 +160,11 @@ class IncrementalClassifier:
             
             X_affected = []
             y_affected = []
-            for i in range(len(y_all)):
+            for k in range(len(y_all)):
                 for R in affected_regions:
-                    if X_all[i] in self.regions[R]:
-                        X_affected.append(X_all[i])
-                        y_affected.append(y_all[i])
+                    if X_all[k] in self.regions[R]:
+                        X_affected.append(X_all[k])
+                        y_affected.append(y_all[k])
                         break
             X_affected = np.array(X_affected)
             y_affected = np.array(y_affected)
@@ -168,7 +172,6 @@ class IncrementalClassifier:
             LR = clone(self.classifier)
             LR.fit(X_affected, y_affected)
             classes = LR.classes_
-            print(classes)
             if len(classes) == 2:
                 print(self.region_matrix)
                 h = Hyperplane(coef=LR.coef_[0], intercept=LR.intercept_[0])
@@ -180,12 +183,15 @@ class IncrementalClassifier:
                 self.region_matrix = np.append(self.region_matrix, col, axis=-1)
                 print(self.region_matrix)
                 self.define_region_polytopes(classes)
+            else:
+                pass
+                exit()
         
         self.X_ = X_all
         self.y_ = y_all
 
 
-    def plot_classi(self, X=None, y=None, res = 0.05):
+    def plot_classi(self, X=None, y=None, res = 0.05, name_hyp=False):
         if X is None or y is None:
             X = self.X_
             y = self.y_
@@ -204,8 +210,8 @@ class IncrementalClassifier:
         xmin, xmax = ax.get_xlim()
         ymin, ymax = ax.get_ylim()
 
-        for hyp in self.hyperplanes:
-            hyp.plot_hyp(ax)
+        for k in range(len(self.hyperplanes)):
+            self.hyperplanes[k].plot_hyp(ax, label = str(k) if name_hyp else None)
 
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
@@ -221,8 +227,14 @@ class IncrementalClassifier:
         # ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
         ax.legend()
 
+        col_ind = 0
         for p in self.regions:
-            p.plot(ax)
+            p.plot(ax, color=plt.cm.tab10(col_ind), alpha = 0.3)
+            col_ind += 1
+
+        if name_hyp:
+            labelLines(ax.get_lines(), zorder=2.5)
+
         return fig, ax
 
 
@@ -235,15 +247,20 @@ model.fit(X, y)
 
 y_pred = model.predict(X)
 
-Xn = np.array([[-4,0]])
-yn = np.array([0])
+Xn = np.array([[0.5,-2], [-4,0]])
+yn = np.array([0, 0])
 
 fig, ax = model.plot_classi()
 
 
 model.partial_fit(Xn, yn)
 
-model.plot_classi()
+# for p in model.regions:
+#     a = p.plot()
+#     a.set_xlim(ax.get_xlim())
+#     a.set_ylim(ax.get_ylim())
+
+model.plot_classi(name_hyp=False)
 
 plt.show()
 print(y)
