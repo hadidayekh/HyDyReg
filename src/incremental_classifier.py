@@ -113,14 +113,19 @@ class IncrementalClassifier:
             self.regions[R] = pc.reduce(pc.Polytope(A, b))
 
     def partial_fit(self, X, y):
+
+        # Gather all the counterexamples
         y_pred = self.predict(X)
         X_cex = X[y_pred != y]
         y_cex = y[y_pred != y]
 
 
+        # Gather all the previous and new data points
         X_all = np.r_[self.X_, X]
         y_all = np.r_[self.y_, y]
 
+        # Treat all counterexamples together
+        # in order to find a list of all violated hyperplanes
         for i in range(X_cex.shape[0]):
             x_i = X_cex[i]
             y_i = y_cex[i]
@@ -167,6 +172,7 @@ class IncrementalClassifier:
         X_affected = np.array(X_affected)
         y_affected = np.array(y_affected)
 
+        # Redo classification on points in the affected regions
         LR = clone(self.classifier)
         LR.fit(X_affected, y_affected)
         classes = LR.classes_
@@ -185,16 +191,21 @@ class IncrementalClassifier:
         else:
             for i1 in range(n_c):
                 for i2 in range(i1+1, n_c):
+                    # Redfine hyperplanes
                     h = Hyperplane(coef=LR.coef_[i1]-LR.coef_[i2], intercept=LR.intercept_[i1]-LR.intercept_[i2])
                     col = np.zeros((self.n, 1))
                     col[classes[i1]] = +1
                     col[classes[i2]] = -1
+                    # Check if the newly defined hyperplane was removed or not
                     found = False
                     for k in range(self.p):
+                        # If the hyperplane was not removed, replace it by the new one
                         if self.region_matrix.T[k] == col:
                             self.hyperplanes[k] = h
                             found = True
                             break
+                    
+                    # Otherwise, append a new hyperplane
                     if not found:
                         self.hyperplanes.append(h)
                         self.p += 1
