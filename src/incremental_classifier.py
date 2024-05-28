@@ -135,57 +135,72 @@ class IncrementalClassifier:
                     unsat_hyp.append(h_ind)
 
 
-            # first track regions that would be affected by this remove:
-            affected_regions = []
-            for h_ind in unsat_hyp:
-                affected_regions.extend(list(self.region_matrix.T[h_ind].nonzero()[0]))
-            affected_regions = np.unique(np.array(affected_regions))
+        # first track regions that would be affected by this remove:
+        affected_regions = []
+        unsat_hyp = -np.sort(-np.unique(np.array(unsat_hyp, dtype=int)))
+        for h_ind in unsat_hyp:
+            affected_regions.extend(list(self.region_matrix.T[h_ind].nonzero()[0]))
+        affected_regions = np.unique(np.array(affected_regions, dtype=int))
 
 
-            # remove unsat hyp
-            print(unsat_hyp, 'fhal;kdjfa;s')
-            print(affected_regions)
-            unsat_hyp.sort(reverse=True)
-            for hyp in unsat_hyp:
-                del self.hyperplanes[hyp]
-                self.p -= 1
-            self.region_matrix = np.delete(self.region_matrix, unsat_hyp, axis=-1)
-            
+        # remove unsat hyp
+        for hyp in unsat_hyp:
+            del self.hyperplanes[hyp]
+            self.p -= 1
+        self.region_matrix = np.delete(self.region_matrix, unsat_hyp, axis=-1)
+        
 
-            # redefine affected regions
-            self.define_region_polytopes(affected_regions)
+        # redefine affected regions
+        self.define_region_polytopes(affected_regions)
 
 
-            # group all points in affected regions together:
-            
-            X_affected = []
-            y_affected = []
-            for k in range(len(y_all)):
-                for R in affected_regions:
-                    if X_all[k] in self.regions[R]:
-                        X_affected.append(X_all[k])
-                        y_affected.append(y_all[k])
-                        break
-            X_affected = np.array(X_affected)
-            y_affected = np.array(y_affected)
+        # group all points in affected regions together:
+        
+        X_affected = []
+        y_affected = []
+        for k in range(len(y_all)):
+            for R in affected_regions:
+                if X_all[k] in self.regions[R]:
+                    X_affected.append(X_all[k])
+                    y_affected.append(y_all[k])
+                    break
+        X_affected = np.array(X_affected)
+        y_affected = np.array(y_affected)
 
-            LR = clone(self.classifier)
-            LR.fit(X_affected, y_affected)
-            classes = LR.classes_
-            if len(classes) == 2:
-                print(self.region_matrix)
-                h = Hyperplane(coef=LR.coef_[0], intercept=LR.intercept_[0])
-                col = np.zeros((self.n, 1))
-                col[classes[0]] = -1
-                col[classes[1]] = +1
-                self.hyperplanes.append(h)
-                self.p += 1
-                self.region_matrix = np.append(self.region_matrix, col, axis=-1)
-                print(self.region_matrix)
-                self.define_region_polytopes(classes)
-            else:
-                pass
-                exit()
+        LR = clone(self.classifier)
+        LR.fit(X_affected, y_affected)
+        classes = LR.classes_
+        n_c = len(classes)
+        if n_c == 2:
+            print(self.region_matrix)
+            h = Hyperplane(coef=LR.coef_[0], intercept=LR.intercept_[0])
+            col = np.zeros((self.n, 1))
+            col[classes[0]] = -1
+            col[classes[1]] = +1
+            self.hyperplanes.append(h)
+            self.p += 1
+            self.region_matrix = np.append(self.region_matrix, col, axis=-1)
+            print(self.region_matrix)
+            self.define_region_polytopes(classes)
+        else:
+            for i1 in range(n_c):
+                for i2 in range(i1+1, n_c):
+                    h = Hyperplane(coef=LR.coef_[i1]-LR.coef_[i2], intercept=LR.intercept_[i1]-LR.intercept_[i2])
+                    col = np.zeros((self.n, 1))
+                    col[classes[i1]] = +1
+                    col[classes[i2]] = -1
+                    found = False
+                    for k in range(self.p):
+                        if self.region_matrix.T[k] == col:
+                            self.hyperplanes[k] = h
+                            found = True
+                            break
+                    if not found:
+                        self.hyperplanes.append(h)
+                        self.p += 1
+                        self.region_matrix = np.append(self.region_matrix, col, axis=-1)
+            self.define_region_polytopes(classes)
+
         
         self.X_ = X_all
         self.y_ = y_all
@@ -255,10 +270,12 @@ fig, ax = model.plot_classi()
 
 model.partial_fit(Xn, yn)
 
-# for p in model.regions:
-#     a = p.plot()
-#     a.set_xlim(ax.get_xlim())
-#     a.set_ylim(ax.get_ylim())
+c = 0
+for p in model.regions:
+    a = p.plot(color=plt.cm.tab10(c), alpha = 0.3)
+    a.set_xlim(ax.get_xlim())
+    a.set_ylim(ax.get_ylim())
+    c += 1
 
 model.plot_classi(name_hyp=False)
 
