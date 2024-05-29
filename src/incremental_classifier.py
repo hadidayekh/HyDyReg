@@ -80,21 +80,10 @@ class IncrementalClassifier:
         y_pred = np.ndarray((N,), dtype=int)
         X_trans = self.poly.fit_transform(X)
 
-        # get inequality signs for every point for every hyperplane
-        # hyp_sign_matrix = np.ndarray((self.p, N))
-        # for i in range(self.p):
-        #     h =  self.hyperplanes[i]
-        #     hyp_sign_matrix[i] = h.get_sign(X_trans)
-        # hyp_sign_matrix = hyp_sign_matrix.T # now the shape is N by p
-
         # every point now needs to be compared with all regions
         for i in range(N):
             y_i = -1
             for j in range(self.n):
-                # rj_xi = self.region_matrix[j] * hyp_sign_matrix[i]
-                # if (rj_xi >= 0).all():
-                #     y_i = j
-                #     break
                 if X_trans[i] in self.regions[j]:
                     y_i = j
                     break
