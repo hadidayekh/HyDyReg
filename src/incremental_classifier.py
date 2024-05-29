@@ -184,11 +184,10 @@ class IncrementalClassifier:
                     found = False
                     for k in range(self.p):
                         # If the hyperplane was not removed, replace it by the new one
-                        if np.array_equal(self.region_matrix.T[k], col):
+                        if np.array_equal(self.region_matrix.T[k], col.flatten()):
                             self.hyperplanes[k] = h
                             found = True
                             break
-
                     # Otherwise, append a new hyperplane
                     if not found:
                         self.hyperplanes.append(h)
@@ -273,9 +272,10 @@ if partial_fit:
     # Xn = np.array([[0,1]])
     # yn = np.array([1])
 
+    print(model.region_matrix)
     model.partial_fit(Xn, yn)
-    model.plot_classi(name_hyp=False)
-
+    model.plot_classi(name_hyp=True)
+    print(model.region_matrix)
     # c = 0
     # for p in model.regions:
     #     a = p.plot(color=plt.cm.tab10(c), alpha = 0.3)
