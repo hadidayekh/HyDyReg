@@ -19,7 +19,6 @@ A hyperplane in the polynomial space : h_i(x) = w_i.psi(x) + b_i = 0
 We need to keep track of polytopes that share some hyperplanes, notably when h_i(x) = -h_j(x) for i <> j.
 '''
 
-
 class Hyperplane:
     def __init__(self, coef, intercept=0) -> None:
         self.w = coef
@@ -36,12 +35,6 @@ class Hyperplane:
         ymax = (-self.w[0]*xmax - self.b) / self.w[1]
 
         ax.plot([xmin, xmax], [ymin, ymax], lw=1, c='k', ls='--', label=label)
-
-
-# class Polytope:
-#     def __init__(self) -> None:
-#         self.hyperplanes = []
-#         pass
 
 class IncrementalClassifier:
     def __init__(self, poly_deg=1) -> None:
