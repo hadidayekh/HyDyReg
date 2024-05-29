@@ -126,23 +126,23 @@ class IncrementalClassifier:
 
         # Treat all counterexamples together
         # in order to find a list of all violated hyperplanes
+        unsat_hyp = []
         for i in range(X_cex.shape[0]):
             x_i = X_cex[i]
             y_i = y_cex[i]
-            print(x_i, y_i)
+
             # x_i does not belong to polytope y_i
             # need to remove unsatisfied constraints in polytope y_i
             
             hyp_indices = self.region_matrix[y_i].nonzero()[0]
-            unsat_hyp = []
             for h_ind in hyp_indices:
                 if self.hyperplanes[h_ind].get_sign([x_i])[0] != self.region_matrix[y_i][h_ind]:
                     unsat_hyp.append(h_ind)
-
+        
+        unsat_hyp = -np.sort(-np.unique(np.array(unsat_hyp, dtype=int)))
 
         # first track regions that would be affected by this remove:
         affected_regions = []
-        unsat_hyp = -np.sort(-np.unique(np.array(unsat_hyp, dtype=int)))
         for h_ind in unsat_hyp:
             affected_regions.extend(list(self.region_matrix.T[h_ind].nonzero()[0]))
         affected_regions = np.unique(np.array(affected_regions, dtype=int))
@@ -186,7 +186,7 @@ class IncrementalClassifier:
             self.hyperplanes.append(h)
             self.p += 1
             self.region_matrix = np.append(self.region_matrix, col, axis=-1)
-            print(self.region_matrix)
+            # print(self.region_matrix)
             self.define_region_polytopes(classes)
         else:
             for i1 in range(n_c):
@@ -200,7 +200,7 @@ class IncrementalClassifier:
                     found = False
                     for k in range(self.p):
                         # If the hyperplane was not removed, replace it by the new one
-                        if self.region_matrix.T[k] == col:
+                        if np.array_equal(self.region_matrix.T[k], col):
                             self.hyperplanes[k] = h
                             found = True
                             break
@@ -264,8 +264,15 @@ class IncrementalClassifier:
         return fig, ax
 
 
-from sklearn.datasets import make_classification
-X, y = make_classification(n_samples=10, n_features=2, n_informative=2, n_clusters_per_class=1, n_redundant=0, n_classes=4, random_state=1)
+from sklearn.datasets import make_classification, make_blobs
+
+
+n_samples = 10
+n_classes = 4
+partial_fit = True
+
+X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2, n_clusters_per_class=1, n_redundant=0, n_classes=n_classes, random_state=1)
+# X, y = make_blobs(n_samples=n_samples, centers=n_classes)
 
 model = IncrementalClassifier()
 
@@ -273,22 +280,26 @@ model.fit(X, y)
 
 y_pred = model.predict(X)
 
-Xn = np.array([[0.5,-2], [-4,0]])
-yn = np.array([0, 0])
-
 fig, ax = model.plot_classi()
 
 
-model.partial_fit(Xn, yn)
 
-c = 0
-for p in model.regions:
-    a = p.plot(color=plt.cm.tab10(c), alpha = 0.3)
-    a.set_xlim(ax.get_xlim())
-    a.set_ylim(ax.get_ylim())
-    c += 1
+if partial_fit:
+    Xn = np.array([[0.5,-2], [-4,0]])
+    yn = np.array([0, 0])
 
-model.plot_classi(name_hyp=False)
+
+    model.partial_fit(Xn, yn)
+    model.plot_classi(name_hyp=False)
+
+    # c = 0
+    # for p in model.regions:
+    #     a = p.plot(color=plt.cm.tab10(c), alpha = 0.3)
+    #     a.set_xlim(ax.get_xlim())
+    #     a.set_ylim(ax.get_ylim())
+    #     c += 1
+
+
 
 plt.show()
 print(y)
