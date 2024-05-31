@@ -109,6 +109,7 @@ class IncrementalClassifier:
         y_rem = y[y < self.n]
 
         new_classes = np.unique(y_new)
+        new_classes.sort()
         n_new_classes = len(new_classes)
 
         y_pred = self.predict(X_rem)
@@ -163,6 +164,22 @@ class IncrementalClassifier:
                 list(self.region_matrix.T[h_ind].nonzero()[0]))
         affected_regions = np.unique(np.array(affected_regions, dtype=int))
 
+
+        # for each new class, inherit hyperplanes of regions in which they belong
+        for c in new_classes:
+            self.region_matrix = np.append(self.region_matrix, np.zeros((1, self.p)), axis=0)
+            self.regions.append(None)
+            self.n += 1
+
+            X_c = X_new[y_new == c]
+            y_c = y_new[y_new == c]
+            regions_c = np.unique(self.predict(X_c))
+            for region_c in regions_c:
+                for k in range(self.p):
+                    if self.region_matrix[region_c][k] != 0:
+                        self.region_matrix[-1][k] = self.region_matrix[region_c][k]
+
+
         # remove unsat hyp
         for hyp in unsat_hyp:
             del self.hyperplanes[hyp]
@@ -173,11 +190,6 @@ class IncrementalClassifier:
         self.define_region_polytopes(affected_regions)
         print(affected_regions)
 
-
-        for _ in new_classes:
-            self.region_matrix = np.append(self.region_matrix, np.zeros((1, self.p)), axis=0)
-            self.regions.append(None)
-            self.n += 1
 
 
         # group all points in affected and concerned regions together:
