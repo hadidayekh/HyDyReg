@@ -19,6 +19,7 @@ A hyperplane in the polynomial space : h_i(x) = w_i.psi(x) + b_i = 0
 We need to keep track of polytopes that share some hyperplanes, notably when h_i(x) = -h_j(x) for i <> j.
 '''
 
+
 class Hyperplane:
     def __init__(self, coef, intercept=0) -> None:
         self.w = coef
@@ -35,6 +36,7 @@ class Hyperplane:
         ymax = (-self.w[0]*xmax - self.b) / self.w[1]
 
         ax.plot([xmin, xmax], [ymin, ymax], lw=1, c='k', ls='--', label=label)
+
 
 class IncrementalClassifier:
     def __init__(self, poly_deg=1) -> None:
@@ -70,6 +72,8 @@ class IncrementalClassifier:
 
     def predict(self, X):
         N = X.shape[0]
+        if N == 0:
+            return np.ndarray((0,), dtype=int)
         y_pred = np.ndarray((N,), dtype=int)
         X_trans = self.poly.fit_transform(X)
 
@@ -99,9 +103,17 @@ class IncrementalClassifier:
     def partial_fit(self, X, y):
 
         # Gather all the counterexamples
-        y_pred = self.predict(X)
-        X_cex = X[y_pred != y]
-        y_cex = y[y_pred != y]
+        X_new = X[y >= self.n]
+        y_new = y[y >= self.n]
+        X_rem = X[y < self.n]
+        y_rem = y[y < self.n]
+
+        new_classes = np.unique(y_new)
+        n_new_classes = len(new_classes)
+
+        y_pred = self.predict(X_rem)
+        X_cex = X_rem[y_pred != y_rem]
+        y_cex = y_rem[y_pred != y_rem]
 
         # Gather all the previous and new data points
         X_all = np.r_[self.X_, X]
@@ -110,6 +122,7 @@ class IncrementalClassifier:
         # Treat all counterexamples together
         # in order to find a list of all violated hyperplanes
         unsat_hyp = []
+        # First check hyperplanes that are violated by counterexamples belonging to already discovered classes
         for i in range(X_cex.shape[0]):
             x_i = X_cex[i]
             y_i = y_cex[i]
@@ -122,6 +135,25 @@ class IncrementalClassifier:
                 if self.hyperplanes[h_ind].get_sign([x_i])[0] != self.region_matrix[y_i][h_ind]:
                     unsat_hyp.append(h_ind)
 
+        # Second check hyperplanes that are **crossed** by points of the new class in the regions they belong
+        # check current predicted classes of data points with new classes
+        if n_new_classes != 0:
+            y_pred = self.predict(X_new)
+            concerned_regions = np.unique(y_pred)
+            concerned_hyperplanes = np.array([], dtype=int)
+            # for every concerned region, gather all hyperplanes that define it
+            for region in concerned_regions:
+                concerned_hyperplanes = np.r_[concerned_hyperplanes, self.region_matrix[region].nonzero()[0]]
+            concerned_hyperplanes = np.unique(concerned_hyperplanes)
+            # for every concerned hyperplane, check if there are points in X_new that cross it
+            for h_ind in concerned_hyperplanes:
+                if h_ind in unsat_hyp:
+                    continue
+                else:
+                    hyp = self.hyperplanes[h_ind]
+                    if np.unique(hyp.get_sign(X_new)).size > 1:
+                        unsat_hyp.append(h_ind)
+    
         unsat_hyp = -np.sort(-np.unique(np.array(unsat_hyp, dtype=int)))
 
         # first track regions that would be affected by this remove:
@@ -141,8 +173,16 @@ class IncrementalClassifier:
         self.define_region_polytopes(affected_regions)
         print(affected_regions)
 
-        # group all points in affected regions together:
 
+        for _ in new_classes:
+            self.region_matrix = np.append(self.region_matrix, np.zeros((1, self.p)), axis=0)
+            self.regions.append(None)
+            self.n += 1
+
+
+        # group all points in affected and concerned regions together:
+        if n_new_classes != 0:
+            affected_regions = np.unique(np.r_[np.array(affected_regions), concerned_regions])
         X_affected = []
         y_affected = []
         for k in range(len(y_all)):
@@ -169,6 +209,8 @@ class IncrementalClassifier:
             col[classes[1]] = +1
             self.hyperplanes.append(h)
             self.p += 1
+            if classes[1] in new_classes:
+                self.region_matrix[classes[1]] = self.region_matrix[classes[0]]
             self.region_matrix = np.append(self.region_matrix, col, axis=-1)
             # print(self.region_matrix)
         else:
@@ -200,7 +242,7 @@ class IncrementalClassifier:
         self.X_ = X_all
         self.y_ = y_all
 
-    def plot_classi(self, X=None, y=None, res=0.05, name_hyp=False):
+    def plot_classi(self, X=None, y=None, res=0.05, name_hyp=False, X_op=None, y_op=None):
         if X is None or y is None:
             X = self.X_
             y = self.y_
@@ -215,6 +257,11 @@ class IncrementalClassifier:
 
         if (X[y == -1].size > 0):
             ax.scatter(*X[y == -1].T, color='red', s=4, label='Undefined')
+
+        if not X_op is None:
+            op_classes = np.unique(y_op)
+            for i in op_classes:
+                ax.scatter(*X_op[y_op == i].T, color=plt.cm.tab10(i), s=16, marker='x')
 
         xmin, xmax = ax.get_xlim()
         ymin, ymax = ax.get_ylim()
@@ -251,6 +298,7 @@ class IncrementalClassifier:
 n_samples = 10
 n_classes = 4
 partial_fit = True
+plot_separate_polys = True
 
 X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
                            n_clusters_per_class=1, n_redundant=0, n_classes=n_classes, random_state=1)
@@ -269,19 +317,28 @@ if partial_fit:
     Xn = np.array([[0.5, -2], [-4, 0], [-3, -2], [0, 1]])
     yn = np.array([0, 0, 0, 1])
 
-    # Xn = np.array([[0,1]])
-    # yn = np.array([1])
+    Xn = np.array([[0,1]])
+    yn = np.array([1])
+
+    # Xn = np.array([[-4, -2], [-4,-1], [-1,-0.5]])
+    # yn = np.array([4,4,1])
+
+    Xn = np.array([[-4, -2], [-4,-1], [-2,-1.5], [-2,-0.2]])
+    yn = np.array([4,4,4,4])
 
     print(model.region_matrix)
+    model.plot_classi(name_hyp=False, X_op=Xn, y_op=yn)
     model.partial_fit(Xn, yn)
-    model.plot_classi(name_hyp=True)
+    model.plot_classi(name_hyp=False, X_op=Xn, y_op=yn)
     print(model.region_matrix)
-    # c = 0
-    # for p in model.regions:
-    #     a = p.plot(color=plt.cm.tab10(c), alpha = 0.3)
-    #     a.set_xlim(ax.get_xlim())
-    #     a.set_ylim(ax.get_ylim())
-    #     c += 1
+    
+    if plot_separate_polys:
+        c = 0
+        for p in model.regions:
+            a = p.plot(color=plt.cm.tab10(c), alpha = 0.3)
+            a.set_xlim(ax.get_xlim())
+            a.set_ylim(ax.get_ylim())
+            c += 1
 
 
 plt.show()
