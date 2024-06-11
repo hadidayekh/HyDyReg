@@ -21,10 +21,11 @@ We need to keep track of polytopes that share some hyperplanes, notably when h_i
 
 
 class Hyperplane:
-    def __init__(self, coef, intercept=0) -> None:
+    def __init__(self, coef, name='unnamed', intercept=0) -> None:
         self.w = coef
         self.b = intercept
         self.Q = coef.shape[0]
+        self.name = name
         pass
 
     def get_sign(self, X_trans):
@@ -57,7 +58,7 @@ class IncrementalClassifier:
             for j in range(i+1, n):
                 w_ij = classifier.coef_[i] - classifier.coef_[j]
                 b_ij = classifier.intercept_[i] - classifier.intercept_[j]
-                self.hyperplanes.append(Hyperplane(coef=w_ij, intercept=b_ij))
+                self.hyperplanes.append(Hyperplane(coef=w_ij, intercept=b_ij, name=f'h_{i}_{j}'))
 
                 h_index = i * (n - 1) - i*(i+1)//2 + j - 1
                 self.region_matrix[i][h_index] = +1
@@ -135,12 +136,14 @@ class IncrementalClassifier:
             for h_ind in hyp_indices:
                 if self.hyperplanes[h_ind].get_sign([x_i])[0] != self.region_matrix[y_i][h_ind]:
                     unsat_hyp.append(h_ind)
+                    print(f"UNSAT: {self.hyperplanes[h_ind].name}")
 
         # Second check hyperplanes that are **crossed** by points of the new class in the regions they belong
         # check current predicted classes of data points with new classes
-        if n_new_classes != 0:
-            y_pred = self.predict(X_new)
-            concerned_regions = np.unique(y_pred)
+        for c in new_classes:
+            X_new_c = X_new[y_new == c]
+            y_pred_c = self.predict(X_new_c)
+            concerned_regions = np.unique(y_pred_c)
             concerned_hyperplanes = np.array([], dtype=int)
             # for every concerned region, gather all hyperplanes that define it
             for region in concerned_regions:
@@ -152,8 +155,9 @@ class IncrementalClassifier:
                     continue
                 else:
                     hyp = self.hyperplanes[h_ind]
-                    if np.unique(hyp.get_sign(X_new)).size > 1:
+                    if np.unique(hyp.get_sign(X_new_c)).size > 1:
                         unsat_hyp.append(h_ind)
+                        print(f"UNSAT / CONCERNED: {self.hyperplanes[h_ind].name}")
     
         unsat_hyp = -np.sort(-np.unique(np.array(unsat_hyp, dtype=int)))
 
@@ -332,16 +336,16 @@ if partial_fit:
     Xn = np.array([[0,1]])
     yn = np.array([1])
 
-    # Xn = np.array([[-4, -2], [-4,-1], [-1,-0.5]])
-    # yn = np.array([4,4,1])
+    Xn = np.array([[0, 1], [-2,-1.5], [-2,-0.2], [-4, -2], [-4,-1]])
+    yn = np.array([5,4,4,4,4])
 
-    Xn = np.array([[-4, -2], [-4,-1], [-2,-1.5], [-2,-0.2]])
-    yn = np.array([4,4,4,4])
+    # Xn = np.array([[-4, -2], [-4,-1], [-2,-1.5], [-2,-0.2]])
+    # yn = np.array([4,4,4,4])
 
     print(model.region_matrix)
     model.plot_classi(name_hyp=False, X_op=Xn, y_op=yn)
     model.partial_fit(Xn, yn)
-    model.plot_classi(name_hyp=False, X_op=Xn, y_op=yn)
+    model.plot_classi(name_hyp=True, X_op=Xn, y_op=yn)
     print(model.region_matrix)
     
     if plot_separate_polys:
