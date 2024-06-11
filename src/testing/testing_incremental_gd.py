@@ -38,9 +38,12 @@ class IncrementalLogsiticRGD:
     def partial_fit(self, X, y):
         N = X.shape[0]          # number of data points
         for _ in range(self.nb_epochs):
+            p = np.random.permutation(len(y))
+            X_shuffled = X[p]
+            y_shuffled = y[p]
             for i in range(N):
                 for k in range(self.K):
-                    grad_L = self.grad_L(X[i], y[i], k)
+                    grad_L = self.grad_L(X_shuffled[i], y_shuffled[i], k)
                     self.W[k] = self.W[k] - self.learning_rate * grad_L[0]
                     self.B[k] = self.B[k] - self.learning_rate * grad_L[1]
 
