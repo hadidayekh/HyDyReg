@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from sklearn.datasets import make_classification
+import polytope as pc
 
 
 
@@ -26,7 +27,20 @@ class IncrementalLogsiticRGD:
         grad_w_k = x * grad_b_k
 
         return grad_w_k, grad_b_k
-    
+
+    def define_region_polytopes(self):
+        self.regions = []
+        for k in range(self.K):
+            A = [[1, 0], [0, 1], [-1, 0], [0, -1]]
+            b = [1e6, 1e6, 1e6, 1e6]
+            for j in range(self.K):
+                if j != k:
+                    A.append(self.W[k] - self.W[j])
+                    b.append(self.B[k] - self.B[j])
+            A = -np.array(A)
+            b = np.array(b)
+            self.regions.append(pc.reduce(pc.Polytope(A, b)))
+
     def fit(self, X, y):
         self.K = len(np.unique(y))   # number of classes
         self.D = len(X[0])
@@ -35,6 +49,7 @@ class IncrementalLogsiticRGD:
         self.B = np.zeros(self.K)
 
         self.partial_fit(X, y)
+
 
     def partial_fit(self, X, y):
         assert len(X[0]) == self.D
@@ -54,9 +69,10 @@ class IncrementalLogsiticRGD:
             y_shuffled = y[p]
             for i in range(N):
                 for k in range(self.K):
-                    grad_L = self.grad_L(X_shuffled[i], y_shuffled[i], k)
-                    self.W[k] = self.W[k] - self.learning_rate * grad_L[0]
-                    self.B[k] = self.B[k] - self.learning_rate * grad_L[1]
+                    grad_L_w, grad_L_b = self.grad_L(X_shuffled[i], y_shuffled[i], k)
+                    self.W[k] = self.W[k] - self.learning_rate * grad_L_w
+                    self.B[k] = self.B[k] - self.learning_rate * grad_L_b
+        self.define_region_polytopes()
 
     def decision_function(self, X):
         return X @ self.W.T + self.B
@@ -75,12 +91,16 @@ class IncrementalLogsiticRGD:
 
         
         xx, yy = np.meshgrid(np.arange(xmin, xmax, h), np.arange(ymin, ymax, h))
-        print(np.c_[xx.ravel(), yy.ravel()].shape)
+        # print(np.c_[xx.ravel(), yy.ravel()].shape)
         Z = np.argmax(self.decision_function(np.c_[xx.ravel(), yy.ravel()]), axis=1).reshape(xx.shape)
 
         cmap = ListedColormap([plt.cm.tab10(i) for i in range(n)])
         
-        ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
+        # ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
+        col_ind = 0
+        for p in self.regions:
+            p.plot(ax, color=plt.cm.tab10(col_ind), alpha=0.3)
+            col_ind += 1
         ax.set_title(f"Learning Rate={self.learning_rate}")
         ax.legend()
 
@@ -88,7 +108,7 @@ class IncrementalLogsiticRGD:
 
 n_samples = 20
 n_classes = 4
-learning_rate = 0.0001
+learning_rate = 0.001
 nb_epochs = 50
 
 X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
@@ -100,7 +120,7 @@ LR.fit(X,y)
 LR.plot_classi(X,y)
 
 X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
-y_new = np.array([4, 4, 2])
+y_new = np.array([4, 4, 0])
 
 LR.partial_fit(X_new, y_new)
 LR.plot_classi(np.r_[X, X_new], np.r_[y, y_new])
