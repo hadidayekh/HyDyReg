@@ -15,7 +15,7 @@ class IncrementalLogsiticRGD:
         B = self.B
         Z = 0
         
-        for j in range(len(x)):
+        for j in range(self.K):
             Z += np.exp(np.dot(W[j], x) + B[j])
         
         P = np.exp(np.dot(W[k], x) + B[k])/Z
@@ -29,14 +29,25 @@ class IncrementalLogsiticRGD:
     
     def fit(self, X, y):
         self.K = len(np.unique(y))   # number of classes
+        self.D = len(X[0])
 
-        self.W = np.zeros((self.K, len(X[0])))
+        self.W = np.zeros((self.K, self.D))
         self.B = np.zeros(self.K)
 
         self.partial_fit(X, y)
 
     def partial_fit(self, X, y):
+        assert len(X[0]) == self.D
         N = X.shape[0]          # number of data points
+        new_K = np.max(y) + 1   # this assumes that new classes are always added in ascending order
+        if new_K > self.K:
+            n_new_classes = new_K - self.K
+            new_W = np.zeros((n_new_classes, self.D))
+            new_B = np.zeros(n_new_classes)
+            self.W = np.r_[self.W, new_W]
+            self.B = np.r_[self.B, new_B]
+            self.K = new_K
+
         for _ in range(self.nb_epochs):
             p = np.random.permutation(len(y))
             X_shuffled = X[p]
@@ -75,9 +86,9 @@ class IncrementalLogsiticRGD:
 
         return fig, ax
 
-n_samples = 10
+n_samples = 20
 n_classes = 4
-learning_rate = 0.005
+learning_rate = 0.0001
 nb_epochs = 50
 
 X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
@@ -88,8 +99,8 @@ LR = IncrementalLogsiticRGD(learning_rate=learning_rate, nb_epochs=nb_epochs)
 LR.fit(X,y)
 LR.plot_classi(X,y)
 
-X_new = np.array([[-4,-2], [0.3, -1]])
-y_new = np.array([0, 2])
+X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
+y_new = np.array([4, 4, 2])
 
 LR.partial_fit(X_new, y_new)
 LR.plot_classi(np.r_[X, X_new], np.r_[y, y_new])
