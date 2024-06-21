@@ -1,3 +1,4 @@
+from tkinter import Y
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -48,10 +49,14 @@ class IncrementalLogsiticRGD:
         self.W = np.zeros((self.K, self.D))
         self.B = np.zeros(self.K)
 
-        self.partial_fit(X, y)
+        self.X_ = np.ndarray((0, X[0].size))
+        self.y_ = np.ndarray((0,))
+
+        self.partial_fit(X, y, with_prev=False)
 
 
-    def partial_fit(self, X, y):
+
+    def partial_fit(self, X, y, with_prev=False):
         assert len(X[0]) == self.D
         N = X.shape[0]          # number of data points
         new_K = np.max(y) + 1   # this assumes that new classes are always added in ascending order
@@ -63,6 +68,14 @@ class IncrementalLogsiticRGD:
             self.B = np.r_[self.B, new_B]
             self.K = new_K
 
+        X_old = X
+        y_old = y
+        if with_prev:
+            rand_ints = np.random.randint(0, self.X_.shape[0], int(self.X_.shape[0]*0.1))
+            X_prev_rand = self.X_[rand_ints]
+            y_prev_rand = self.y_[rand_ints]
+            X = np.r_[X, X_prev_rand]
+            y = np.r_[y, y_prev_rand]
         for _ in range(self.nb_epochs):
             p = np.random.permutation(len(y))
             X_shuffled = X[p]
@@ -73,6 +86,9 @@ class IncrementalLogsiticRGD:
                     self.W[k] = self.W[k] - self.learning_rate * grad_L_w
                     self.B[k] = self.B[k] - self.learning_rate * grad_L_b
         self.define_region_polytopes()
+        
+        self.X_ = np.r_[self.X_, X_old]
+        self.y_ = np.r_[self.y_, y_old]
 
     def decision_function(self, X):
         return X @ self.W.T + self.B
@@ -108,21 +124,34 @@ class IncrementalLogsiticRGD:
 
 n_samples = 20
 n_classes = 4
-learning_rate = 0.001
+learning_rate = 0.01
 nb_epochs = 50
 
 X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
                            n_clusters_per_class=1, n_redundant=0, n_classes=n_classes, random_state=1)
 
+
+# for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1 , 1]:
 LR = IncrementalLogsiticRGD(learning_rate=learning_rate, nb_epochs=nb_epochs)
 
 LR.fit(X,y)
 LR.plot_classi(X,y)
-
+# plt.show()
+# exit()
 X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
 y_new = np.array([4, 4, 0])
+X_all = np.r_[X, X_new]
+y_all = np.r_[y, y_new]
+
 
 LR.partial_fit(X_new, y_new)
-LR.plot_classi(np.r_[X, X_new], np.r_[y, y_new])
+LR.plot_classi(X_all, y_all)
+
+LR.fit(X, y)
+LR.partial_fit(X_all, y_all)
+LR.plot_classi(X_all, y_all)
+
+LR.fit(X_all, y_all)
+LR.plot_classi(X_all, y_all)
 
 plt.show()
