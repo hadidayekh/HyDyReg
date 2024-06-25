@@ -40,7 +40,7 @@ class IncrementalLogsiticRGD:
                     b.append(self.B[k] - self.B[j])
             A = -np.array(A)
             b = np.array(b)
-            self.regions.append(pc.reduce(pc.Polytope(A, b)))
+            self.regions.append(pc.Polytope(A, b))
 
     def fit(self, X, y):
         self.K = len(np.unique(y))   # number of classes
@@ -56,7 +56,7 @@ class IncrementalLogsiticRGD:
 
 
 
-    def partial_fit(self, X, y, with_prev=False):
+    def partial_fit(self, X, y, with_prev=False, with_prev_portion=0.1):
         assert len(X[0]) == self.D
         N = X.shape[0]          # number of data points
         new_K = np.max(y) + 1   # this assumes that new classes are always added in ascending order
@@ -70,8 +70,9 @@ class IncrementalLogsiticRGD:
 
         X_old = X
         y_old = y
-        if with_prev:
-            rand_ints = np.random.randint(0, self.X_.shape[0], int(self.X_.shape[0]*0.1))
+        if with_prev:            
+            rand_ints = np.random.permutation(self.X_.shape[0])[:int(self.X_.shape[0]*with_prev_portion)]
+            print(rand_ints)
             X_prev_rand = self.X_[rand_ints]
             y_prev_rand = self.y_[rand_ints]
             X = np.r_[X, X_prev_rand]
@@ -115,6 +116,7 @@ class IncrementalLogsiticRGD:
         # ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
         col_ind = 0
         for p in self.regions:
+            print(p)
             p.plot(ax, color=plt.cm.tab10(col_ind), alpha=0.3)
             col_ind += 1
         ax.set_title(f"Learning Rate={self.learning_rate}")
@@ -135,7 +137,7 @@ X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
 LR = IncrementalLogsiticRGD(learning_rate=learning_rate, nb_epochs=nb_epochs)
 
 LR.fit(X,y)
-LR.plot_classi(X,y)
+# LR.plot_classi(X,y)
 # plt.show()
 # exit()
 X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
@@ -144,14 +146,18 @@ X_all = np.r_[X, X_new]
 y_all = np.r_[y, y_new]
 
 
-LR.partial_fit(X_new, y_new)
+LR.partial_fit(X_new, y_new, with_prev=True, with_prev_portion=0.4)
 LR.plot_classi(X_all, y_all)
 
-LR.fit(X, y)
-LR.partial_fit(X_all, y_all)
-LR.plot_classi(X_all, y_all)
+# LR.fit(X, y)
+# LR.partial_fit(X_new, y_new, with_prev=False)
+# LR.plot_classi(X_all, y_all)
 
-LR.fit(X_all, y_all)
-LR.plot_classi(X_all, y_all)
+# LR.fit(X, y)
+# LR.partial_fit(X_all, y_all)
+# LR.plot_classi(X_all, y_all)
+
+# LR.fit(X_all, y_all)
+# LR.plot_classi(X_all, y_all)
 
 plt.show()
