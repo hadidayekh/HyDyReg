@@ -95,8 +95,8 @@ class IncrementalLogsiticRGD_withLR:
             eps = 0.01
 
             if len(LR_classes) == 2:
-                self.W[LR_classes[1]] = LR.coef_[0] - self.W[LR_classes[0]]
-                self.B[LR_classes[1]] = LR.intercept_[0] - self.B[LR_classes[0]]
+                self.W[LR_classes[1]] = (LR.coef_[0] + self.W[LR_classes[0]])
+                self.B[LR_classes[1]] = (LR.intercept_[0] + self.B[LR_classes[0]])
             else:
                 # more than one new class / multinomial LR
                 # get the W of the potentially merged regions
@@ -217,6 +217,8 @@ print(LR.B)
 # exit()
 X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1], [-1.5, -3], [-2, -3]])
 y_new = np.array([4, 4, 0, 5, 5])
+X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
+y_new = np.array([4, 4, 0])
 X_all = np.r_[X, X_new]
 y_all = np.r_[y, y_new]
 
