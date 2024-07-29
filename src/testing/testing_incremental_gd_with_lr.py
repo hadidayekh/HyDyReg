@@ -58,43 +58,67 @@ class IncrementalLogsiticRGD_withLR:
 
 
 
-    def partial_fit(self, X, y, with_prev=False, with_prev_portion=0.1):
+    def partial_fit(self, X, y, with_prev=False, with_prev_portion=0.1, Xplt=None, yplt=None):
         assert len(X[0]) == self.D
         N = X.shape[0]          # number of data points
         new_K = np.max(y) + 1   # this assumes that new classes are always added in ascending order
         if new_K > self.K:
             n_new_classes = new_K - self.K
             
-            Xnew = X[y >= new_K]
-            ynew = y[y >= new_K]
+            Xnew = X[y >= self.K]
+            ynew = y[y >= self.K]
             regions = []
             for i in range(len(ynew)):
                 for j in range(self.K):
                     if X[i] in self.regions[j]:
                         regions.append(j)
                         break
+
             regions = np.unique(np.array(regions))
             n_affected_regions = len(regions)
             new_classes = np.unique(ynew).sort()
 
-            if n_affected_regions == 1:
-                # all new points belong to one region
-                if len(new_classes) == 1:
-                    # one new class / binary LR
-                    pass
-                else:
-                    # more than one new class / multinomial LR
-                    pass
-            else:
-                # points belong to multiple regions
-                pass
-
+            LR = LogisticRegression(penalty='none')
+            X_lr = Xnew
+            y_lr = ynew
+            for r in regions:
+                X_lr = np.r_[X_lr, self.X_[self.y_ == r]]
+                y_lr = np.r_[y_lr, self.y_[self.y_ == r]]
+            LR.fit(X_lr, y_lr)
+            LR_classes = np.array(LR.classes_, dtype=int)
             
             new_W = np.zeros((n_new_classes, self.D))
             new_B = np.zeros(n_new_classes)
             self.W = np.r_[self.W, new_W]
             self.B = np.r_[self.B, new_B]
             self.K = new_K
+            eps = 0.01
+
+            if len(LR_classes) == 2:
+                self.W[LR_classes[1]] = LR.coef_[0] - self.W[LR_classes[0]]
+                self.B[LR_classes[1]] = LR.intercept_[0] - self.B[LR_classes[0]]
+            else:
+                # more than one new class / multinomial LR
+                # get the W of the potentially merged regions
+                W_region = self.W[regions[0]] / n_affected_regions
+                b_region = self.B[regions[0]] / n_affected_regions
+
+                # in case of more than one region, take the mean of W,B                
+                for i in range(1, n_affected_regions):
+                    W_region += self.W[regions[i]] / n_affected_regions
+                    b_region += self.B[regions[i]] / n_affected_regions
+
+                # define initial conditions of W,B for the new and old classes
+                # based on LR results
+                for i in range(len(LR_classes)):
+                    c = LR_classes[i]
+                    self.W[c] = W_region + eps * LR.coef_[i]
+                    self.B[c] = b_region + eps * LR.intercept_[i]
+            
+            if not Xplt is None:
+                self.define_region_polytopes()
+                self.plot_classi(Xplt, yplt)
+            
 
 
 
@@ -187,14 +211,12 @@ LR.plot_classi(X,y)
 print(LR.W)
 print(LR.B)
 
-plt.show()
-exit()
-LR.fit(X,y)
-LR.plot_classi(X,y)
+# LR.fit(X,y)
+# LR.plot_classi(X,y)
 # plt.show()
 # exit()
-X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
-y_new = np.array([4, 4, 0])
+X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1], [-1.5, -3], [-2, -3]])
+y_new = np.array([4, 4, 0, 5, 5])
 X_all = np.r_[X, X_new]
 y_all = np.r_[y, y_new]
 
@@ -203,8 +225,8 @@ y_all = np.r_[y, y_new]
 # LR.plot_classi(X_all, y_all)
 
 # LR.fit(X, y)
-# LR.partial_fit(X_new, y_new, with_prev=False)
-# LR.plot_classi(X_all, y_all)
+LR.partial_fit(X_new, y_new, with_prev=False, Xplt=X_all, yplt=y_all)
+LR.plot_classi(X_all, y_all)
 
 # LR.fit(X, y)
 # LR.partial_fit(X_all, y_all)
