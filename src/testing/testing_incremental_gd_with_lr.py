@@ -131,6 +131,7 @@ class IncrementalLogsiticRGD_withLR:
             y_prev_rand = self.y_[rand_ints]
             X = np.r_[X, X_prev_rand]
             y = np.r_[y, y_prev_rand]
+            N = X.shape[0]
         for _ in range(self.nb_epochs):
             p = np.random.permutation(len(y))
             X_shuffled = X[p]
@@ -180,7 +181,7 @@ class IncrementalLogsiticRGD_withLR:
 
 n_samples = 20
 n_classes = 4
-learning_rate = 0.01
+learning_rate = 0.1
 nb_epochs = 50
 
 X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
@@ -217,8 +218,8 @@ print(LR.B)
 # exit()
 X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1], [-1.5, -3], [-2, -3]])
 y_new = np.array([4, 4, 0, 5, 5])
-X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
-y_new = np.array([4, 4, 0])
+# X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
+# y_new = np.array([4, 4, 0])
 X_all = np.r_[X, X_new]
 y_all = np.r_[y, y_new]
 
@@ -227,7 +228,7 @@ y_all = np.r_[y, y_new]
 # LR.plot_classi(X_all, y_all)
 
 # LR.fit(X, y)
-LR.partial_fit(X_new, y_new, with_prev=False, Xplt=X_all, yplt=y_all)
+LR.partial_fit(X_new, y_new, with_prev=True, with_prev_portion=0.75, Xplt=X_all, yplt=y_all)
 LR.plot_classi(X_all, y_all)
 
 # LR.fit(X, y)
