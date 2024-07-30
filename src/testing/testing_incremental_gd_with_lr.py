@@ -239,3 +239,6 @@ LR.plot_classi(X_all, y_all)
 # LR.plot_classi(X_all, y_all)
 
 plt.show()
+
+## NEED TO ADD:
+# with_prev needs to select privilege selecting points that are close to boundaries
