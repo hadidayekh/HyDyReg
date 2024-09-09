@@ -6,7 +6,7 @@ sys.path.append('./')
 sys.path.append('../')
 
 from sklearn.metrics import mean_squared_error
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 from diff_methods import diff_method_fps
 from snds import SNDS_linear
 import plotting
@@ -144,7 +144,7 @@ if k_learn:
         file.close()
     else:
         # Defining the model
-        model = HybridKernelRegressor(train_coefs=True, n=3, deg=1, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
+        model = HybridRegressor(train_coefs=True, n=3, deg=1, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
 
         # Fitting the model with its corresponding derivatives
         model.fit(X, X_dot, norm='L2', deltas=0.001, C=1, segmentation='strict', segments=seg_res)

@@ -30,7 +30,7 @@ x_dot is a NxD matrix
 x_dot.T is DxN
 """
 
-class HybridKernelRegressor:
+class HybridRegressor:
     def __init__(self, train_coefs, n, deg=1, classifier_poly_trans=False, classifier_poly_deg=None, kernels_list=None, kargs_list=None):
         self.train_coefs = train_coefs
         self.n = n
@@ -705,17 +705,17 @@ class HybridKernelRegressor:
             for d in range(D):
                 if segmentation != 'strict':
                     if not tc:
-                        cons_j_d = HybridKernelRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
+                        cons_j_d = HybridRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
                     else:
-                        cons_j_d = HybridKernelRegressor.scipy_opti_cons_tc(j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j])
+                        cons_j_d = HybridRegressor.scipy_opti_cons_tc(j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j])
                     cons.append({'type': 'ineq', 'fun': cons_j_d[0]})
                     cons.append({'type': 'ineq', 'fun': cons_j_d[1]})
                 else:
                     for i in range(N):
                         if not tc:
-                            cons_i_j_d = HybridKernelRegressor.scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j], segments)
+                            cons_i_j_d = HybridRegressor.scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j], segments)
                         else:
-                            cons_i_j_d = HybridKernelRegressor.scipy_opti_cons_strict_seg_tc(i, j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j], segments)
+                            cons_i_j_d = HybridRegressor.scipy_opti_cons_strict_seg_tc(i, j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j], segments)
                         cons.append({'type': 'ineq', 'fun': cons_i_j_d[0]})
                         cons.append({'type': 'ineq', 'fun': cons_i_j_d[1]})
 
@@ -727,9 +727,9 @@ class HybridKernelRegressor:
             x0 = np.random.rand(n * (D * (Q + 1) + chi_size_per_mode))
 
         if not tc:
-            res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
+            res = minimize(lambda x : HybridRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
         else:
-            res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun_tc(x, N, n, D, Q, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
+            res = minimize(lambda x : HybridRegressor.scipy_opti_fun_tc(x, N, n, D, Q, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
 
         res_x = res.x
 

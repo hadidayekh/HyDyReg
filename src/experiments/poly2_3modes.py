@@ -8,7 +8,7 @@ sys.path.append('../')
 sys.path.append('src/')
 
 from sklearn.metrics import mean_squared_error
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 from diff_methods import diff_method_fps
 from snds import SNDS
 import plotting
@@ -102,8 +102,8 @@ if k_learn:
         file.close()
     else:
         # Defining the model
-        #model = HybridKernelRegressor(['linear', 'polynomial', 'linear'], [[0], [2, 1, 1], [0]])
-        model_curr = HybridKernelRegressor(train_coefs=True, n=3, deg=2, kernels_list=['linear', 'polynomial', 'linear'], kargs_list=[[0], [2, 1, 1], [0]])
+        #model = HybridRegressor(['linear', 'polynomial', 'linear'], [[0], [2, 1, 1], [0]])
+        model_curr = HybridRegressor(train_coefs=True, n=3, deg=2, kernels_list=['linear', 'polynomial', 'linear'], kargs_list=[[0], [2, 1, 1], [0]])
         # Extracting derivatives through numerical differentiation
         # Fitting the model with its corresponding derivatives
         

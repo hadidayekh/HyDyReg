@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import os
 from sklearn.linear_model import LinearRegression
 from matplotlib.colors import ListedColormap
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 import plotting
 import time
 from sklearn.metrics import mean_squared_error
@@ -252,10 +252,10 @@ kernel_list2 = [[kernels.polynomial, [3, 1, 1], num_modes]]
 
 if k_learn:
     if poly:
-        model = HybridKernelRegressor(['polynomial', 'polynomial'], [[3, 1, 1], [3, 1, 1]])
+        model = HybridRegressor(['polynomial', 'polynomial'], [[3, 1, 1], [3, 1, 1]])
     else:
-        model = HybridKernelRegressor(['linear', 'linear'], [[0], [0]])
-    #model = HybridKernelRegressor(['polynomial', 'polynomial'], [[2, 1, 1], [2, 1, 1]])
+        model = HybridRegressor(['linear', 'linear'], [[0], [0]])
+    #model = HybridRegressor(['polynomial', 'polynomial'], [[2, 1, 1], [2, 1, 1]])
 
     X, X_dot, seg_res = diff_methods.diff_method_fps(t_list, x_list, segments=segments)
     

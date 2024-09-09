@@ -5,7 +5,7 @@ from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.inspection import DecisionBoundaryDisplay
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 
 def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=['b','orange','c','k','m'], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
 
@@ -409,7 +409,7 @@ def plot_train_test_2D(X_train, X_test):
 
     return f,a
 
-def plot_Xfit(model : HybridKernelRegressor, with_contour=True):
+def plot_Xfit(model : HybridRegressor, with_contour=True):
     X = model.Xfit_
     modes = model.modesfit_
     # X = model.X_classify_

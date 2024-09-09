@@ -6,7 +6,7 @@ import copy
 import textwrap
 import time
 from diff_methods import diff_method_fps
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 from sklearn.linear_model import LogisticRegression
 from plotting import *
 from snds import SNDS, Trajectories, SlidingMotionException, UnstableTrajException
@@ -80,7 +80,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     # Splitting the data into train and validation per segment
     X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val = train_test_split_segments(X, X_dot, seg_res, seg_all, test_size=0.2)
     # Define the model
-    model_curr = HybridKernelRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list, kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
+    model_curr = HybridRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list, kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
     print("Starting " + exp_name + "\n")
     
     if not fit_active_only:
@@ -175,7 +175,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     first_learned_SNDS = copy.deepcopy(model.to_SNDS())
     first_model = copy.deepcopy(model)
     
-    def compute_errors_and_plot(model : HybridKernelRegressor, fig_suffix = ""):
+    def compute_errors_and_plot(model : HybridRegressor, fig_suffix = ""):
         learned_SNDS = model.to_SNDS()
 
         trajs_train_learned = learned_SNDS.simulate_trajectory(time_step, time_range, x0s)

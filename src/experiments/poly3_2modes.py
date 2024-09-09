@@ -7,7 +7,7 @@ sys.path.append('./')
 sys.path.append('../')
 
 from sklearn.metrics import mean_squared_error
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 from diff_methods import diff_method_fps
 from snds import SNDS
 import plotting
@@ -162,7 +162,7 @@ if k_learn:
         file.close()
     else:
         # Defining the model
-        model_curr = HybridKernelRegressor(train_coefs=True, n=4, deg=5, kernels_list=['polynomial', 'polynomial'], kargs_list=[[3, 1, 1], [3, 1, 1]])
+        model_curr = HybridRegressor(train_coefs=True, n=4, deg=5, kernels_list=['polynomial', 'polynomial'], kargs_list=[[3, 1, 1], [3, 1, 1]])
         
         C_space = [0.01, 0.1, 0.5, 1, 2, 5]
         Cs = []
