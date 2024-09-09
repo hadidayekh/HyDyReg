@@ -136,8 +136,31 @@ X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
 # for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1 , 1]:
 LR = IncrementalLogsiticRGD(learning_rate=learning_rate, nb_epochs=nb_epochs)
 
+
+# LR.W = np.array([[-1.00231, -0.98778], [ 0.99056, -0.85561], [-1.08337,  0.80221], [1.0791,   1.02797]])
+# LR.B = np.array([-0.17557, -0.09156,  0.14826,  0.12181])
+# LR.W = np.array([[-1, -1], [ 1, -1], [-1,  1], [1,   1]])
+# LR.B = np.array([0,0,0,0])
+LR.W = np.array([[0, -1], [-1,  1], [1,   1]])
+LR.B = np.array([0,0,0])
+
+LR.K = LR.B.size
+LR.define_region_polytopes()
+LR.plot_classi(X, y)
+plt.show()
+exit()
+
+
 LR.fit(X,y)
-# LR.plot_classi(X,y)
+LR.plot_classi(X,y)
+
+print(LR.W)
+print(LR.B)
+
+plt.show()
+exit()
+LR.fit(X,y)
+LR.plot_classi(X,y)
 # plt.show()
 # exit()
 X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
@@ -146,8 +169,8 @@ X_all = np.r_[X, X_new]
 y_all = np.r_[y, y_new]
 
 
-LR.partial_fit(X_new, y_new, with_prev=True, with_prev_portion=0.4)
-LR.plot_classi(X_all, y_all)
+# LR.partial_fit(X_new, y_new, with_prev=True, with_prev_portion=0.4)
+# LR.plot_classi(X_all, y_all)
 
 # LR.fit(X, y)
 # LR.partial_fit(X_new, y_new, with_prev=False)

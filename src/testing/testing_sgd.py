@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
 
-def plot_classi(X, y, est, h = 0.05):
+def plot_classi(X, y, est, h = 0.05, eta0="not provided"):
     n = np.unique(y).size
 
     fig, ax = plt.subplots()
@@ -24,10 +24,9 @@ def plot_classi(X, y, est, h = 0.05):
     cmap = ListedColormap([plt.cm.tab10(i) for i in range(n)])
     
     ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
+    ax.set_title(f"eta0={eta0}")
 
     return fig, ax
-
-est = make_pipeline(StandardScaler(), SGDClassifier(loss='log_loss'))
 
 X0 = np.array([[-2,3], [-2,4], [-3,3], [-3,4]])
 y0 = np.array([0]*X0.shape[0])
@@ -41,21 +40,28 @@ y3 = np.array([3]*X3.shape[0])
 X = np.r_[X0, X1, X2]
 y = np.r_[y0, y1, y2]
 
-est.fit(X,y)
 
-plot_classi(X, y, est)
+for eta0 in [0.001]:
+    est = make_pipeline(StandardScaler(), SGDClassifier(loss='log_loss', alpha=0, learning_rate='constant', eta0=eta0))
 
-X1_rect = np.array([[-2, 0.5], [-3, 0.8], [-1, 1], [-4, 1.5]])
-y1_rect = np.array([1]*X1_rect.shape[0])
+    est.fit(X,y)
 
-Xall = np.r_[X, X1_rect]
-yall = np.r_[y, y1_rect]
+    plot_classi(X, y, est, eta0=eta0)
 
-X1_rect_std = est[0].fit_transform(X1_rect)
+    X1_rect = np.array([[-2, 0.5], [-3, 0.8], [-1, 1], [-4, 1.5]])
+    y1_rect = np.array([1]*X1_rect.shape[0])
 
-for i in range(10):
-    est[1].partial_fit(X1_rect_std, y1_rect, classes=np.unique(yall))
-    plot_classi(Xall, yall, est)
+    Xall = np.r_[X, X1_rect]
+    yall = np.r_[y, y1_rect]
 
-print(est.predict(X1_rect))
-plt.show()
+    X1_rect_std = est[0].transform(X1_rect)
+
+    for i in range(10):
+        est[1].partial_fit(X1_rect_std, y1_rect, classes=np.unique(yall))
+        plot_classi(Xall, yall, est, eta0=eta0)
+
+    est.fit(Xall, yall)
+    plot_classi(Xall, yall, est, eta0=eta0)
+
+    print(est.predict(X1_rect))
+    plt.show()
