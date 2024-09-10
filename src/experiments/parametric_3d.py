@@ -6,7 +6,7 @@ import time
 sys.path.append('./')
 sys.path.append('../')
 
-from snds import SNDS_linear
+from snds import SNDS_affine
 import plotting
 import numpy as np
 import matplotlib.pyplot as plt
@@ -97,7 +97,7 @@ def parametric(nmodes, radius=1.0):
 
     params = np.array(params)
     ##### DEFINING SNDS #####
-    sul = SNDS_linear(params, eventlist, labelfun)
+    sul = SNDS_affine(params, eventlist, labelfun)
     return sul
 
 ##### SIMULATING TRAJECTORIES #####

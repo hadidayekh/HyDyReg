@@ -8,7 +8,7 @@ sys.path.append('../')
 from sklearn.metrics import mean_squared_error
 from opti import HybridRegressor
 from diff_methods import diff_method_fps
-from snds import SNDS_linear
+from snds import SNDS_affine
 import plotting
 import numpy as np
 import matplotlib.pyplot as plt
@@ -85,7 +85,7 @@ params = np.array(params)
 
 
 ##### DEFINING SNDS #####
-sul = SNDS_linear(params, eventlist, labelfun)
+sul = SNDS_affine(params, eventlist, labelfun)
 
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters

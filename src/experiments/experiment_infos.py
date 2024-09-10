@@ -6,7 +6,7 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 from main import learn_system
-from snds import SNDS, SNDS_linear
+from snds import SNDS, SNDS_affine
 from utils import *
 import time
 import numpy as np
@@ -64,7 +64,7 @@ def isolette():
 
     params = np.array(params)
 
-    return SNDS_linear(params, eventlist, labelfun)
+    return SNDS_affine(params, eventlist, labelfun)
 
 
 def affine_3modes():
@@ -107,7 +107,7 @@ def affine_3modes():
     params = np.array(params)
 
     ##### DEFINING SNDS #####
-    return SNDS_linear(params, eventlist, labelfun)
+    return SNDS_affine(params, eventlist, labelfun)
 
 
 def lorentz_attractor():

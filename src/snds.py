@@ -402,7 +402,7 @@ class Trajectories:
             df.to_csv(dir_name+'/'+dir_name+'_'+str(i)+'.csv', sep=sep)
 
 
-class SNDS_linear(SNDS):
+class SNDS_affine(SNDS):
     def __init__(self,  params, eventlist, labelfun):
         n = params.shape[0]
         d = params.shape[1]
@@ -413,7 +413,7 @@ class SNDS_linear(SNDS):
         for i in range(n):
             # append the function to eqs which is a list of functions
             # cf. https://stackoverflow.com/questions/3431676/creating-functions-or-lambdas-in-a-loop-or-comprehension 
-            eqs.append(SNDS_linear.make_eq(i, params))
+            eqs.append(SNDS_affine.make_eq(i, params))
 
         # call super class constructor
         super().__init__(n, d, eqs, eventlist, labelfun)

@@ -9,7 +9,7 @@ import snds
 import numpy as np
 from diff_methods import diff_method_fps
 
-sul = snds.SNDS_linear(np.array([[[0, 0, 8], [0,0,-6]]]), [], lambda _ : 0)
+sul = snds.SNDS_affine(np.array([[[0, 0, 8], [0,0,-6]]]), [], lambda _ : 0)
 trajs = sul.simulate_trajectory(0.05, 3, [[-11, 11]])
 
 X, X_dot = diff_method_fps(np.array(trajs.t_list), np.array(trajs.x_list))

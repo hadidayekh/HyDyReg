@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression, Lasso, Ridge
 import casadi
 import numpy as np
 import kernels
-from snds import SNDS, SNDS_linear
+from snds import SNDS, SNDS_affine
 from utils import *
 from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
@@ -938,7 +938,7 @@ class HybridRegressor:
                     for l in range(D):
                         params[j][d][l] = self.Omegas_[j][d][l]
                     params[j][d][D] = self.betas_[j][d]
-            return SNDS_linear(params, eventlist, labelfun)
+            return SNDS_affine(params, eventlist, labelfun)
         else:
             eqs = []
             for j in range(n):

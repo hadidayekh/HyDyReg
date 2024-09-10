@@ -9,7 +9,7 @@ sys.path.append('../')
 import kernels
 import diff_methods
 from main import get_modes
-from snds import SNDS, SNDS_linear
+from snds import SNDS, SNDS_affine
 from scipy.integrate import solve_ivp
 import numpy as np
 import matplotlib.pyplot as plt
@@ -118,7 +118,7 @@ if poly:
 
 else:
     params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 16], [0,0,-12]]])
-    sul = SNDS_linear(params, eventlist, labelfun)
+    sul = SNDS_affine(params, eventlist, labelfun)
     time_step = 0.005
     time_range = 3
     label_fun_used = labelfun
@@ -208,7 +208,7 @@ params2 = np.array([params2])
 x0s = [[-11, 11], [-14, 14], [-20, 5], [2,3], [10,4]]#, [-10, -3], [-20,-20], [-20, 10], [-30,10], [-30,-10], [20, 0], [40,20], [-60,-40], [-60,-60]]
 
 
-sul = SNDS_linear(params1, [], lambda x : 0)
+sul = SNDS_affine(params1, [], lambda x : 0)
 traj = sul.simulate_trajectory(time_step, time_range, x0s)
 fig,ax = traj.draw_trajectories_2D(mark_beginning=True, plot_xt=False)
 #ax = ax['main']
