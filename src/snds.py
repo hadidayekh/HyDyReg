@@ -286,6 +286,13 @@ class Trajectories:
         return fig,axs
 
     def segment_trajectories(self, tol):
+        '''
+        - segments trajectories when the difference between fwd and bwd derivatives is greater than tol
+        - truncates trajectories by removing 5 points around each suspected changepoint (including it)
+        - returns Segments, a list of segment indices per trajectory
+          Segments = [segments_1, ..., segments_k] where k is the number of trajectories
+          segments_i contains the indices of *changepoints* in the *now truncated* trajectory i
+        '''
         self.og_x_list = deepcopy(self.x_list)
         self.og_t_list = deepcopy(self.t_list)
         Segments = []
@@ -299,12 +306,9 @@ class Trajectories:
             
             segments = []
             current_start_index = 0
-
-            n=3
             
-            
-            i = n-1
-            while i <= l-n:
+            i = 2
+            while i <= l-3:
                 # Extract the time and x points for the current position and the
                 # forward and backward positions
                 current_time, current_value = t_points[i], x_points[i]
@@ -328,7 +332,8 @@ class Trajectories:
                     l = l - 5
                     if current_start_index > 0 and current_start_index < l:
                         segments.append(current_start_index)
-                    i = i + 2
+                    # I believe this is a bug. No need to add 2 to i.
+                    # i = i + 2
                 else:
                     i+=1
             Segments.append(segments)
