@@ -2,6 +2,13 @@ import numpy as np
 
 # Five point stencil differentiation method, using two points from the back and two from the front
 def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
+    '''
+    - calculates derivatives of trajectory points
+    - returns a single matrix X with concatenated data along with the corresponding derivatives Xdot
+    - if segments is provided and remove_seg = True:
+        * calculates derivatives for each segment not trajectory
+        * returns STARTING INDEX of segments INCLUDING 0 for X, Xdot
+    '''
     nb_traj = len(t_list) # number of arrays of t-points in t_list
     assert(nb_traj == len(x_list)) # should be equal to number of x-points in x_list
     x_dim = x_list[0][0].shape[0] # dimension of each data point x
@@ -28,8 +35,11 @@ def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
         else:
             first = True
             seg_curr = segments[i]
+            # split t_points and x_points at changepoints in order to calculate
+            # derivatives in each segment separately
             splitted_t_points = np.split(t_points, seg_curr)
             splitted_x_points = np.split(x_points, seg_curr)
+            # for each segment
             for k in range(len(seg_curr) + 1):
                 t_points_seg = splitted_t_points[k]
                 x_points_seg = splitted_x_points[k]
