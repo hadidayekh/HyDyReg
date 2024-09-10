@@ -1,7 +1,8 @@
 import numpy as np
 
 # Five point stencil differentiation method, using two points from the back and two from the front
-def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
+def diff_method_fps(t_list, x_list, segments=None, remove_seg=False):
+    print("reloaded ytay")
     '''
     - calculates derivatives of trajectory points
     - returns a single matrix X with concatenated data along with the corresponding derivatives Xdot
@@ -17,7 +18,7 @@ def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
         t_points = t_list[i]
         x_points = x_list[i]
 
-        if not remove_seg:
+        if segments is None:
             nb_points = t_points.shape[0]
             assert(nb_points == x_points.shape[0])
 
@@ -81,14 +82,6 @@ def diff_method_fps(t_list, x_list, segments=[], remove_seg=False):
             final_X = np.r_[final_X, X]
             final_X_dot = np.r_[final_X_dot, X_dot]
 
-        if len(segments) > 0 and not remove_seg:
-            seg_curr = segments[i]
-            begin_index = 0
-            for j in range(0, i):
-                begin_index += segments[j][-1] - 3
-            seg_res.append(begin_index)
-            for j in range(1, len(seg_curr) - 1):
-                seg_res.append(begin_index + seg_curr[j] - 2)
     if len(segments) > 0:
         # print("HERE ARE THE SEGMENTS", final_X.shape, segments, seg_res)
         # exit()
