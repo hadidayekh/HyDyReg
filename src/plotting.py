@@ -28,7 +28,7 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=[plt.cm.tab10(
             x1 = x.T[1]
 
             ax.scatter(x0, x1, c=colors[i%len(colors)], s=2, label = label if i == 0 else None)
-            ax.plot(x0, x1, color=colors[i%len(colors)], alpha=0.2)
+
             if mark_beginning:
                 ax.scatter(x0[0], x1[0], c=colors[i%len(colors)], marker='x', s=8)
             if len(segments) > 0:
@@ -40,6 +40,8 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=[plt.cm.tab10(
                 seg_index = segments[i][-1]
                 ax.scatter(x0[seg_index], x1[seg_index], marker='|', c='r', linewidths=0.7)
                 ax.plot(x0[segments[i][-1]:], x1[segments[i][-1]:], color=colors[i%len(colors)], alpha=0.2)
+            else:
+                ax.plot(x0, x1, color=colors[i%len(colors)], alpha=0.2)
 
             
 
