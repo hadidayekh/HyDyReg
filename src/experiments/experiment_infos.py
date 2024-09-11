@@ -451,6 +451,7 @@ exp_infos = {
 
 DATA = []
 exps = [list(exp_infos.keys())[3]]
+exps = list(exp_infos.keys())[3:]
 for exp_title in exps:
     # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
     np.random.seed(0)
