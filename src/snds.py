@@ -71,7 +71,7 @@ class SNDS:
                 # solve the ivp according to the label  of x0 while tracking events in eventlist
                 x_object = solve_ivp(self.eqs[label], (t_start, t_end), x0,
                                     t_eval=t_points, method='RK45', rtol=1e-7, atol=1e-9,
-                                    max_step=step/2, events=self.eventlist, dense_output=True)
+                                    max_step=step/10, events=self.eventlist, dense_output=True)
                 
                 # termination status, if 1 then a terminating event ocurred
                 status = x_object.status
