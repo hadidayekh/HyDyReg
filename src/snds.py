@@ -332,10 +332,8 @@ class Trajectories:
                     l = l - 5
                     if current_start_index > 0 and current_start_index < l:
                         segments.append(current_start_index)
-                    # I believe this is a bug. No need to add 2 to i.
-                    # i = i + 2
-                else:
-                    i+=1
+                    
+                i += 1
             Segments.append(segments)
         self.segmented = True
         return Segments
