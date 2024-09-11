@@ -422,7 +422,7 @@ def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, 
         x0 = x0s[i]
         sul_traj = sul.simulate_trajectory(time_step, time_range, [x0])
         try:
-            learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0], stop_at_sliding_motion=False, compare_with_traj=None)
+            learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [x0], stop_at_sliding_motion=stop_at_sliding_motion, compare_with_traj=None)
         except SlidingMotionException:
             cexs_sul.append_trajs(sul_traj)
             # cexs_learned.append_trajs(learned_traj)
