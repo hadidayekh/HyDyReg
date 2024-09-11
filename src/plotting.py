@@ -27,18 +27,18 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=[plt.cm.tab10(
             x0 = x.T[0]
             x1 = x.T[1]
 
-            ax.scatter(x0, x1, c=colors[i%len(colors)], s=2, label = label if i == 0 else None)
+            ax.scatter(x0, x1, color=colors[i%len(colors)], s=2, label = label if i == 0 else None)
 
             if mark_beginning:
-                ax.scatter(x0[0], x1[0], c=colors[i%len(colors)], marker='x', s=8)
+                ax.scatter(x0[0], x1[0], color=colors[i%len(colors)], marker='x', s=8)
             if len(segments) > 0:
                 ax.plot(x0[:segments[i][0]], x1[:segments[i][0]], color=colors[i%len(colors)], alpha=0.2)
                 for j in range(len(segments[i])-1):
                     seg_index = segments[i][j]
-                    ax.scatter(x0[seg_index], x1[seg_index], marker='|', c='r', linewidths=0.7)
+                    ax.scatter(x0[seg_index], x1[seg_index], marker='|', color='r', linewidths=0.7)
                     ax.plot(x0[segments[i][j]:segments[i][j+1]], x1[segments[i][j]:segments[i][j+1]], color=colors[i%len(colors)], alpha=0.2)
                 seg_index = segments[i][-1]
-                ax.scatter(x0[seg_index], x1[seg_index], marker='|', c='r', linewidths=0.7)
+                ax.scatter(x0[seg_index], x1[seg_index], marker='|', color='r', linewidths=0.7)
                 ax.plot(x0[segments[i][-1]:], x1[segments[i][-1]:], color=colors[i%len(colors)], alpha=0.2)
             else:
                 ax.plot(x0, x1, color=colors[i%len(colors)], alpha=0.2)
@@ -47,12 +47,12 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=[plt.cm.tab10(
 
 
             if plot_xt:
-                axs['x0'].scatter(trajectories.t_list[i], x0, c=colors[i % len(colors)], s=1)
-                axs['x1'].scatter(trajectories.t_list[i], x1, c=colors[i % len(colors)], s=1)
+                axs['x0'].scatter(trajectories.t_list[i], x0, color=colors[i % len(colors)], s=1)
+                axs['x1'].scatter(trajectories.t_list[i], x1, color=colors[i % len(colors)], s=1)
                 if len(segments) > 0:
                     for seg_index in segments[i]:
-                        axs['x0'].scatter(trajectories.t_list[i][seg_index], x0[seg_index], marker='|', c='r', linewidths=0.7)
-                        axs['x1'].scatter(trajectories.t_list[i][seg_index], x1[seg_index], marker='|', c='r', linewidths=0.7)
+                        axs['x0'].scatter(trajectories.t_list[i][seg_index], x0[seg_index], marker='|', color='r', linewidths=0.7)
+                        axs['x1'].scatter(trajectories.t_list[i][seg_index], x1[seg_index], marker='|', color='r', linewidths=0.7)
 
                     
         
@@ -114,24 +114,24 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
             x0 = x.T[0]
             x1 = x.T[1]
             x2 = x.T[2]
-            ax.scatter(x0, x1, x2, c=colors[i % len(colors)], s=2, label = label if i == 0 else None)
+            ax.scatter(x0, x1, x2, color=colors[i % len(colors)], s=2, label = label if i == 0 else None)
             if mark_beginning:
-                ax.scatter(x0[0], x1[0], x2[0], c='b', s=6)
+                ax.scatter(x0[0], x1[0], x2[0], color='b', s=6)
             if len(segments) > 0:
                 for seg_index in segments[i]:
-                    ax.scatter(x0[seg_index], x1[seg_index], x2[seg_index], marker='|', c='r', linewidths=0.7)
+                    ax.scatter(x0[seg_index], x1[seg_index], x2[seg_index], marker='|', color='r', linewidths=0.7)
             
 
 
             if plot_xt:
-                axs['x0'].scatter(trajectories.t_list[i], x0, c=colors[i % len(colors)], s=1)
-                axs['x1'].scatter(trajectories.t_list[i], x1, c=colors[i % len(colors)], s=1)
-                axs['x2'].scatter(trajectories.t_list[i], x2, c=colors[i % len(colors)], s=1)
+                axs['x0'].scatter(trajectories.t_list[i], x0, color=colors[i % len(colors)], s=1)
+                axs['x1'].scatter(trajectories.t_list[i], x1, color=colors[i % len(colors)], s=1)
+                axs['x2'].scatter(trajectories.t_list[i], x2, color=colors[i % len(colors)], s=1)
                 if len(segments) > 0:
                     for seg_index in segments[i]:
-                        axs['x0'].scatter(trajectories.t_list[i][seg_index], x0[seg_index], marker='|', c='r', linewidths=0.7)
-                        axs['x1'].scatter(trajectories.t_list[i][seg_index], x1[seg_index], marker='|', c='r', linewidths=0.7)
-                        axs['x2'].scatter(trajectories.t_list[i][seg_index], x2[seg_index], marker='|', c='r', linewidths=0.7)
+                        axs['x0'].scatter(trajectories.t_list[i][seg_index], x0[seg_index], marker='|', color='r', linewidths=0.7)
+                        axs['x1'].scatter(trajectories.t_list[i][seg_index], x1[seg_index], marker='|', color='r', linewidths=0.7)
+                        axs['x2'].scatter(trajectories.t_list[i][seg_index], x2[seg_index], marker='|', color='r', linewidths=0.7)
 
                     
 
@@ -204,10 +204,10 @@ def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','
     for i, x in enumerate(trajectories.x_list):
         for j in range(num_plots):
             ax = axs[j]
-            ax.scatter(trajectories.t_list[i], x.T[j], c=colors[i % len(colors)], s=1, label = label if i == 0 else None)
+            ax.scatter(trajectories.t_list[i], x.T[j], color=colors[i % len(colors)], s=1, label = label if i == 0 else None)
             if len(segments) > 0:
                 for seg_index in segments[i]:
-                    ax.scatter(trajectories.t_list[i][seg_index], x.T[j][seg_index], marker='|', c='r', linewidths=0.7)
+                    ax.scatter(trajectories.t_list[i][seg_index], x.T[j][seg_index], marker='|', color='r', linewidths=0.7)
             ax.set_xlabel('$t$')
             ax.set_ylabel('$x^{(' + str(j+1) + ')}$')
             if not label is None:
@@ -239,7 +239,7 @@ def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m']
             label = 'Mode ' + str(mode)
             labeled[mode] = True
         
-        ax.scatter(x[0], x[1], c = colors[mode % len(colors)], label=label, s=2)
+        ax.scatter(x[0], x[1], color = colors[mode % len(colors)], label=label, s=2)
     
     ax.legend()
 
@@ -284,7 +284,7 @@ def plot_with_modes_3D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m']
             label = 'Mode ' + str(mode)
             labeled[mode] = True
         
-        ax.scatter(x[0], x[1], x[2], c = colors[mode % len(colors)], label=label, s=2)
+        ax.scatter(x[0], x[1], x[2], color = colors[mode % len(colors)], label=label, s=2)
     
     ax.legend()
 
