@@ -18,7 +18,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=True, fit_active_only=True, stop_at_sliding_motion=True):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=True, fit_active_only=True, stop_at_sliding_motion=True, N_cexs=50):
     D = len(x0s[0])
     save_ext = '.png'
     dpi=None
@@ -165,8 +165,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
-    fine_X, fine_X_dot = sul.generate_points_between_segments(trajs_train_sul, segments, seg_tol/10, timestep=time_step_test/10)
-    # model.improve_classification(fine_X, fine_X_dot, classifier)
+    fine_X, fine_X_dot = sul.generate_points_between_segments(trajs_train_sul, segments, seg_tol/10, timestep=time_step_test/20)
+    model.improve_classification(fine_X, fine_X_dot, classifier)
     # if classifier_poly_trans:
     #     print_classifier_boundaries(model.classifier_, model.classifier_poly_)
     # else:
@@ -234,7 +234,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
         learned_SNDS = learned_SNDS_active_before_EQ
         start = time.time()
         print("Checking equivalence query...")
-        eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, stop_at_sliding_motion=stop_at_sliding_motion)
+        eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, stop_at_sliding_motion=stop_at_sliding_motion, N_cexs=N_cexs)
         sul_trajs = copy.deepcopy(cexs_sul)
         sul_trajs.append_trajs(conforming_trajs_sul)
         count = 1
@@ -281,7 +281,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             # for k in range(len(segments_eq)):
             #     # If at least one trajectories contains multiple segments, generate fine points between segments
             #     if len(segments_eq[k]) > 2:
-            fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/10)
+            fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/20)
                     # The function generate_points_between_segments will already deal with all trajectories --> break.
                     # break
             if improve_cont:
@@ -308,7 +308,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                 print(not (model.classifier_.predict(model.X_classify_) - model.modes_classify_).any())
             learned_SNDS = model.to_SNDS()
             print("Rechecking equivalence query...")
-            eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, sobol_skip=count*eq_query_ntrajs, stop_at_sliding_motion=stop_at_sliding_motion)
+            eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, sobol_skip=count*eq_query_ntrajs, stop_at_sliding_motion=stop_at_sliding_motion, N_cexs=N_cexs)
             sul_trajs = copy.deepcopy(cexs_sul)
             sul_trajs.append_trajs(conforming_trajs_sul)
 
@@ -397,7 +397,7 @@ def equivalence_query(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_ste
     print(comp_traj_test_MSE, comp_traj_test_RD)
     return comp_traj_test_RD <= tol, sul_trajs, learned_trajs
 
-def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1, sampling_method='random', sobol_skip=0, stop_at_sliding_motion=False, N_cexs=5):
+def equivalence_query_by_traj(sul : SNDS, learned_snds : SNDS, n_trajs, bounds, time_step, time_range, tol=0.1, sampling_method='random', sobol_skip=0, stop_at_sliding_motion=False, N_cexs=1):
     cexs_sul = Trajectories([],[])
     cexs_sul.d = sul.dim
     conforming_trajs_sul = Trajectories([],[])

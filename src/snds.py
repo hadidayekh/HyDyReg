@@ -146,6 +146,7 @@ class SNDS:
                 # if t_points.size == 1:
                 #     status = 0
             if status == -1:
+                print("STATUS -1")
                 raise SlidingMotionException
             t_list.append(np.linspace(t0, t0+T, num))
             x_list.append(X_points)
