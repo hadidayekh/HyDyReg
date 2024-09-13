@@ -310,7 +310,7 @@ class HybridRegressor:
 
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
-    def fit_first_segment(self, X, X_dot, segments):
+    def fit_first_segment(self, X, X_dot, segments, good_RD=0.001):
         self.n = 1
         X_first = X[segments[0]:segments[1]] if len(segments) > 1 else X[segments[0]:]
         print("first segment with",X_first.shape[0],"points")
@@ -346,7 +346,7 @@ class HybridRegressor:
             X_curr = X[segments[-1]:]
             print(X_curr.shape[0], "points")
             X_dot_curr = X_dot[segments[-1]:]
-            self.augment_fit(X_curr, X_dot_curr)
+            self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD)
 
 
     
