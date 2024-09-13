@@ -339,6 +339,57 @@ class Trajectories:
         self.segmented = True
         return Segments
 
+    def segment_trajectories_two_points(self, tol):
+        '''
+        - segments trajectories when the difference between fwd and bwd derivatives is greater than tol
+        - truncates trajectories by removing 3 points around each suspected changepoint (including it)
+        - returns Segments, a list of segment indices per trajectory
+          Segments = [segments_1, ..., segments_k] where k is the number of trajectories
+          segments_i contains the indices of *changepoints* in the *now truncated* trajectory i
+        '''
+        self.og_x_list = deepcopy(self.x_list)
+        self.og_t_list = deepcopy(self.t_list)
+        Segments = []
+        for j in range(len(self.x_list)):
+            x_points = self.x_list[j]
+            t_points = self.t_list[j]
+
+            # Assert that the time points and x points arrays have the same length
+            l = t_points.shape[0]
+            assert l == x_points.shape[0], 't_points and x_points do not have the same length'
+            
+            segments = []
+            current_start_index = 0
+            
+            i = 1
+            while i <= l-2:
+                # Extract the time and x points for the current position and the
+                # forward and backward positions
+                current_time, current_value = t_points[i], x_points[i]
+                forward_time_1, forward_value_1 = t_points[i+1], x_points[i+1]
+                backward_time_1, backward_value_1 = t_points[i-1], x_points[i-1]
+                
+                forward_derivative = (forward_value_1 - current_value) / (forward_time_1 - current_time)
+                backward_derivative = (current_value - backward_value_1) / (current_time - backward_time_1)
+                
+                if np.mean(relative_diff(forward_derivative, backward_derivative)) > tol:
+                    # If the difference between the forward and backward derivatives is
+                    # greater than the tolerance, we start a new segment
+                    #segments.append((current_start_index, i))
+                    current_start_index = i-1
+                    x_points = np.delete(x_points, np.s_[i-1:i+2], axis=0)
+                    t_points = np.delete(t_points, np.s_[i-1:i+2], axis=0)
+                    self.x_list[j] = x_points
+                    self.t_list[j] = t_points
+                    l = l - 3
+                    if current_start_index > 0 and current_start_index < l:
+                        segments.append(current_start_index)
+                    
+                i += 1
+            Segments.append(segments)
+        self.segmented = True
+        return Segments
+
     def is_empty(self):
         return self.num_trajectories == 0
 
