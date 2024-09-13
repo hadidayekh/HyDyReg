@@ -341,7 +341,7 @@ class HybridRegressor:
                 X_curr = X[segments[i]:segments[i+1]]
                 print(X_curr.shape[0], "points")
                 X_dot_curr = X_dot[segments[i]:segments[i+1]]
-                self.augment_fit(X_curr, X_dot_curr)
+                self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD)
             print("last seg")
             X_curr = X[segments[-1]:]
             print(X_curr.shape[0], "points")
@@ -361,8 +361,8 @@ class HybridRegressor:
         if min_RD < tol:
             print("No need to improve, mode", np.argmin(RDs), f"matches. RD = {min_RD:.3e}")
         else:
-            print(f"Need to improve, RD = {min_RD:.3e}")
-            print(RDs)
+            print(f"Need to improve, min(RDs) = {min_RD:.3e}")
+            # print(RDs)
         return min_RD < tol, np.argmin(RDs)
 
     def augment_fit(self, X, X_dot, good_RD=0.001):
