@@ -95,7 +95,7 @@ def draw_trajectories_2D(trajectories, fig=None, axs=None, colors=[plt.cm.tab10(
 
         return fig,axs
 
-def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','k','m'], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
+def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=[plt.cm.tab10(i) for i in range(10)], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
         if fig is None or axs is None:
             if(plot_xt):
                 fig = plt.figure(constrained_layout=True)
@@ -175,7 +175,7 @@ def draw_trajectories_3D(trajectories, fig=None, axs=None, colors=['b','y','c','
 
         return fig,axs
 
-def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','k','m'], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
+def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=[plt.cm.tab10(i) for i in range(10)], label=None, mark_beginning=False, plot_xt=False, segments=[], labelfun=None, title=""):
     num_plots = trajectories.d
     assert not num_plots is None
     if fig is None or axs is None:
@@ -217,7 +217,7 @@ def draw_trajectories_ND(trajectories, fig=None, axs=None, colors=['b','y','c','
 
 
 
-def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m'], labelfun=None):
+def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=[plt.cm.tab10(i) for i in range(10)], labelfun=None):
     n = np.max(modes) + 1
     if n > len(colors):
         raise Exception("The number of modes is greater than the number of colors provided. Aborting to avoid confusion.")
@@ -262,7 +262,7 @@ def plot_with_modes_2D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m']
 
     return fig,ax
 
-def plot_with_modes_3D(X, modes, fig=None, ax=None, colors=['b','r','y','k','m'], labelfun=None):
+def plot_with_modes_3D(X, modes, fig=None, ax=None, colors=[plt.cm.tab10(i) for i in range(10)], labelfun=None):
     n = np.max(modes) + 1
     if n > len(colors):
         raise Exception("The number of modes is greater than the number of colors provided. Aborting to avoid confusion.")
