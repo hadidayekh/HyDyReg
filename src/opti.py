@@ -319,7 +319,7 @@ class HybridRegressor:
         D = X_first.shape[1]
         Q = X_trans.shape[1]
         self.poly = poly
-        X_dot_first = X_dot[segments[0]:segments[1]]
+        X_dot_first = X_dot[segments[0]:segments[1]] if len(segments) > 1 else X_dot[segments[0]:]
         LR = LinearRegression()
         LR.fit(X_trans, X_dot_first)
         
@@ -331,7 +331,7 @@ class HybridRegressor:
 
         self.Xfit_ = X_first
         self.Xfit_trans_ = X_trans
-        self.X_dot_fit_ = X_dot
+        self.X_dot_fit_ = X_dot_first
 
         self.modesfit_ = np.array([0] * X_first.shape[0])
 
