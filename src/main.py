@@ -151,7 +151,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     else:
         t_best_C = 0
         model = model_curr
-        model.fit_first_segment(X, X_dot, seg_res)
+        model.fit_first_hypothesis(X, X_dot, seg_res)
         # f, a = plot_Xfit(model)
         # plt.show()
         # model.classify_modes(classifier)
