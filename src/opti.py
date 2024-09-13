@@ -31,7 +31,7 @@ x_dot.T is DxN
 """
 
 class HybridRegressor:
-    def __init__(self, train_coefs, n, deg=1, classifier_poly_trans=False, classifier_poly_deg=None, kernels_list=None, kargs_list=None):
+    def __init__(self, train_coefs=True, n=None, deg=1, classifier_poly_trans=False, classifier_poly_deg=None, kernels_list=None, kargs_list=None):
         self.train_coefs = train_coefs
         self.n = n
         self.deg = deg
@@ -50,6 +50,8 @@ class HybridRegressor:
     # For segmentation, will introduce variable segmentation which can belong to
     # {'squared_diff', 'strict'} or be None
     def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False):
+        if n is None:
+            raise Exception("To use the optimization based method, the number of modes n must be provided.")
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
             raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
         if not segmentation is None and len(segments) == 0:
