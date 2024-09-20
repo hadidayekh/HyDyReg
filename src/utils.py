@@ -346,7 +346,7 @@ def gen_matlab_hyeq_jumpMap(classifier, polyfeatures : PolynomialFeatures =None,
                         s += " && "
                     w = W[i] - W[j]
                     b = B[i] - B[j]
-                    max_w = w[np.argmax(np.abs(w))]
+                    max_w = np.abs(w[np.argmax(np.abs(w))])
                     w = w / max_w
                     b = b / max_w
                     for d in range(D):
@@ -360,6 +360,70 @@ def gen_matlab_hyeq_jumpMap(classifier, polyfeatures : PolynomialFeatures =None,
         print("Could not get boundary.")
         return ''
 
+def gen_matlab_hyeq_jumpSetIndicator(classifier, polyfeatures : PolynomialFeatures =None, ind=""):
+    W = classifier.coef_
+    B = classifier.intercept_
+    ncoef = W.shape[0]
+    D = W.shape[1]
+
+    if not polyfeatures is None:
+        dim_cont = polyfeatures.n_features_in_
+        fn = [f'x({i+1})' for i in range(dim_cont)]
+        fn = polyfeatures.get_feature_names_out(fn)
+        fn = [s.replace(" ", " * ") for s in fn]
+    else:
+        dim_cont = D
+        fn = [f'x({i+1})' for i in range(D)]
+    
+    s = f"{ind}function D = jumpSetIndicator(this, x)\n"
+    s += f"{ind}\tz = x(1:{dim_cont});\n"
+    s += f"{ind}\tmode = x({dim_cont + 1});\n"
+    s += f"{ind}\tswitch mode\n"
+    
+    if ncoef == 1:
+        w = W[0]
+        b = B[0]
+        max_w = np.max(np.abs(w))
+        w = w / max_w
+        b = b / max_w
+        s += f"{ind}\t\tcase 1\n"
+        s += f"{ind}\t\t\tD = "
+        bnd = ""
+        for d in range(D):
+            bnd += f'({w[d]} * {fn[d]}) + '
+        bnd += f'({b})'
+        s += bnd + ' >= 0;\n'
+
+        s += f"{ind}\t\tcase 2\n"
+        s += f"{ind}\t\t\tD = "
+        s += bnd + ' <= 0;\n'
+        
+        s += f"{ind}\tend\n{ind}end"
+        return s
+    else:
+        for i in range(ncoef):
+            # s += f"{ind}\tif " if i == 0 else f"{ind}\telseif "
+            s += f"{ind}\t\tcase {i+1}\n"
+            s += f"{ind}\t\t\tD = "
+            amp = False
+            for j in range(ncoef):
+                if j == i:
+                    continue
+                if not amp:
+                    amp = True
+                else:
+                    s += " || "
+                w = W[i] - W[j]
+                b = B[i] - B[j]
+                max_w = np.abs(w[np.argmax(np.abs(w))])
+                w = w / max_w
+                b = b / max_w
+                for d in range(D):
+                    s += f'({w[d]})*({fn[d]}) + '
+                s += f'({b}) <= 0'
+            s += ';\n'
+        s += f"{ind}\tend\n{ind}end"
+        return s
 
 
 def get_SVC_boundary_eq_dim2_poly2(model_SVC):
