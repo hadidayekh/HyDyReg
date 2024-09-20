@@ -335,7 +335,7 @@ def gen_matlab_hyeq_jumpMap(classifier, polyfeatures : PolynomialFeatures =None,
             return s
         else:
             for i in range(ncoef):
-                s += "{ind}\tif " if i == 0 else "{ind}\telseif "
+                s += f"{ind}\tif " if i == 0 else f"{ind}\telseif "
                 amp = False
                 for j in range(ncoef):
                     if j == i:
@@ -354,7 +354,7 @@ def gen_matlab_hyeq_jumpMap(classifier, polyfeatures : PolynomialFeatures =None,
                     s += f'({b}) >= 0'
                 s += '\n'
                 s += f'{ind}\t\txplus = [z; {i+1}];\n'
-            s += "{ind}\tend\n{ind}end"
+            s += f"{ind}\tend\n{ind}end"
             return s
     except:
         print("Could not get boundary.")
