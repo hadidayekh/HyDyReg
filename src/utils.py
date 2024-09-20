@@ -426,6 +426,38 @@ def gen_matlab_hyeq_jumpSetIndicator(classifier, polyfeatures : PolynomialFeatur
         return s
 
 
+def gen_matlab_hyeq_flowMap(model, ind=""):
+    assert model.train_coefs
+    omegas = model.Omegas_
+    betas = model.betas_
+    print(omegas)
+    print(betas.shape)
+    
+    polyfeatures = model.poly
+    dim_cont = polyfeatures.n_features_in_
+    fn = [f'x({i+1})' for i in range(dim_cont)]
+    fn = polyfeatures.get_feature_names_out(fn)
+    fn = [s.replace(" ", " * ") for s in fn]
+
+    n_modes = model.n
+
+    s = f"{ind}function xdot = flowMap(this, x)\n"
+    s += f"{ind}\tz = x(1:{dim_cont});\n"
+    s += f"{ind}\tmode = x({dim_cont + 1});\n"
+
+    s += f"{ind}\tz_poly = ["
+    for i in range(len(fn)-1):
+        s += fn[i] + "; "
+    s += fn[-1] + "];\n"
+
+    s += f"{ind}\tswitch mode\n"
+    for mode in range(n_modes):
+        s += f"{ind}\t\tcase {mode}\n"
+        s += f"{ind}\t\t\txdot = [this.A{mode} * z_poly + this.B{mode}; 0];\n"
+    s += f"{ind}\tend\n"
+    s += f"{ind}end"
+    return s
+
 def get_SVC_boundary_eq_dim2_poly2(model_SVC):
     if model_SVC.kernel != 'poly' or model_SVC.degree != 2:
         raise NotImplementedError
