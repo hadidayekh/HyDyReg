@@ -452,10 +452,54 @@ def gen_matlab_hyeq_flowMap(model, ind=""):
 
     s += f"{ind}\tswitch mode\n"
     for mode in range(n_modes):
-        s += f"{ind}\t\tcase {mode}\n"
-        s += f"{ind}\t\t\txdot = [this.A{mode} * z_poly + this.B{mode}; 0];\n"
+        s += f"{ind}\t\tcase {mode+1}\n"
+        s += f"{ind}\t\t\txdot = [this.A{mode+1} * z_poly + this.B{mode+1}; 0];\n"
     s += f"{ind}\tend\n"
     s += f"{ind}end"
+    return s
+
+def gen_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
+    s = "classdef " + name + " < HybridSystem\n"
+    
+    omegas = model.Omegas_
+    betas = model.betas_
+
+    n = omegas.shape[0]
+    D = omegas.shape[1]
+    Q = omegas.shape[2]
+
+    s += "\tproperties\n"
+    for mode in range(n):
+        s += f"\t\tA{mode+1} = ["
+        for d in range(D-1):
+            for q in range(Q-1):
+                s += f"{omegas[mode][d][q]}, "
+            s += f"{omegas[mode][d][Q-1]}; "
+        for q in range(Q-1):
+            s += f"{omegas[mode][D-1][q]}, "
+        s += f"{omegas[mode][D-1][Q-1]}]\n"
+    
+    s += "\n"
+
+    for mode in range(n):
+        s += f"\t\tB{mode+1} = ["
+        for d in range(D-1):
+            s += f"{betas[mode][d]}; "
+        s += f"{betas[mode][D-1]}]\n"
+    
+    s += "\tend\n\n"
+
+    s += "\tmethods\n"
+
+    s += gen_matlab_hyeq_flowMap(model, ind = "\t\t") + "\n"
+    s += gen_matlab_hyeq_jumpMap(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
+    s += gen_matlab_hyeq_jumpSetIndicator(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
+
+    s += "\t\tfunction C = flowSetIndicator(this, x)\n\t\t\tC = 1;\n\t\tend\n\n"
+
+    s += "\tend\n"
+    s += "end"
+
     return s
 
 def get_SVC_boundary_eq_dim2_poly2(model_SVC):
