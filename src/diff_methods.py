@@ -166,7 +166,7 @@ def diff_method_forward(t_list, x_list, segments=None, remove_seg=False):
                         # if multiple trajectories, concatenate them
                         X = np.r_[X, np.zeros([0, x_dim])]
                         X_dot = np.r_[X_dot, np.zeros([0, x_dim])]
-                        Time = np.r_[Time, np.zeros[0,]]
+                        Time = np.r_[Time, np.zeros([0,])]
                     continue
                 h = t_points_seg[1] - t_points_seg[0]
                 X_seg = np.zeros([D, x_dim])
