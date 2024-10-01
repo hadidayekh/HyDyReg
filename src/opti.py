@@ -355,6 +355,9 @@ class HybridRegressor:
         for j in range(self.n):
             Xdot_pred = self.predict(X, lambda x: j)
             RDs[j] = np.mean(relative_diff(Xdot, Xdot_pred))
+            # print("mode", j, RDs[j])
+            # print(Xdot - Xdot_pred)
+            # print(Xdot, Xdot_pred)
             # RDs[j] = np.linalg.norm(Xdot - Xdot_pred, ord='fro')
         min_RD = np.min(RDs)
         # print(RDs)
