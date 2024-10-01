@@ -68,7 +68,7 @@ segments = trajs.segment_trajectories_two_points(0.05)
 # dm = ps.SmoothedFiniteDifference(order=4, drop_endpoints=True, smoother_kws={'window_length': 5})
 dm = ps.FiniteDifference(order=4, drop_endpoints=True)
 dm = ps.SINDyDerivative(kind='savitzky_golay', left=0.5, right=0.5, order=4)
-X, Xdot, seg_res = diff_method_ps(trajs.t_list, trajs.x_list, segments, dm=dm)
+X, Xdot, seg_res, _ = diff_method_ps(trajs.t_list, trajs.x_list, segments, dm=dm)
 for i in range(Xdot.shape[0]):
     Xdot[i][0] /= 1
 # print(np.sort(Xdot.T[0])[:10])

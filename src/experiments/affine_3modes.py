@@ -136,7 +136,7 @@ if k_learn:
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments2, remove_seg=True)
+    X, X_dot, seg_res, _ = diff_method_fps(t_arr, x_arr, segments=segments2, remove_seg=True)
     
     if load_pickle:
         file = open('../models/' + exp_title + '.model', 'rb')

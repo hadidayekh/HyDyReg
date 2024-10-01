@@ -257,7 +257,7 @@ if k_learn:
         model = HybridRegressor(['linear', 'linear'], [[0], [0]])
     #model = HybridRegressor(['polynomial', 'polynomial'], [[2, 1, 1], [2, 1, 1]])
 
-    X, X_dot, seg_res = diff_methods.diff_method_fps(t_list, x_list, segments=segments)
+    X, X_dot, seg_res, _ = diff_methods.diff_method_fps(t_list, x_list, segments=segments)
     
     # X_dot_r = np.array([eqs2[label_fun_used(curr_x)](0, curr_x) for curr_x in X])
     # print(np.linalg.norm(X_dot - X_dot_r))
@@ -305,7 +305,7 @@ if k_learn:
     plt.show()
     exit()
     fig, ax = plt.subplots()
-    X, X_dot = diff_methods.diff_method_fps(t_list, x_list)
+    X, X_dot, _ = diff_methods.diff_method_fps(t_list, x_list)
     print(X.shape)
     kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(
         t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.001, 100, norm='L2', print_on=True)

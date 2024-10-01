@@ -73,7 +73,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
     # plt.show()
     # exit()
     # Extracting the derivatives and updated segment indices
-    X, X_dot, seg_res = diff_method(trajs_train_sul.t_list, trajs_train_sul.x_list, segments=segments, remove_seg=True)
+    X, X_dot, seg_res, _ = diff_method(trajs_train_sul.t_list, trajs_train_sul.x_list, segments=segments, remove_seg=True)
     # Finding segment of each point
     seg_all = which_segment_all(X.shape[0], seg_res)
 
@@ -252,7 +252,7 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             segments_eq = cexs_sul.segment_trajectories(seg_tol)
             print(segments_eq)
             # plotting_function(cexs_sul, segments=segments_eq)
-            X, X_dot, seg_res_eq = diff_method(cexs_sul.t_list, cexs_sul.x_list, segments=segments_eq, remove_seg=True)
+            X, X_dot, seg_res_eq, _ = diff_method(cexs_sul.t_list, cexs_sul.x_list, segments=segments_eq, remove_seg=True)
             # print(seg_res_eq)
             # f123,a123 = plt.subplots()
             # a123.scatter(*X.T, s=2)

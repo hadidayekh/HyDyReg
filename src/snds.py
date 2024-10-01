@@ -189,7 +189,7 @@ class SNDS:
                 fine_trajs = self.simulate_trajectory(timestep, T, [x0], t_start)
                 segments_fine = fine_trajs.segment_trajectories(seg_tol)
 
-                X, X_dot, seg_res = diff_method_fps(np.array(fine_trajs.t_list), np.array(fine_trajs.x_list), segments_fine, remove_seg=True)
+                X, X_dot, seg_res, _ = diff_method_fps(np.array(fine_trajs.t_list), np.array(fine_trajs.x_list), segments_fine, remove_seg=True)
                 
                 if first:
                     final_X = X
@@ -402,7 +402,7 @@ class Trajectories:
             for s in range(len(segments[i])-1):
                 t_list_s = np.array([t_list[i][segments[i][s]:segments[i][s+1]]])
                 x_list_s = np.array([x_list[i][segments[i][s]:segments[i][s+1]]])
-                X, X_dot = diff_method(t_list_s, x_list_s)
+                X, X_dot, _ = diff_method(t_list_s, x_list_s)
                 if deg > 1:
                     X = PolynomialFeatures(degree=deg, include_bias=False).fit_transform(X)
                 model = LinearRegression().fit(X, X_dot)
@@ -426,7 +426,7 @@ class Trajectories:
                 if diff_method is None:
                     dataset.append(x_list_s)
                 else:
-                    _, X_dot = diff_method(np.array([t_list_s]), np.array([x_list_s]))
+                    _, X_dot, _ = diff_method(np.array([t_list_s]), np.array([x_list_s]))
                     dataset.append(X_dot)
         
         dataset = to_time_series_dataset(dataset)

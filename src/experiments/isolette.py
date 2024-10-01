@@ -96,7 +96,7 @@ if k_learn:
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
+    X, X_dot, seg_res, _ = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
 
     # Fitting the model with its corresponding derivatives
     model.fit(X, X_dot, deltas=0.0001, C=100, segmentation='strict', segments=seg_res)
