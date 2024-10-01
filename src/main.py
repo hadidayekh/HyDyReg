@@ -18,7 +18,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=True, fit_active_only=True, stop_at_sliding_motion=True, N_cexs=50):
+def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none'), C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50):
     D = len(x0s[0])
     save_ext = '.png'
     dpi=None
@@ -165,6 +165,9 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
+    # print(model.gen_full_latex_eq())
+    # print(gen_full_matlab_hyeq_class(model, name="NSLDR"))
+    # exit()
     fine_X, fine_X_dot = sul.generate_points_between_segments(trajs_train_sul, segments, seg_tol/10, timestep=time_step_test/20)
     model.improve_classification(fine_X, fine_X_dot, classifier)
     # if classifier_poly_trans:
@@ -293,8 +296,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
                 X_dot_classify = np.r_[X_dot, fine_X_dot_eq]
     
             model.improve_classification(X_classify, X_dot_classify, classifier)
-            f, a = plot_Xfit(model)
-            plt.show()
+            # f, a = plot_Xfit(model)
+            # plt.show()
             if classifier_poly_trans:
                 print_classifier_boundaries(model.classifier_, model.classifier_poly_)
             else:
@@ -320,6 +323,8 @@ def learn_system(exp_name, sul : SNDS, time_step, time_range, x0s, time_step_tes
             print("Equivalence query is TRUE!")
             print("NUMBER OF EQ QUERIES:", count)
             print_classifier_boundaries(model.classifier_)
+            print(gen_full_matlab_hyeq_class(model, name="HySys"))
+
 
         time_EQ = time.time() - start
     
