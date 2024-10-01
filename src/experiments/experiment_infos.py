@@ -487,8 +487,10 @@ for exp_title in exps:
                                                                                             apply_LR=False,
                                                                                             with_plots=True,
                                                                                             plot_xt=False,
-                                                                                            print_on=False,
+                                                                                            print_on=True,
                                                                                             stop_at_sliding_motion=False,
+                                                                                            fit_active_only=True,
+                                                                                            improve_cont=True,
                                                                                             N_cexs = 5)
 
     print("Test derivatives RD:", data[-1])
