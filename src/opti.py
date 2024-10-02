@@ -310,7 +310,7 @@ class HybridRegressor:
 
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
-    def fit_first_hypothesis(self, X, X_dot, segments, good_RD=0.001):
+    def fit_first_hypothesis(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression()):
         self.n = 1
         X_first = X[segments[0]:segments[1]] if len(segments) > 1 else X[segments[0]:]
         print("first segment with",X_first.shape[0],"points")
@@ -320,7 +320,8 @@ class HybridRegressor:
         Q = X_trans.shape[1]
         self.poly = poly
         X_dot_first = X_dot[segments[0]:segments[1]] if len(segments) > 1 else X_dot[segments[0]:]
-        LR = LinearRegression()
+        # LR = LinearRegression()
+        LR = clone(regressor)
         LR.fit(X_trans, X_dot_first)
         
         self.Omegas_ = np.ndarray((1, D, Q))
@@ -341,12 +342,12 @@ class HybridRegressor:
                 X_curr = X[segments[i]:segments[i+1]]
                 print(X_curr.shape[0], "points")
                 X_dot_curr = X_dot[segments[i]:segments[i+1]]
-                self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD)
+                self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
             print("last seg")
             X_curr = X[segments[-1]:]
             print(X_curr.shape[0], "points")
             X_dot_curr = X_dot[segments[-1]:]
-            self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD)
+            self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
 
 
     
@@ -368,7 +369,7 @@ class HybridRegressor:
             # print(RDs)
         return min_RD < tol, np.argmin(RDs)
 
-    def augment_fit(self, X, X_dot, good_RD=0.001):
+    def augment_fit(self, X, X_dot, good_RD=0.001, regressor=LinearRegression()):
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
@@ -385,7 +386,8 @@ class HybridRegressor:
             LRs = []
             RDs = np.ndarray((self.n,))
             for j in range(self.n):
-                LR = LinearRegression()
+                # LR = LinearRegression()
+                LR = clone(regressor)
                 Xfit_trans_j, X_dot_j = self.get_points_of_mode(j)
                 aug_X = np.r_[Xfit_trans_j, X_trans]
                 aug_X_dot = np.r_[X_dot_j, X_dot]
@@ -417,7 +419,8 @@ class HybridRegressor:
                 print(f"Creating new mode {mode}; RD was not good: {RD:.3f}")
                 # print(RDs)
                 self.n = self.n + 1
-                LR = LinearRegression()
+                # LR = LinearRegression()
+                LR = clone(regressor)
                 LR.fit(X_trans, X_dot)
                 self.Omegas_ = np.r_[self.Omegas_, LR.coef_.reshape((1, LR.coef_.shape[0], LR.coef_.shape[1]))]
                 self.betas_ = np.r_[self.betas_, LR.intercept_.reshape((1, LR.intercept_.shape[0]))]
