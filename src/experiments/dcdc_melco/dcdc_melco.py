@@ -14,16 +14,16 @@ import pysindy as ps
 
 data = np.genfromtxt("experiments/dcdc_melco/data.csv", delimiter=',').T
 
-t = data[0]
+t = data[0][:]
 
 print(t.shape)
 print(np.unique(t).shape)
 Iin0 = data[1]
 Iout0 = data[2]
 Vout0 = data[3]
-gate = data[4]
+gate = data[4][:]
 
-X_init = data[1:4].T
+X_init = data[1:3].T[:]
 indices = np.where(np.diff(gate) != 0)[0]+1
 
 t_list = np.split(t, indices)
@@ -66,33 +66,117 @@ segments = trajs.segment_trajectories_two_points(0.05)
 # exit()
 
 # dm = ps.SmoothedFiniteDifference(order=4, drop_endpoints=True, smoother_kws={'window_length': 5})
-dm = ps.FiniteDifference(order=4, drop_endpoints=True)
+# dm = ps.FiniteDifference(order=4, drop_endpoints=True)
 dm = ps.SINDyDerivative(kind='savitzky_golay', left=0.5, right=0.5, order=4)
-X, Xdot, seg_res, _ = diff_method_ps(trajs.t_list, trajs.x_list, segments, dm=dm)
-for i in range(Xdot.shape[0]):
-    Xdot[i][0] /= 1
+X, Xdot, seg_res, Time = diff_method_ps(trajs.t_list, trajs.x_list, segments, dm=dm)
+# X, Xdot, seg_res, Time = diff_method_forward(trajs.t_list, trajs.x_list, segments)
+
+
 # print(np.sort(Xdot.T[0])[:10])
 # print(len(seg_res))
 # exit()
-model = HybridRegressor(deg=1)
-model.fit_first_hypothesis(X, Xdot, seg_res, good_RD=0.05)
-for j in range(model.n):
-    model.retrain_continuous(j)
+from sklearn.linear_model import Ridge, RidgeCV
 
+model = HybridRegressor(deg=1)
+alphas = [10000, 1000, 100, 10, 1, 0.1, 0.01, 0.001]
+# alphas = [0.001, 0.0001, 0.00001, 0]
+
+regressor =  RidgeCV(alphas, alpha_per_target=True)
+model.fit_first_hypothesis(X, Xdot, seg_res, good_RD=0.005, regressor=regressor)
+# for j in range(model.n):
+#     model.retrain_continuous(j)
 
 X_dot_predict = model.predict(model.Xfit_, model.modesfit_)
+
+# exit()
+
 
 # print(X_dot_predict - model.X_dot_fit_)
 sorted_rd = np.sort(relative_diff(X_dot_predict, model.X_dot_fit_))
 N_sorded_rd = sorted_rd.shape[0]
 print(sorted_rd[N_sorded_rd-50:])
 # exit()
+# print(model.Omegas_.shape)
 # print(model.Omegas_[0], model.betas_[0])
 # print(model.Omegas_[1], model.betas_[1])
 # exit()
 
 model.classify_modes()
 print(model.gen_full_latex_eq(with_classifier_boundaries=False))
+
+
+
+## plot mode jumps with time
+f1, axs = plt.subplots(3)
+f2, axs2 = plt.subplots(3)
+
+n_points = model.modesfit_.size
+n_start = n_points * 0 // 100
+n_end = n_points * 100 // 100
+
+# ## plot X
+axs[0].scatter(Time[n_start:n_end], model.modesfit_[n_start:n_end]+1, s=1)
+axs[1].scatter(Time[n_start:n_end], X.T[0][n_start:n_end], s=1)
+axs[2].scatter(Time[n_start:n_end], X.T[1][n_start:n_end], s=1)
+
+# ## plot Xdot 
+axs2[0].scatter(Time[n_start:n_end], model.modesfit_[n_start:n_end]+1, s=1)
+axs2[1].scatter(Time[n_start:n_end], Xdot.T[0][n_start:n_end], s=1, label='estimated')
+axs2[2].scatter(Time[n_start:n_end], Xdot.T[1][n_start:n_end], s=1, label='estimated')
+axs2[1].scatter(Time[n_start:n_end], X_dot_predict.T[0][n_start:n_end], s=1, label='predicted')
+axs2[2].scatter(Time[n_start:n_end], X_dot_predict.T[1][n_start:n_end], s=1, label='predicted')
+
+## plot with segmentation information
+# axs[0].scatter(Time, model.modesfit_+1, markersize=0.01)
+# for s in range(len(seg_res)-1):
+#     Time_seg = Time[seg_res[s]:seg_res[s+1]]
+#     modes_seg = model.modesfit_[seg_res[s]:seg_res[s+1]]
+#     X0_seg = X.T[0][seg_res[s]:seg_res[s+1]]
+#     X1_seg = X.T[1][seg_res[s]:seg_res[s+1]]
+#     # axs[0].plot(Time_seg, modes_seg+1, markersize=0.01, color='b')
+#     axs[1].plot(Time_seg, X0_seg, markersize=0.01, color='b')
+#     axs[2].plot(Time_seg, X1_seg, markersize=0.01, color='b')
+for i in range(3):
+    axs[i].set_xlabel("t")
+    axs2[i].set_xlabel("t")
+    axs[i].minorticks_on()
+    axs2[i].minorticks_on()
+    axs[i].grid(axis='x', alpha=0.25, which='both')
+    axs2[i].grid(axis='x', alpha=0.25, which='both')
+    axs[i].ticklabel_format(style='sci', scilimits=(0,0))
+    axs2[i].ticklabel_format(style='sci', scilimits=(0,0))
+    
+axs[0].set_ylabel("Mode")
+axs[1].set_ylabel("$I_{in}$")
+axs[2].set_ylabel("$I_{out}$")
+
+axs2[0].set_ylabel("Mode")
+axs2[1].set_ylabel("$d(I_{in})/dt$")
+axs2[2].set_ylabel("$d(I_{out})/dt$")
+axs2[1].legend()
+axs2[2].legend()
+
+axs[0].yaxis.get_major_locator().set_params(integer=True)
+axs2[0].yaxis.get_major_locator().set_params(integer=True)
+axs[0].tick_params(axis='y', which='minor', left=False)
+axs2[0].tick_params(axis='y', which='minor', left=False)
+
+
+title = ""
+for mode in range(model.n):
+    mode_alphas = model.regressors_[mode].alpha_
+    title += f"$\\alpha_{mode+1}=["
+    for alpha in mode_alphas:
+        title +=  f"{alpha}, "
+    title = title[:-2] + "]$ "
+    if mode % 2 == 1:
+        title += "\n"
+title = title[:-1]
+
+print(title)
+f1.suptitle(title)
+f2.suptitle(title)
+plt.show()
 
 
 # print(model.Xfit_.shape)
@@ -112,6 +196,15 @@ for i in range(np.max(model.modesfit_)+1):
 # print(gen_full_matlab_hyeq_class(model, name="DCDC_Melco").replace(".", ","))
 print(X_init[0])
 print(t[0], t[-1])
+
+
+
+mode_switch_ind = np.where(np.diff(model.modesfit_) != 0)[0] + 1
+time_switch = Time[mode_switch_ind]
+# print(np.diff(time_switch))
+
+
+
 exit()
 
 hypothesis = model.to_SNDS()
