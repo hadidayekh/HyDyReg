@@ -323,12 +323,12 @@ class HybridRegressor:
         # LR = LinearRegression()
         LR = clone(regressor)
         LR.fit(X_trans, X_dot_first)
-        
         self.Omegas_ = np.ndarray((1, D, Q))
         self.betas_ = np.ndarray((1, D))
 
         self.Omegas_[0] = LR.coef_
         self.betas_[0] = LR.intercept_
+        self.regressors_ = [LR]
 
         self.Xfit_ = X_first
         self.Xfit_trans_ = X_trans
@@ -413,6 +413,7 @@ class HybridRegressor:
                 LR = LRs[mode]
                 self.Omegas_[mode] = LR.coef_
                 self.betas_[mode] = LR.intercept_
+                self.regressors_[mode] = LR
 
             else:
                 mode = self.n
@@ -424,6 +425,7 @@ class HybridRegressor:
                 LR.fit(X_trans, X_dot)
                 self.Omegas_ = np.r_[self.Omegas_, LR.coef_.reshape((1, LR.coef_.shape[0], LR.coef_.shape[1]))]
                 self.betas_ = np.r_[self.betas_, LR.intercept_.reshape((1, LR.intercept_.shape[0]))]
+                self.regressors_.append(LR)
         
         self.Xfit_ = np.r_[self.Xfit_, X]
         self.Xfit_trans_ = np.r_[self.Xfit_trans_, X_trans]
