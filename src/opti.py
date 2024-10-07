@@ -822,12 +822,12 @@ class HybridRegressor:
         self.X_dot_classify_ = X_dot
         self.modes_classify_ = modes
 
-    def retrain_continuous(self, j, regressor=LinearRegression()):
+    def retrain_continuous(self, j, regressor=None):
         X, Xdot = self.get_points_of_mode(j)
         if X.shape[0] == 0:
             return
-
-        regressor = self.regressors_[j]
+        if regressor is None:
+            regressor = self.regressors_[j]
         regressor.fit(X, Xdot)
         self.Omegas_[j] = regressor.coef_
         self.betas_[j] = regressor.intercept_
