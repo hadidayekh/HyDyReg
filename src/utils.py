@@ -132,8 +132,9 @@ def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig
             eq_string += ' + '
         eq_string += str(coefs[i]) + ' ' + x_part
         started = True
-
-    if bias != 0:
+    if not started:
+        eq_string += str(bias)
+    elif bias != 0:
         if bias > 0:
             eq_string += ' + '
         eq_string += str(bias) 
