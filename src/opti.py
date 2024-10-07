@@ -827,6 +827,7 @@ class HybridRegressor:
         if X.shape[0] == 0:
             return
 
+        regressor = self.regressors_[j]
         regressor.fit(X, Xdot)
         self.Omegas_[j] = regressor.coef_
         self.betas_[j] = regressor.intercept_
