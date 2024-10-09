@@ -1010,7 +1010,7 @@ class HybridRegressor:
                     coefs = self.Omegas_[j][d]
                     print(coefs.T, " ", self.betas_[j][d])
 
-    def gen_full_latex_eq(self, with_classifier_boundaries=True):
+    def gen_full_latex_eq(self, with_classifier_boundaries=True, round_dig=3):
         self.check_if_fitted()
         if not self.train_coefs:
             raise NotImplementedError
@@ -1025,7 +1025,7 @@ class HybridRegressor:
             eq_string += f'\\textbf{{Mode {j+1}:}}\n\\[\n\\begin{{cases}}\n'
             for d in range(D):
                 eq_string += f'\t\\begin{{aligned}}\n'
-                eq_string += f'\t\t\\xddim{{{d+1}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d]) + '\n'
+                eq_string += f'\t\t\\xddim{{{d+1}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d], round_dig=round_dig) + '\n'
                 eq_string += f'\t\\end{{aligned}}\\\\\n'
             eq_string += f'\\end{{cases}}\n\\]\n'
 
