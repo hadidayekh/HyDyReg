@@ -39,7 +39,7 @@ class IncrementalLogsiticRGD_withLR:
         self.regions = []
         for k in range(self.K):
             A = [[1, 0], [0, 1], [-1, 0], [0, -1]]
-            b = [10, 10, 10, 10]
+            b = [1e20]*4
             for j in range(self.K):
                 if j != k:
                     A.append(self.W[k] - self.W[j])
@@ -187,7 +187,9 @@ class IncrementalLogsiticRGD_withLR:
         
         # ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
         col_ind = 0
+        plot_box_poly = pc.box2poly([[xmin, xmax], [ymin, ymax]])
         for p in self.regions:
+            p = p.intersect(plot_box_poly)
             print(p)
             p.plot(ax, color=plt.cm.tab10(col_ind), alpha=0.3)
             col_ind += 1
