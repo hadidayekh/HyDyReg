@@ -61,7 +61,7 @@ class IncrementalLogsiticRGD_withLR:
         self.X_ = np.ndarray((0, X[0].size))
         self.y_ = np.ndarray((0,))
 
-        self.partial_fit(X, y)
+        return self.partial_fit(X, y)
 
 
 
@@ -162,6 +162,8 @@ class IncrementalLogsiticRGD_withLR:
         
         self.X_ = np.r_[self.X_, X_old]
         self.y_ = np.r_[self.y_, y_old]
+        
+        return self
 
     def decision_function(self, X):
         return X @ self.W.T + self.B
