@@ -32,10 +32,13 @@ class IncrementalLogsiticRGD_withLR:
         return grad_w_k, grad_b_k
 
     def define_region_polytopes(self):
+        '''
+        Defines polytopes in self.regions with the polytope library.
+        '''
         self.regions = []
         for k in range(self.K):
             A = [[1, 0], [0, 1], [-1, 0], [0, -1]]
-            b = [1e6, 1e6, 1e6, 1e6]
+            b = [np.inf, np.inf, np.inf, np.inf]
             for j in range(self.K):
                 if j != k:
                     A.append(self.W[k] - self.W[j])
@@ -45,6 +48,9 @@ class IncrementalLogsiticRGD_withLR:
             self.regions.append(pc.Polytope(A, b))
 
     def fit(self, X, y):
+        '''
+        Runs the fitting algorithm with 0-initialized coefficient vectors.
+        '''
         self.K = len(np.unique(y))   # number of classes
         self.D = len(X[0])
 
@@ -54,19 +60,26 @@ class IncrementalLogsiticRGD_withLR:
         self.X_ = np.ndarray((0, X[0].size))
         self.y_ = np.ndarray((0,))
 
-        self.partial_fit(X, y, with_prev=False)
+        self.partial_fit(X, y)
 
 
 
-    def partial_fit(self, X, y, with_prev=False, with_prev_portion=0.1, Xplt=None, yplt=None):
+    def partial_fit(self, X, y, with_prev_portion=0, Xplt=None, yplt=None):
+        '''
+        Runs the fitting algorithm using gradient descent and without re-initializing the coefficients.
+        '''
         assert len(X[0]) == self.D
         N = X.shape[0]          # number of data points
         new_K = np.max(y) + 1   # this assumes that new classes are always added in ascending order
+
+        # First deal with NEW classes
         if new_K > self.K:
             n_new_classes = new_K - self.K
             
             Xnew = X[y >= self.K]
             ynew = y[y >= self.K]
+
+            # regions contains all regions in which new-class points appear
             regions = []
             for i in range(len(ynew)):
                 for j in range(self.K):
@@ -76,8 +89,9 @@ class IncrementalLogsiticRGD_withLR:
 
             regions = np.unique(np.array(regions))
             n_affected_regions = len(regions)
-            new_classes = np.unique(ynew).sort()
 
+            # run a logistic regression algorithm with all *new* points and
+            # all points in affected regions
             LR = LogisticRegression(penalty='none')
             X_lr = Xnew
             y_lr = ynew
@@ -124,7 +138,7 @@ class IncrementalLogsiticRGD_withLR:
 
         X_old = X
         y_old = y
-        if with_prev:            
+        if with_prev_portion > 0:            
             rand_ints = np.random.permutation(self.X_.shape[0])[:int(self.X_.shape[0]*with_prev_portion)]
             print(rand_ints)
             X_prev_rand = self.X_[rand_ints]
@@ -132,6 +146,8 @@ class IncrementalLogsiticRGD_withLR:
             X = np.r_[X, X_prev_rand]
             y = np.r_[y, y_prev_rand]
             N = X.shape[0]
+
+        # stochastic gradient descent algorithm
         for _ in range(self.nb_epochs):
             p = np.random.permutation(len(y))
             X_shuffled = X[p]
