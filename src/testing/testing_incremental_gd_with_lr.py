@@ -200,66 +200,68 @@ class IncrementalLogsiticRGD_withLR:
 
         return fig, ax
 
-n_samples = 20
-n_classes = 4
-learning_rate = 0.1
-nb_epochs = 50
 
-X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
-                           n_clusters_per_class=1, n_redundant=0, n_classes=n_classes, random_state=1)
+if __name__ == "__main__":
+    n_samples = 20
+    n_classes = 4
+    learning_rate = 0.1
+    nb_epochs = 50
 
-
-# for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1 , 1]:
-LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
+    X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
+                            n_clusters_per_class=1, n_redundant=0, n_classes=n_classes, random_state=1)
 
 
-# LR.W = np.array([[-1.00231, -0.98778], [ 0.99056, -0.85561], [-1.08337,  0.80221], [1.0791,   1.02797]])
-# LR.B = np.array([-0.17557, -0.09156,  0.14826,  0.12181])
-# LR.W = np.array([[-1, -1], [ 1, -1], [-1,  1], [1,   1]])
-# LR.B = np.array([0,0,0,0])
-# LR.W = np.array([[0, -1], [-1,  1], [1,   1]])
-# LR.B = np.array([0,0,0])
-
-# LR.K = LR.B.size
-# LR.define_region_polytopes()
-# LR.plot_classi(X, y)
-# plt.show()
-# exit()
+    # for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1 , 1]:
+    LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
 
 
-LR.fit(X,y)
-LR.plot_classi(X,y)
+    # LR.W = np.array([[-1.00231, -0.98778], [ 0.99056, -0.85561], [-1.08337,  0.80221], [1.0791,   1.02797]])
+    # LR.B = np.array([-0.17557, -0.09156,  0.14826,  0.12181])
+    # LR.W = np.array([[-1, -1], [ 1, -1], [-1,  1], [1,   1]])
+    # LR.B = np.array([0,0,0,0])
+    # LR.W = np.array([[0, -1], [-1,  1], [1,   1]])
+    # LR.B = np.array([0,0,0])
 
-print(LR.W)
-print(LR.B)
-
-# LR.fit(X,y)
-# LR.plot_classi(X,y)
-# plt.show()
-# exit()
-X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1], [-1.5, -3], [-2, -3]])
-y_new = np.array([4, 4, 0, 5, 5])
-# X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
-# y_new = np.array([4, 4, 0])
-X_all = np.r_[X, X_new]
-y_all = np.r_[y, y_new]
+    # LR.K = LR.B.size
+    # LR.define_region_polytopes()
+    # LR.plot_classi(X, y)
+    # plt.show()
+    # exit()
 
 
-# LR.partial_fit(X_new, y_new, with_prev=True, with_prev_portion=0.4)
-# LR.plot_classi(X_all, y_all)
+    LR.fit(X,y)
+    LR.plot_classi(X,y)
 
-# LR.fit(X, y)
-LR.partial_fit(X_new, y_new, with_prev_portion=0.75, Xplt=X_all, yplt=y_all)
-LR.plot_classi(X_all, y_all)
+    print(LR.W)
+    print(LR.B)
 
-# LR.fit(X, y)
-# LR.partial_fit(X_all, y_all)
-# LR.plot_classi(X_all, y_all)
+    # LR.fit(X,y)
+    # LR.plot_classi(X,y)
+    # plt.show()
+    # exit()
+    X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1], [-1.5, -3], [-2, -3]])
+    y_new = np.array([4, 4, 0, 5, 5])
+    # X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
+    # y_new = np.array([4, 4, 0])
+    X_all = np.r_[X, X_new]
+    y_all = np.r_[y, y_new]
 
-# LR.fit(X_all, y_all)
-# LR.plot_classi(X_all, y_all)
 
-plt.show()
+    # LR.partial_fit(X_new, y_new, with_prev=True, with_prev_portion=0.4)
+    # LR.plot_classi(X_all, y_all)
 
-## NEED TO ADD:
-# with_prev needs to select privilege selecting points that are close to boundaries
+    # LR.fit(X, y)
+    LR.partial_fit(X_new, y_new, with_prev_portion=0.75, Xplt=X_all, yplt=y_all)
+    LR.plot_classi(X_all, y_all)
+
+    # LR.fit(X, y)
+    # LR.partial_fit(X_all, y_all)
+    # LR.plot_classi(X_all, y_all)
+
+    # LR.fit(X_all, y_all)
+    # LR.plot_classi(X_all, y_all)
+
+    plt.show()
+
+    ## NEED TO ADD:
+    # with_prev needs to select privilege selecting points that are close to boundaries
