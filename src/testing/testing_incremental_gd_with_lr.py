@@ -1,3 +1,4 @@
+from cmath import inf
 from tkinter import Y
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,7 +39,7 @@ class IncrementalLogsiticRGD_withLR:
         self.regions = []
         for k in range(self.K):
             A = [[1, 0], [0, 1], [-1, 0], [0, -1]]
-            b = [np.inf, np.inf, np.inf, np.inf]
+            b = [10, 10, 10, 10]
             for j in range(self.K):
                 if j != k:
                     A.append(self.W[k] - self.W[j])
@@ -244,7 +245,7 @@ y_all = np.r_[y, y_new]
 # LR.plot_classi(X_all, y_all)
 
 # LR.fit(X, y)
-LR.partial_fit(X_new, y_new, with_prev=True, with_prev_portion=0.75, Xplt=X_all, yplt=y_all)
+LR.partial_fit(X_new, y_new, with_prev_portion=0.75, Xplt=X_all, yplt=y_all)
 LR.plot_classi(X_all, y_all)
 
 # LR.fit(X, y)
