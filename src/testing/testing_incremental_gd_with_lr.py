@@ -1,4 +1,5 @@
 from cmath import inf
+from time import sleep
 from tkinter import Y
 import numpy as np
 import matplotlib.pyplot as plt
@@ -167,6 +168,9 @@ class IncrementalLogsiticRGD_withLR:
 
     def decision_function(self, X):
         return X @ self.W.T + self.B
+    
+    def predict(self, X):
+        return np.argmax(self.decision_function(X), axis=1)
 
 
     def plot_classi(self, X, y, h = 0.05):
