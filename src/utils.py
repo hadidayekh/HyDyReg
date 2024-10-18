@@ -501,7 +501,7 @@ def gen_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
     s += "\tend\n"
     s += "end"
 
-    return s
+    return s.expandtabs(4))
 
 def get_SVC_boundary_eq_dim2_poly2(model_SVC):
     if model_SVC.kernel != 'poly' or model_SVC.degree != 2:
