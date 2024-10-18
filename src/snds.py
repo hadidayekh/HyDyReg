@@ -11,7 +11,7 @@ from tslearn.utils import to_time_series_dataset
 from sklearn.preprocessing import PolynomialFeatures
 from typing_extensions import Self
 from diff_methods import diff_method_fps
-from utils import relative_diff
+from utils import relative_diff, relative_diff_by_component
 from copy import deepcopy
 
 class SlidingMotionException(Exception):
@@ -371,8 +371,8 @@ class Trajectories:
                 
                 forward_derivative = (forward_value_1 - current_value) / (forward_time_1 - current_time)
                 backward_derivative = (current_value - backward_value_1) / (current_time - backward_time_1)
-                
                 if np.mean(relative_diff(forward_derivative, backward_derivative)) > tol:
+                # if np.any(relative_diff_by_component(forward_derivative, backward_derivative) > tol):
                     # If the difference between the forward and backward derivatives is
                     # greater than the tolerance, we start a new segment
                     #segments.append((current_start_index, i))

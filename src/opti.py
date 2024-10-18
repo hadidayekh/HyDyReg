@@ -1,4 +1,5 @@
 from asyncio.proactor_events import _ProactorBaseWritePipeTransport
+import random
 from time import sleep
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 import casadi
@@ -310,7 +311,7 @@ class HybridRegressor:
 
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
-    def fit_first_hypothesis(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression()):
+    def fit_first_hypothesis(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None):
         self.n = 1
         X_first = X[segments[0]:segments[1]] if len(segments) > 1 else X[segments[0]:]
         print("first segment with",X_first.shape[0],"points")
@@ -333,21 +334,41 @@ class HybridRegressor:
         self.Xfit_ = X_first
         self.Xfit_trans_ = X_trans
         self.X_dot_fit_ = X_dot_first
+        if not Time is None:
+            self.Time_fit_ = Time[segments[0]:segments[1]] if len(segments) > 1 else Time[segments[0]:]
 
         self.modesfit_ = np.array([0] * X_first.shape[0])
 
         if len(segments) > 1:
-            for i in range(1, len(segments) - 1):
+            segment_index_pairs = []
+            for i in range(1, len(segments)-1):
+                segment_index_pairs.append((segments[i], segments[i+1]))
+            segment_index_pairs.append((segments[-1], X.shape[0]))
+            random.shuffle(segment_index_pairs)
+            # print(segment_index_pairs)
+            # exit()
+
+            for i in range(len(segment_index_pairs)):
                 print("seg", i+1)
-                X_curr = X[segments[i]:segments[i+1]]
+                X_curr = X[segment_index_pairs[i][0] : segment_index_pairs[i][1]]
                 print(X_curr.shape[0], "points")
-                X_dot_curr = X_dot[segments[i]:segments[i+1]]
-                self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
-            print("last seg")
-            X_curr = X[segments[-1]:]
-            print(X_curr.shape[0], "points")
-            X_dot_curr = X_dot[segments[-1]:]
-            self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
+                X_dot_curr = X_dot[segment_index_pairs[i][0] : segment_index_pairs[i][1]]
+                Time_curr = None if Time is None else Time[segment_index_pairs[i][0] : segment_index_pairs[i][1]]
+                
+                self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor, Time=Time_curr)
+            
+
+            # for i in range(1, len(segments) - 1):
+            #     print("seg", i+1)
+            #     X_curr = X[segments[i]:segments[i+1]]
+            #     print(X_curr.shape[0], "points")
+            #     X_dot_curr = X_dot[segments[i]:segments[i+1]]
+            #     self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
+            # print("last seg")
+            # X_curr = X[segments[-1]:]
+            # print(X_curr.shape[0], "points")
+            # X_dot_curr = X_dot[segments[-1]:]
+            # self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
 
 
     
@@ -369,7 +390,7 @@ class HybridRegressor:
             # print(RDs)
         return min_RD < tol, np.argmin(RDs)
 
-    def augment_fit(self, X, X_dot, good_RD=0.001, regressor=LinearRegression()):
+    def augment_fit(self, X, X_dot, good_RD=0.001, regressor=LinearRegression(), Time = None):
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
@@ -418,7 +439,8 @@ class HybridRegressor:
             else:
                 mode = self.n
                 print(f"Creating new mode {mode}; RD was not good: {RD:.3f}")
-                # print(RDs)
+                print(RDs)
+                input("Press enter to continue...")
                 self.n = self.n + 1
                 # LR = LinearRegression()
                 LR = clone(regressor)
@@ -426,10 +448,13 @@ class HybridRegressor:
                 self.Omegas_ = np.r_[self.Omegas_, LR.coef_.reshape((1, LR.coef_.shape[0], LR.coef_.shape[1]))]
                 self.betas_ = np.r_[self.betas_, LR.intercept_.reshape((1, LR.intercept_.shape[0]))]
                 self.regressors_.append(LR)
+                # self.reassign_modes()
         
         self.Xfit_ = np.r_[self.Xfit_, X]
         self.Xfit_trans_ = np.r_[self.Xfit_trans_, X_trans]
         self.X_dot_fit_ = np.r_[self.X_dot_fit_, X_dot]
+        if not Time is None:
+            self.Time_fit_ = np.r_[self.Time_fit_, Time]
 
         modes_new = np.array([mode] * N_new)
         self.modesfit_ = np.r_[self.modesfit_, modes_new]
@@ -445,28 +470,30 @@ class HybridRegressor:
         return self.Xfit_trans_[indices], self.X_dot_fit_[indices]
 
     def reassign_modes(self):
-        X = self.X_classify_
-        X_dot = self.X_dot_classify_
-        N = X.shape[0]
-        D = X.shape[1]
-        X_dot_pred_diff = np.ndarray((self.n, N, D))
-        for j in range(self.n):
-            X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)
-        X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
-        self.modes_classify_ = np.argmin(X_dot_pred_diff, axis=0)
+        # X = self.X_classify_
+        # X_dot = self.X_dot_classify_
+        # N = X.shape[0]
+        # D = X.shape[1]
+        # X_dot_pred_diff = np.ndarray((self.n, N, D))
+        # for j in range(self.n):
+        #     X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)
+        # X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
+        # self.modes_classify_ = np.argmin(X_dot_pred_diff, axis=0)
 
         X = self.Xfit_
         X_dot = self.X_dot_fit_
         N = X.shape[0]
         D = X.shape[1]
         X_dot_pred_diff = np.ndarray((self.n, N, D))
-        for j in range(self.n):
+        for j in range(self. n):
             X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)
         X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
         new_modesfit_ = np.argmin(X_dot_pred_diff, axis=0)
         new_modesfit_old = new_modesfit_[:len(self.modesfit_)]
         diff = new_modesfit_old - self.modesfit_
         changed_modes = np.unique(np.r_[self.modesfit_[diff != 0], new_modesfit_old[diff != 0]])
+        print(changed_modes)
+        sleep(1)
         self.modesfit_ = new_modesfit_
         for j in changed_modes:
             self.retrain_continuous(j)
@@ -765,7 +792,7 @@ class HybridRegressor:
         self.Xfit_   = X
         self.Xfit_trans_ = X_trans
 
-    def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None, X_dot=None):
+    def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None, X_dot=None, partial_fit=False):
         self.check_if_fitted()
         if X is None:
             if hasattr(self, 'X_classify_'):
@@ -793,7 +820,7 @@ class HybridRegressor:
             X_class_trans = X
         
         if num_modes > 1:
-            self.classifier_ = classifier.fit(X_class_trans, modes)
+            self.classifier_ = classifier.partial_fit(X_class_trans, modes) if partial_fit else classifier.fit(X_class_trans, modes)
 
             if not do_poly_transform:
                 def event(t, x):
@@ -822,6 +849,10 @@ class HybridRegressor:
         self.X_dot_classify_ = X_dot
         self.modes_classify_ = modes
 
+        modes_predict = classifier.predict(X)
+        from sklearn.metrics import accuracy_score
+        print("Classification training accuracy:", accuracy_score(modes, modes_predict))
+
     def retrain_continuous(self, j, regressor=None):
         X, Xdot = self.get_points_of_mode(j)
         if X.shape[0] == 0:
@@ -832,7 +863,7 @@ class HybridRegressor:
         self.Omegas_[j] = regressor.coef_
         self.betas_[j] = regressor.intercept_
     
-    def improve_classification(self, X, X_dot, classifier=None):
+    def improve_classification(self, X, X_dot, classifier=None, partial_fit=True):
         self.check_if_fitted()
         if X.size == 0:
             return
@@ -846,7 +877,7 @@ class HybridRegressor:
             X = np.r_[self.X_classify_, X]
             X_dot = np.r_[self.X_dot_classify_, X_dot]
             modes = np.r_[self.modes_classify_, modes]
-        self.classify_modes(classifier = clone(classifier), X = X, modes = modes, X_dot = X_dot)
+        self.classify_modes(classifier = classifier, X = X, modes = modes, X_dot = X_dot, partial_fit=partial_fit)
     
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION

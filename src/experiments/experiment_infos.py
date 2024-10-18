@@ -1,5 +1,7 @@
 import sys
 sys.path.append('./')
+sys.path.append('./testing')
+from testing_incremental_gd_with_lr import IncrementalLogsiticRGD_withLR
 
 from sklearn.svm import SVC
 from sklearn.multiclass import OneVsRestClassifier
@@ -469,7 +471,7 @@ for exp_title in exps:
                                                                                             nmodes=exp['nmodes'],
                                                                                             poly_degree=exp['poly_degree'],
                                                                                             seg_tol=exp['seg_tol'],
-                                                                                            classifier=exp['classifier'],
+                                                                                            classifier=IncrementalLogsiticRGD_withLR(learning_rate=0.01),
                                                                                             classifier_poly_deg=exp[
                                                                                                 'classifier_poly_deg'],
                                                                                             classifier_poly_trans=exp[

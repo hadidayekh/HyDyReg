@@ -85,6 +85,16 @@ def relative_diff(x, y):
     else:
         return np.linalg.norm(x - y, axis=1) / (np.linalg.norm(x, axis=1) + np.linalg.norm(y,axis=1))
 
+def relative_diff_by_component(x, y):
+    res = np.zeros((x.size,))
+    for i in range(x.size):
+        res[i] = np.abs(x[i]-y[i]) / (np.abs(x[i]) + np.abs(y[i]))
+    return res
+    if x.ndim == 1:
+        return np.linalg.norm(x - y) / (np.linalg.norm(x) + np.linalg.norm(y))
+    else:
+        return np.linalg.norm(x - y, axis=1) / (np.linalg.norm(x, axis=1) + np.linalg.norm(y,axis=1))
+
 def generate_random_points(n_points, bounds, random_generator=None):
     if random_generator is None:
         random_generator = np.random
@@ -130,14 +140,14 @@ def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig
                 x_part += f'^{{{pow}}}'
         if i > 0 and coefs[i] >= 0 and started:
             eq_string += ' + '
-        eq_string += str(coefs[i]) + ' ' + x_part
+        eq_string += f"{coefs[i]:.10f}" + ' ' + x_part
         started = True
     if not started:
-        eq_string += str(bias)
+        eq_string += f"{bias:.10f}"
     elif bias != 0:
         if bias > 0:
             eq_string += ' + '
-        eq_string += str(bias) 
+        eq_string += f"{bias:.10f}" 
 
     return eq_string
 
