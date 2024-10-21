@@ -311,17 +311,34 @@ class HybridRegressor:
 
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
-    def fit_first_hypothesis(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None):
+    def fit_first_hypothesis(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None, shuffle_segments=False):
         self.n = 1
-        X_first = X[segments[0]:segments[1]] if len(segments) > 1 else X[segments[0]:]
+
+        if len(segments) > 1:
+            segment_index_pairs = []
+            for i in range(len(segments)-1):
+                segment_index_pairs.append((segments[i], segments[i+1]))
+            segment_index_pairs.append((segments[-1], X.shape[0]))
+            if shuffle_segments:
+                random.shuffle(segment_index_pairs)
+
+            X_first = X[segment_index_pairs[0][0]:segment_index_pairs[0][1]]
+            X_dot_first = X_dot[segment_index_pairs[0][0]:segment_index_pairs[0][1]]
+            if not Time is None:
+                Time_first = Time[segment_index_pairs[0][0]:segment_index_pairs[0][1]]
+        else:
+            X_first = X[segments[0]:]
+            X_dot_first = X_dot[segments[0]:]
+            if not Time is None:
+                Time_first = Time[segments[0]:]
+            
+
         print("first segment with",X_first.shape[0],"points")
         poly = PolynomialFeatures(degree=self.deg, include_bias=False)
         X_trans = poly.fit_transform(X_first)
         D = X_first.shape[1]
         Q = X_trans.shape[1]
         self.poly = poly
-        X_dot_first = X_dot[segments[0]:segments[1]] if len(segments) > 1 else X_dot[segments[0]:]
-        # LR = LinearRegression()
         LR = clone(regressor)
         LR.fit(X_trans, X_dot_first)
         self.Omegas_ = np.ndarray((1, D, Q))
@@ -335,20 +352,11 @@ class HybridRegressor:
         self.Xfit_trans_ = X_trans
         self.X_dot_fit_ = X_dot_first
         if not Time is None:
-            self.Time_fit_ = Time[segments[0]:segments[1]] if len(segments) > 1 else Time[segments[0]:]
-
+            self.Time_fit_ = Time_first
         self.modesfit_ = np.array([0] * X_first.shape[0])
 
         if len(segments) > 1:
-            segment_index_pairs = []
-            for i in range(1, len(segments)-1):
-                segment_index_pairs.append((segments[i], segments[i+1]))
-            segment_index_pairs.append((segments[-1], X.shape[0]))
-            random.shuffle(segment_index_pairs)
-            # print(segment_index_pairs)
-            # exit()
-
-            for i in range(len(segment_index_pairs)):
+            for i in range(1, len(segment_index_pairs)):
                 print("seg", i+1)
                 X_curr = X[segment_index_pairs[i][0] : segment_index_pairs[i][1]]
                 print(X_curr.shape[0], "points")
