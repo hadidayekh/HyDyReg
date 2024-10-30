@@ -16,8 +16,8 @@ import pysindy as ps
 # data_file = "experiments/dcdc_melco/data.csv"
 data_file = "experiments/dcdc_melco/data_controlled.csv"
 
-seg_tol = 0.1
-good_RD = 0.15
+seg_tol = 0.01
+good_RD = 0.005
 
 
 
@@ -36,14 +36,13 @@ duty = data[4]
 pid_controller_internal = data[5]
 
 
-X_init = data[1,2,4,5][:]
+X_init = data[[1,2,4,5], :].T
 print(X_init.shape)
 
 
 
 t_list = [t]
 x_list = [X_init]
-
 '''
 AVANT:
 - segmentation using three pt fwd and bwd derivative
@@ -66,20 +65,20 @@ segments = trajs.segment_trajectories_two_points(seg_tol)
 #     for s in range(len(segment)-1):
 #         # a.plot(trajs.t_list[i][segment[s]:segment[s+1]], trajs.x_list[i].T[0][segment[s]:segment[s+1]], markersize=.1)
 #         # a.plot(trajs.t_list[i][segment[s]:segment[s+1]], trajs.x_list[i].T[1][segment[s]:segment[s+1]], markersize=.1)
-#         a.plot(trajs.t_list[i][segment[s]:segment[s+1]], trajs.x_list[i].T[2][segment[s]:segment[s+1]], markersize=.1)
+#         a.plot(trajs.t_list[i][segment[s]:segment[s+1]], trajs.x_list[i].T[3][segment[s]:segment[s+1]], markersize=.1)
 #     if len(segment)>0:
 #         # a.plot(trajs.t_list[i][:segment[0]], trajs.x_list[i].T[0][:segment[0]], markersize=.1)
 #         # a.plot(trajs.t_list[i][segment[-1]:], trajs.x_list[i].T[0][segment[-1]:], markersize=.1)
 #         # a.plot(trajs.t_list[i][:segment[0]], trajs.x_list[i].T[1][:segment[0]], markersize=.1)
 #         # a.plot(trajs.t_list[i][segment[-1]:], trajs.x_list[i].T[1][segment[-1]:], markersize=.1)
-#         a.plot(trajs.t_list[i][:segment[0]], trajs.x_list[i].T[2][:segment[0]], markersize=.1)
-#         a.plot(trajs.t_list[i][segment[-1]:], trajs.x_list[i].T[2][segment[-1]:], markersize=.1)
+#         a.plot(trajs.t_list[i][:segment[0]], trajs.x_list[i].T[3][:segment[0]], markersize=.1)
+#         a.plot(trajs.t_list[i][segment[-1]:], trajs.x_list[i].T[3][segment[-1]:], markersize=.1)
 #     else:
 #         # a.plot(trajs.t_list[i], trajs.x_list[i].T[0], markersize=.1)
 #         # a.plot(trajs.t_list[i], trajs.x_list[i].T[1], markersize=.1)
-#         a.plot(trajs.t_list[i], trajs.x_list[i].T[2], markersize=.1)
+#         a.plot(trajs.t_list[i], trajs.x_list[i].T[3], markersize=.1)
 
-# # a.axhline(y = 0.75, color = 'r', linestyle = '-', alpha=0.2) 
+# # # a.axhline(y = 0.75, color = 'r', linestyle = '-', alpha=0.2) 
 # plt.show()
 # exit()
 
@@ -113,7 +112,6 @@ for j in range(model.n):
 
 X_dot_predict = model.predict(model.Xfit_, model.modesfit_)
 
-exit()
 
 
 # print(X_dot_predict - model.X_dot_fit_)
@@ -129,38 +127,37 @@ print(sorted_rd[N_sorded_rd-50:])
 
 Time_fit = model.Time_fit_
 
-if not with_triangular:
-    argsort_Time_fit = np.argsort(Time_fit)
-    sorted_Time_fit = Time_fit[argsort_Time_fit]
-    tri_points = np.ndarray(Time_fit.shape, dtype=Time_fit.dtype)
-    count = 0
-    for i in range(len(t)):
-        try:
-            if t[i] == sorted_Time_fit[count]:
-                tri_points[argsort_Time_fit[count]] = triangular[i]
-                count += 1
-            else:
-                continue
-        except:
+argsort_Time_fit = np.argsort(Time_fit)
+sorted_Time_fit = Time_fit[argsort_Time_fit]
+tri_points = np.ndarray(Time_fit.shape, dtype=Time_fit.dtype)
+count = 0
+for i in range(len(t)):
+    try:
+        if t[i] == sorted_Time_fit[count]:
+            tri_points[argsort_Time_fit[count]] = triangular[i]
+            count += 1
+        else:
             continue
+    except:
+        continue
 
 
 from sklearn.linear_model import LogisticRegressionCV
-if not with_triangular:
-    X_with_tri = np.r_[model.Xfit_.T, tri_points.reshape((1,-1))].T
-    X_dot_with_tri = np.r_[model.X_dot_fit_.T, tri_points.reshape((1,-1))].T
-    model.classify_modes(classifier = LogisticRegression(penalty='none'),X = X_with_tri[model.modesfit_ < 3], X_dot = X_dot_with_tri[model.modesfit_ < 3], modes = model.modesfit_[model.modesfit_ < 3])
-else:
-    model.classify_modes()
+X_with_tri = np.r_[model.Xfit_.T, tri_points.reshape((1,-1))].T
+X_dot_with_tri = np.r_[model.X_dot_fit_.T, tri_points.reshape((1,-1))].T
+# model.classify_modes(classifier = LogisticRegression(penalty='none'),X = X_with_tri, X_dot = X_dot_with_tri, modes = model.modesfit_)
+model.classify_modes(classifier = LogisticRegression(penalty='none'),X = X_with_tri[model.modesfit_ < 4], X_dot = X_dot_with_tri[model.modesfit_ < 4], modes = model.modesfit_[model.modesfit_ < 4])
 
 # model.classify_modes(X=model.Xfit_[model.modesfit_ < 4], modes=model.modesfit_[model.modesfit_ < 4])
 
-print(model.gen_full_latex_eq(with_classifier_boundaries=True, round_dig=10))
-print(gen_full_matlab_hyeq_class(model, name="DCDC_Melco2"))
+print(model.gen_full_latex_eq(with_classifier_boundaries=True, round_dig=4))
+for i in range(np.max(model.modesfit_)+1):
+    print(f"Mode {i+1}: {np.count_nonzero(model.modesfit_ == i)} points.")
+# print(gen_full_matlab_hyeq_class(model, name="DCDC_Melco2"))
 
-
+# exit()
 ## plot mode jumps with time
-n_plts = 4 #if with_triangular else 3
+n_plts = 5
 f1, axs = plt.subplots(n_plts)
 f2, axs2 = plt.subplots(n_plts)
 
@@ -176,17 +173,16 @@ time_plt = Time[n_start:n_end]
 modes_plt = model.modesfit_[n_start:n_end]
 X1 = X.T[0][n_start:n_end]
 X2 = X.T[1][n_start:n_end]
-if with_triangular:
-    X3 = X.T[2][n_start:n_end]
-else:
-    X3 = tri_points
+X3 = X.T[2][n_start:n_end]
+X4 = X.T[3][n_start:n_end]
+
 # ## plot X
 for j in range(model.n):
     axs[0].scatter(time_plt[modes_plt==j], modes_plt[modes_plt==j]+1, s=1, color=plt.cm.tab10(j))
     axs[1].scatter(time_plt[modes_plt==j], X1[modes_plt==j], s=1, color=plt.cm.tab10(j))
     axs[2].scatter(time_plt[modes_plt==j], X2[modes_plt==j], s=1, color=plt.cm.tab10(j))
-    if True:
-        axs[3].scatter(time_plt[modes_plt==j], X3[modes_plt==j], s=1, color=plt.cm.tab10(j))
+    axs[3].scatter(time_plt[modes_plt==j], X3[modes_plt==j], s=1, color=plt.cm.tab10(j))
+    axs[4].scatter(time_plt[modes_plt==j], X4[modes_plt==j], s=1, color=plt.cm.tab10(j))
 
 # ## plot Xdot 
 axs2[0].scatter(Time[n_start:n_end], model.modesfit_[n_start:n_end]+1, s=1)
@@ -194,9 +190,10 @@ axs2[1].scatter(Time[n_start:n_end], Xdot.T[0][n_start:n_end], s=1, label='estim
 axs2[2].scatter(Time[n_start:n_end], Xdot.T[1][n_start:n_end], s=1, label='estimated')
 axs2[1].scatter(Time[n_start:n_end], X_dot_predict.T[0][n_start:n_end], s=1, label='predicted')
 axs2[2].scatter(Time[n_start:n_end], X_dot_predict.T[1][n_start:n_end], s=1, label='predicted')
-if with_triangular:
-    axs2[3].scatter(Time[n_start:n_end], Xdot.T[2][n_start:n_end], s=1, label='estimated')
-    axs2[3].scatter(Time[n_start:n_end], X_dot_predict.T[2][n_start:n_end], s=1, label='predicted')
+axs2[3].scatter(Time[n_start:n_end], Xdot.T[2][n_start:n_end], s=1, label='estimated')
+axs2[3].scatter(Time[n_start:n_end], X_dot_predict.T[2][n_start:n_end], s=1, label='predicted')
+axs2[4].scatter(Time[n_start:n_end], Xdot.T[3][n_start:n_end], s=1, label='estimated')
+axs2[4].scatter(Time[n_start:n_end], X_dot_predict.T[3][n_start:n_end], s=1, label='predicted')
 
 ## plot with segmentation information
 # axs[0].scatter(Time, model.modesfit_+1, markersize=0.01)
@@ -220,19 +217,20 @@ for i in range(n_plts):
     
 axs[0].set_ylabel("Mode")
 axs[1].set_ylabel("$I_{in}$")
-axs[2].set_ylabel("$I_{out}$")
+axs[2].set_ylabel("$V_{out}$")
+axs[3].set_ylabel("$duty$")
+axs[4].set_ylabel("$PID\_intern$")
 
 axs2[0].set_ylabel("Mode")
 axs2[1].set_ylabel("$d(I_{in})/dt$")
-axs2[2].set_ylabel("$d(I_{out})/dt$")
+axs2[2].set_ylabel("$d(V_{out})/dt$")
+axs2[3].set_ylabel("$d(duty)/dt$")
+axs2[4].set_ylabel("$d(PID\_intern)/dt$")
 
 axs2[1].legend()
 axs2[2].legend()
-
-if True:
-    axs[3].set_ylabel("$tri$")
-    axs2[3].set_ylabel("$d(tri)/dt$")
-    axs2[3].legend()
+axs2[3].legend()
+axs2[4].legend()
 
 
 axs[0].yaxis.get_major_locator().set_params(integer=True)
@@ -253,8 +251,8 @@ for mode in range(model.n):
 title = title[:-1]
 
 print(title)
-f1.suptitle(title)
-f2.suptitle(title)
+# f1.suptitle(title)
+# f2.suptitle(title)
 # f3, a3 = plot_with_modes_2D(model.Xfit_, model.modesfit_+1)
 # plt.show()
 
@@ -264,8 +262,7 @@ f2.suptitle(title)
 # print(model.modesfit_.shape)
 # print(model.X_dot_fit_[model.modesfit_==2])
 
-for i in range(np.max(model.modesfit_)+1):
-    print(f"Mode {i+1}: {np.count_nonzero(model.modesfit_ == i)} points.")
+
 # draw_trajectories_3D(trajs)
 
 plt.show()
