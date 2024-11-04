@@ -38,6 +38,7 @@ class SNDS:
         self.eventlist = eventlist
 
     def simulate_trajectory(self, step, T, x0s, t0=0, stop_at_sliding_motion=False, compare_with_traj=None, compare_tol=0.5):
+        # Inspired by https://github.com/Leslieaj/InferDynamic/
         compare = not compare_with_traj is None
         if compare:
             assert len(x0s) == compare_with_traj.num_trajectories
