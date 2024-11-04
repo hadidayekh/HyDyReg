@@ -1,4 +1,5 @@
 from cmath import inf
+import enum
 from time import sleep
 from tkinter import Y
 import numpy as np
@@ -164,6 +165,9 @@ class IncrementalLogsiticRGD_withLR:
         self.X_ = np.r_[self.X_, X_old]
         self.y_ = np.r_[self.y_, y_old]
         
+        for r in self.regions:
+            print(r.A)
+            print(r.b)
         return self
 
     def decision_function(self, X):
@@ -205,8 +209,93 @@ class IncrementalLogsiticRGD_withLR:
         return fig, ax
 
 
+def generate_random(N, m):
+    return np.random.rand(N, 2) * 2 * m - m
+
+def which_classes(X, polys):
+    y = np.ones((X.shape[0],))*-1
+    for i, x in enumerate(X):
+        for j, p in enumerate(polys):
+            if x in p:
+                y[i] = j
+                break
+    return y
+
+def generate_random_in_poly(N, m, poly):
+    X = np.zeros((N, 2))
+    i = 0
+    while i < N:
+        x = np.random.rand(1, 2) * 2 * m - m
+        if x in poly:
+            X[i] = x
+            i += 1
+    return X
+
+def plot_with_polys(X, y, polys):
+    f, a = plt.subplots()
+    for j, p in enumerate(polys):
+        a.scatter(*X[y==j].T, color=plt.cm.tab10(j), s=4)
+        p.plot(ax=a, color=plt.cm.tab10(j), alpha=0.2)
+
 if __name__ == "__main__":
-    n_samples = 20
+
+    m = 10
+    boxpoly = pc.box2poly([[-m,m],[-m,m]])
+
+    A1 = np.array([[-1.,-0.], [-0.,-1.],[ 1.,-0.], [-0.,1.], [ 0.99755,  0.06997], [ 0.34677, -0.93795]])
+    b1 = np.array([ 1.00000e+20, 1.00000e+20,  1.00000e+20,  1.00000e+20,  2.50281e-01, -6.25994e-01])
+    A2 = np.array([[-1.,-0.], [-0.,-1.],[ 1.,-0.], [-0.,1.], [-0.99755, -0.06997], [-0.19863, -0.98008]])
+    b2 = np.array([ 1.00000e+20, 1.00000e+20,  1.00000e+20,  1.00000e+20,  -2.50281e-01, -7.65697e-01])
+    A3 = np.array([[-1.,-0.], [-0.,-1.],[ 1.,-0.], [-0.,1.], [-0.34677, 0.93795], [0.19863, 0.98008], [0.9, 0.1]])
+    b3 = np.array([ 1.00000e+20, 1.00000e+20,  1.00000e+20,  1.00000e+20,  6.25994e-01, 7.65697e-01, -0.5])
+    A4 = np.array([[-1.,-0.], [-0.,-1.],[ 1.,-0.], [-0.,1.], [-0.34677, 0.93795], [0.19863, 0.98008], [-0.9, -0.1]])
+    b4 = np.array([ 1.00000e+20, 1.00000e+20,  1.00000e+20,  1.00000e+20,  6.25994e-01, 7.65697e-01, 0.5])
+    
+
+    
+
+    p1 = pc.Polytope(A1, b1).intersect(boxpoly)
+    p2 = pc.Polytope(A2, b2).intersect(boxpoly)
+    p3 = pc.Polytope(A3, b3).intersect(boxpoly)
+    p4 = pc.Polytope(A4, b4).intersect(boxpoly)
+    
+    
+
+    polys = [p1, p2, p3]
+
+    X = generate_random(100, m)
+    y = which_classes(X, polys)
+    X = X[y != -1]
+    y = y[y != -1]
+
+    
+    N_new = 20
+    X_new = generate_random_in_poly(N_new, m, p4)
+    y_new = np.array([3]*N_new)
+    
+
+
+    learning_rate = 0.1
+    nb_epochs = 50
+
+    LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
+
+    LR.fit(X,y)
+    LR.plot_classi(X,y)
+
+    X_all = np.r_[X, X_new]
+    y_all = np.r_[y, y_new]
+
+    LR.partial_fit(X_new, y_new, with_prev_portion=0.1, Xplt=X_all, yplt=y_all)
+    LR.plot_classi(X_all, y_all)
+
+    plot_with_polys(X_all, y_all, [p1,p2,p3,p4])
+
+    # p4 = pc.Polytope((p1.A+p2.A)/2,(p1.b+p2.b)/2)
+    # p4.plot(ax=a, alpha=0.2)
+    plt.show()
+    exit()
+    n_samples = 200
     n_classes = 4
     learning_rate = 0.1
     nb_epochs = 50
