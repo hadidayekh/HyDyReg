@@ -1,3 +1,4 @@
+import pickle
 import sys
 from turtle import color
 
@@ -15,9 +16,10 @@ import pysindy as ps
 
 # data_file = "experiments/dcdc_melco/data.csv"
 data_file = "experiments/dcdc_melco/data_controlled.csv"
+py_data_file = "experiments/dcdc_melco/py_data_controlled.pkl"
 
 seg_tol = 0.01
-good_RD = 0.005
+good_RD = 0.001
 
 
 
@@ -43,6 +45,10 @@ print(X_init.shape)
 
 t_list = [t]
 x_list = [X_init]
+
+print(X_init[0])
+print(t[0], t[-1])
+# exit()
 '''
 AVANT:
 - segmentation using three pt fwd and bwd derivative
@@ -57,7 +63,7 @@ trajs = Trajectories(t_list, x_list)
 # draw_trajectories_3D(trajs)
 # plt.show()
 # exit()
-segments = trajs.segment_trajectories_two_points(seg_tol)
+# segments = trajs.segment_trajectories_two_points(seg_tol)
 
 # f, a = plt.subplots()
 # for i in range(trajs.num_trajectories):
@@ -84,8 +90,12 @@ segments = trajs.segment_trajectories_two_points(seg_tol)
 
 # dm = ps.SmoothedFiniteDifference(order=4, drop_endpoints=True, smoother_kws={'window_length': 5})
 # dm = ps.FiniteDifference(order=4, drop_endpoints=True)
-dm = ps.SINDyDerivative(kind='savitzky_golay', left=0.5, right=0.5, order=4)
+'''dm = ps.SINDyDerivative(kind='savitzky_golay', left=0.5, right=0.5, order=4)
 X, Xdot, seg_res, Time = diff_method_ps(trajs.t_list, trajs.x_list, segments, dm=dm)
+'''
+with open(py_data_file, 'rb') as f:
+    X, Xdot, seg_res, Time = pickle.load(f)
+
 
 # X, Xdot, seg_res, Time = diff_method_forward(trajs.t_list, trajs.x_list, segments)
 
@@ -101,7 +111,7 @@ X, Xdot, seg_res, Time = diff_method_ps(trajs.t_list, trajs.x_list, segments, dm
 # exit()
 from sklearn.linear_model import Ridge, RidgeCV
 
-model = HybridRegressor(deg=1)
+model = HybridRegressor(deg=1, classifier_poly_trans=True, classifier_poly_deg=2)
 alphas = [1000000, 1000000, 100000, 10000, 1000, 100, 10, 1, 0.1, 0.01, 0.001, 0.0001, 0.00001]
 # alphas = [0.001, 0.0001, 0.00001, 0]
 
@@ -145,15 +155,28 @@ for i in range(len(t)):
 from sklearn.linear_model import LogisticRegressionCV
 X_with_tri = np.r_[model.Xfit_.T, tri_points.reshape((1,-1))].T
 X_dot_with_tri = np.r_[model.X_dot_fit_.T, tri_points.reshape((1,-1))].T
+
+
+## try to retrieve top 3 modes
+modes_unique, modes_count = np.unique(model.modesfit_, return_counts=True)
+n=3
+top_n_modes = modes_unique[(-modes_count).argsort()[:n]]
+
+mode_cond = np.logical_or(model.modesfit_==top_n_modes[0], model.modesfit_==top_n_modes[1])
+for i in range(2, n):
+    mode_cond = np.logical_or(mode_cond, model.modesfit_ == top_n_modes[i])
+
+model.classify_modes(classifier = LogisticRegression(penalty='none'),X = X_with_tri[mode_cond], X_dot = X_dot_with_tri[mode_cond], modes = model.modesfit_[mode_cond])
+
 # model.classify_modes(classifier = LogisticRegression(penalty='none'),X = X_with_tri, X_dot = X_dot_with_tri, modes = model.modesfit_)
-model.classify_modes(classifier = LogisticRegression(penalty='none'),X = X_with_tri[model.modesfit_ < 4], X_dot = X_dot_with_tri[model.modesfit_ < 4], modes = model.modesfit_[model.modesfit_ < 4])
+# model.classify_modes(classifier = LogisticRegression(penalty='none'),X = X_with_tri[model.modesfit_ < 4], X_dot = X_dot_with_tri[model.modesfit_ < 4], modes = model.modesfit_[model.modesfit_ < 4])
 
 # model.classify_modes(X=model.Xfit_[model.modesfit_ < 4], modes=model.modesfit_[model.modesfit_ < 4])
 
 print(model.gen_full_latex_eq(with_classifier_boundaries=True, round_dig=4))
 for i in range(np.max(model.modesfit_)+1):
     print(f"Mode {i+1}: {np.count_nonzero(model.modesfit_ == i)} points.")
-# print(gen_full_matlab_hyeq_class(model, name="DCDC_Melco2"))
+print(gen_full_matlab_hyeq_class(model, name="DCDC_Melco_Controlled"))
 
 # exit()
 ## plot mode jumps with time
