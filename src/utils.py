@@ -140,14 +140,14 @@ def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig
                 x_part += f'^{{{pow}}}'
         if i > 0 and coefs[i] >= 0 and started:
             eq_string += ' + '
-        eq_string += f"{coefs[i]:.10f}" + ' ' + x_part
+        eq_string += f"{coefs[i]:.4f}" + ' ' + x_part
         started = True
     if not started:
-        eq_string += f"{bias:.10f}"
+        eq_string += f"{bias:.4f}"
     elif bias != 0:
         if bias > 0:
             eq_string += ' + '
-        eq_string += f"{bias:.10f}" 
+        eq_string += f"{bias:.4f}" 
 
     return eq_string
 
@@ -272,6 +272,7 @@ def get_latex_classifier_boundaries(classifier, polyfeatures=None):
     try:
         W = classifier.coef_
         B = classifier.intercept_
+        classes = classifier.classes_
         ncoef = W.shape[0]
         D = W.shape[1]
 
@@ -296,7 +297,7 @@ def get_latex_classifier_boundaries(classifier, polyfeatures=None):
             S = ''
             for i in range(ncoef):
                 for j in range(i+1, ncoef):
-                    s = f"Classifier boundary between modes ${i+1}$ and ${j+1}$: $"
+                    s = f"Classifier boundary between modes ${classes[i]+1}$ and ${classes[j]+1}$: $"
                     w = W[i] - W[j]
                     b = B[i] - B[j]
                     max_w = w[np.argmax(np.abs(w))]
