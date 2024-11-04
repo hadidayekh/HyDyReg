@@ -857,7 +857,7 @@ class HybridRegressor:
         self.X_dot_classify_ = X_dot
         self.modes_classify_ = modes
 
-        modes_predict = classifier.predict(X)
+        modes_predict = classifier.predict(X_class_trans)
         from sklearn.metrics import accuracy_score
         print("Classification training accuracy:", accuracy_score(modes, modes_predict))
 
