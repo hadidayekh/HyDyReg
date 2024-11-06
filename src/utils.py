@@ -408,7 +408,7 @@ def gen_matlab_hyeq_jumpSetIndicator(classifier, polyfeatures : PolynomialFeatur
 
         s += f"{ind}\t\tcase 2\n"
         s += f"{ind}\t\t\tD = "
-        s += bnd + ' <= 0;\n'
+        s += bnd + ' < 0;\n'
         
         s += f"{ind}\tend\n{ind}end"
         return s
@@ -432,7 +432,7 @@ def gen_matlab_hyeq_jumpSetIndicator(classifier, polyfeatures : PolynomialFeatur
                 b = b / max_w
                 for d in range(D):
                     s += f'({w[d]})*({fn[d]}) + '
-                s += f'({b}) <= 0'
+                s += f'({b}) < 0'
             s += ';\n'
         s += f"{ind}\tend\n{ind}end"
         return s
