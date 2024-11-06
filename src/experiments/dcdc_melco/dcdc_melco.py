@@ -16,9 +16,9 @@ import pysindy as ps
 # data_file = "experiments/dcdc_melco/data.csv"
 data_file = "experiments/dcdc_melco/data_w_triangular.csv"
 with_triangular = False
-split_on_gate = True
+split_on_gate = False
 seg_tol = 0.01
-good_RD = 0.06
+good_RD = 0.001
 
 
 
@@ -39,7 +39,7 @@ triangular = data[4]
 if with_triangular:
     X_init = data[[1,2,4], :].T
 else:
-    X_init = data[[1,2], :].T
+    X_init = data[[1,3], :].T
 print(X_init.shape)
 
 
@@ -114,7 +114,7 @@ alphas = [1000000, 1000000, 100000, 10000, 1000, 100, 10, 1, 0.1, 0.01, 0.001, 0
 # alphas = [0.001, 0.0001, 0.00001, 0]
 
 regressor =  RidgeCV(alphas, alpha_per_target=True)
-model.fit_first_hypothesis(X, Xdot, seg_res, good_RD=good_RD, regressor=regressor, Time=Time)
+model.fit_first_hypothesis(X, Xdot, seg_res, good_RD=good_RD, regressor=regressor, Time=Time, shuffle_segments=True)
 for j in range(model.n):
     model.retrain_continuous(j)
 
@@ -135,30 +135,38 @@ print(sorted_rd[N_sorded_rd-50:])
 # exit()
 
 Time_fit = model.Time_fit_
-print("Starting tri")
+
 if not with_triangular:
+    argsort_Time_fit = np.argsort(Time_fit)
+    sorted_Time_fit = Time_fit[argsort_Time_fit]
     tri_points = np.ndarray(Time_fit.shape, dtype=Time_fit.dtype)
     count = 0
-    for i in range(len(Time_fit)):
-        curr_tp_fit = Time_fit[i]
-        for j in range(len(t)):
-            if t[j] == curr_tp_fit:
-                tri_points[i] == triangular[j]
-                break
-print("Done tri")
-        # try:
-        #     if t[i] == Time_fit[count]:
-        #         tri_points[count] = triangular[i]
-        #         count += 1
-        #     continue
-        # except:
-        #     continue
+    for i in range(len(t)):
+        try:
+            if t[i] == sorted_Time_fit[count]:
+                tri_points[argsort_Time_fit[count]] = triangular[i]
+                count += 1
+            else:
+                continue
+        except:
+            continue
+
 
 from sklearn.linear_model import LogisticRegressionCV
 if not with_triangular:
     X_with_tri = np.r_[model.Xfit_.T, tri_points.reshape((1,-1))].T
     X_dot_with_tri = np.r_[model.X_dot_fit_.T, tri_points.reshape((1,-1))].T
-    model.classify_modes(classifier = LogisticRegressionCV(),X = X_with_tri[model.modesfit_ < 3], X_dot = X_dot_with_tri[model.modesfit_ < 3], modes = model.modesfit_[model.modesfit_ < 3])
+
+
+    ## try to retrieve top 3 modes
+    modes_unique, modes_count = np.unique(model.modesfit_, return_counts=True)
+    n=3
+    top_n_modes = modes_unique[(-modes_count).argsort()[:n]]
+
+    mode_cond = np.logical_or(model.modesfit_==top_n_modes[0], model.modesfit_==top_n_modes[1])
+    for i in range(2, n):
+        mode_cond = np.logical_or(mode_cond, model.modesfit_ == top_n_modes[i])
+    model.classify_modes(classifier = LogisticRegressionCV(), X = X_with_tri[mode_cond], X_dot = X_dot_with_tri[mode_cond], modes = model.modesfit_[mode_cond])
 else:
     model.classify_modes()
 
@@ -169,7 +177,7 @@ print(gen_full_matlab_hyeq_class(model, name="DCDC_Melco2"))
 
 
 ## plot mode jumps with time
-n_plts = 4 #if with_triangular else 3
+n_plts = 3
 f1, axs = plt.subplots(n_plts)
 f2, axs2 = plt.subplots(n_plts)
 
@@ -194,8 +202,6 @@ for j in range(model.n):
     axs[0].scatter(time_plt[modes_plt==j], modes_plt[modes_plt==j]+1, s=1, color=plt.cm.tab10(j))
     axs[1].scatter(time_plt[modes_plt==j], X1[modes_plt==j], s=1, color=plt.cm.tab10(j))
     axs[2].scatter(time_plt[modes_plt==j], X2[modes_plt==j], s=1, color=plt.cm.tab10(j))
-    if True:
-        axs[3].scatter(time_plt[modes_plt==j], X3[modes_plt==j], s=1, color=plt.cm.tab10(j))
 
 # ## plot Xdot 
 axs2[0].scatter(Time[n_start:n_end], model.modesfit_[n_start:n_end]+1, s=1)
@@ -238,7 +244,7 @@ axs2[2].set_ylabel("$d(I_{out})/dt$")
 axs2[1].legend()
 axs2[2].legend()
 
-if True:
+if False:
     axs[3].set_ylabel("$tri$")
     axs2[3].set_ylabel("$d(tri)/dt$")
     axs2[3].legend()

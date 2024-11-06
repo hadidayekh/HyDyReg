@@ -19,7 +19,7 @@ data_file = "experiments/dcdc_melco/data_controlled.csv"
 py_data_file = "experiments/dcdc_melco/py_data_controlled.pkl"
 
 seg_tol = 0.01
-good_RD = 0.001
+good_RD = 0.05
 
 
 
@@ -38,7 +38,8 @@ duty = data[4]
 pid_controller_internal = data[5]
 
 
-X_init = data[[1,2,4,5], :].T
+# X_init = data[[1,2,4,5], :].T
+X_init = data[[2,4], :].T
 print(X_init.shape)
 
 
@@ -63,7 +64,7 @@ trajs = Trajectories(t_list, x_list)
 # draw_trajectories_3D(trajs)
 # plt.show()
 # exit()
-# segments = trajs.segment_trajectories_two_points(seg_tol)
+segments = trajs.segment_trajectories_two_points(seg_tol)
 
 # f, a = plt.subplots()
 # for i in range(trajs.num_trajectories):
@@ -90,11 +91,15 @@ trajs = Trajectories(t_list, x_list)
 
 # dm = ps.SmoothedFiniteDifference(order=4, drop_endpoints=True, smoother_kws={'window_length': 5})
 # dm = ps.FiniteDifference(order=4, drop_endpoints=True)
-'''dm = ps.SINDyDerivative(kind='savitzky_golay', left=0.5, right=0.5, order=4)
+
+dm = ps.SINDyDerivative(kind='savitzky_golay', left=0.5, right=0.5, order=4)
 X, Xdot, seg_res, Time = diff_method_ps(trajs.t_list, trajs.x_list, segments, dm=dm)
-'''
-with open(py_data_file, 'rb') as f:
-    X, Xdot, seg_res, Time = pickle.load(f)
+
+# with open(py_data_file, 'rb') as f:
+#     X, Xdot, seg_res, Time = pickle.load(f)
+
+# X = X.T[[0,1,2,3], :].T
+# Xdot = Xdot.T[[0,1,2,3], :].T
 
 
 # X, Xdot, seg_res, Time = diff_method_forward(trajs.t_list, trajs.x_list, segments)
@@ -102,7 +107,7 @@ with open(py_data_file, 'rb') as f:
 # '''
 # TRANSFORM
 # '''
-# from sklearn.preprocessing import StandardScaler, Normalizer
+from sklearn.preprocessing import StandardScaler, Normalizer
 # X = Normalizer().fit_transform(X)
 # Xdot = Normalizer().fit_transform(Xdot)
 
@@ -111,7 +116,7 @@ with open(py_data_file, 'rb') as f:
 # exit()
 from sklearn.linear_model import Ridge, RidgeCV
 
-model = HybridRegressor(deg=1, classifier_poly_trans=True, classifier_poly_deg=2)
+model = HybridRegressor(deg=1)
 alphas = [1000000, 1000000, 100000, 10000, 1000, 100, 10, 1, 0.1, 0.01, 0.001, 0.0001, 0.00001]
 # alphas = [0.001, 0.0001, 0.00001, 0]
 
@@ -218,6 +223,17 @@ axs2[3].scatter(Time[n_start:n_end], X_dot_predict.T[2][n_start:n_end], s=1, lab
 axs2[4].scatter(Time[n_start:n_end], Xdot.T[3][n_start:n_end], s=1, label='estimated')
 axs2[4].scatter(Time[n_start:n_end], X_dot_predict.T[3][n_start:n_end], s=1, label='predicted')
 
+import scipy.io
+
+data = {
+    'Time': Time,
+    'X_dot': Xdot,
+    'X_dot_predict' : X_dot_predict
+}
+
+scipy.io.savemat('xdot_results.mat', data)
+
+
 ## plot with segmentation information
 # axs[0].scatter(Time, model.modesfit_+1, markersize=0.01)
 # for s in range(len(seg_res)-1):
@@ -253,7 +269,7 @@ axs2[4].set_ylabel("$d(PID\_intern)/dt$")
 axs2[1].legend()
 axs2[2].legend()
 axs2[3].legend()
-axs2[4].legend()
+# axs2[4].legend()
 
 
 axs[0].yaxis.get_major_locator().set_params(integer=True)
