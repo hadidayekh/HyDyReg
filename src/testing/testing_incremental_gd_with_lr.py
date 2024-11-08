@@ -92,6 +92,7 @@ class IncrementalLogsiticRGD_withLR:
 
             regions = np.unique(np.array(regions))
             n_affected_regions = len(regions)
+            print("affected regions", regions)
 
             # run a logistic regression algorithm with all *new* points and
             # all points in affected regions
@@ -239,6 +240,69 @@ def plot_with_polys(X, y, polys):
 
 if __name__ == "__main__":
 
+    from scipy.spatial import Voronoi
+
+    # Sample points for Voronoi
+    n_pts = 100
+    points = np.random.rand(n_pts, 2)  # 10 random points in 2D
+    vor = Voronoi(points)
+
+    def get_perp_bis(p1, p2):
+        x1, y1 = p1
+        x2, y2 = p2
+
+        return np.array([x2-x1, y2-y1]), (y2**2-y1**2+x2**2-x1**2)/2
+
+    ridge_points = vor.ridge_points
+    polytopes = []
+    for i in range(n_pts):
+        polytopes.append([np.ndarray((0,2)), np.ndarray((0,))])
+    
+    for rp in ridge_points:
+        i1, i2 = rp
+        
+        p1 = points[i1]
+        p2 = points[i2]
+
+        A_p, b_p = get_perp_bis(p1, p2)
+
+        A1, b1 = polytopes[i1]
+        A2, b2 = polytopes[i2]
+        print(A1.shape, A_p.shape)
+        polytopes[i1] = [np.vstack([A1, A_p]), np.hstack([b1, b_p])]
+        polytopes[i2] = [np.vstack([A2, -A_p]), np.hstack([b2, -b_p])]
+
+
+    # Define bounding box constraints, e.g., for a box from [0,0] to [1,1]
+    A_box = np.array([
+        [1, 0],   # x >= 0
+        [-1, 0],  # x <= 1
+        [0, 1],   # y >= 0
+        [0, -1],  # y <= 1
+    ])
+    b_box = np.array([1.5, 0.5, 1.5, 0.5])
+
+    # Convert each unbounded region to a bounded polytope within the box
+    bounded_polytopes = []
+    for A, b in polytopes:
+        A_full = np.vstack([A, A_box])
+        b_full = np.hstack([b, b_box])
+        bounded_polytope = pc.Polytope(A_full, b_full)
+        bounded_polytopes.append(bounded_polytope)
+
+    
+    f, a = plt.subplots()
+    a.scatter(*points.T, s=2)
+    for i, p in enumerate(bounded_polytopes):
+        print(i)
+        p.plot(ax = a, color=plt.cm.tab20(i / n_pts), alpha=0.2, linewidth=1)
+    
+    a.set_xlim([-0.01,1.01])
+    a.set_ylim([-0.01,1.01])
+    plt.show()
+    exit()
+
+
     m = 10
     boxpoly = pc.box2poly([[-m,m],[-m,m]])
 
@@ -263,13 +327,13 @@ if __name__ == "__main__":
 
     polys = [p1, p2, p3]
 
-    X = generate_random(100, m)
+    X = generate_random(1000, m)
     y = which_classes(X, polys)
     X = X[y != -1]
     y = y[y != -1]
 
     
-    N_new = 20
+    N_new = 200
     X_new = generate_random_in_poly(N_new, m, p4)
     y_new = np.array([3]*N_new)
     
@@ -286,7 +350,7 @@ if __name__ == "__main__":
     X_all = np.r_[X, X_new]
     y_all = np.r_[y, y_new]
 
-    LR.partial_fit(X_new, y_new, with_prev_portion=0.1, Xplt=X_all, yplt=y_all)
+    LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X_all, yplt=y_all)
     LR.plot_classi(X_all, y_all)
 
     plot_with_polys(X_all, y_all, [p1,p2,p3,p4])
