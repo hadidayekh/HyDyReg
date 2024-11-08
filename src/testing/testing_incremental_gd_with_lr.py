@@ -210,8 +210,8 @@ class IncrementalLogsiticRGD_withLR:
         return fig, ax
 
 
-def generate_random(N, m):
-    return np.random.rand(N, 2) * 2 * m - m
+def generate_random(N):
+    return np.random.rand(N, 2)
 
 def which_classes(X, polys):
     y = np.ones((X.shape[0],))*-1
@@ -234,17 +234,20 @@ def generate_random_in_poly(N, m, poly):
 
 def plot_with_polys(X, y, polys):
     f, a = plt.subplots()
+    n = max(y)
     for j, p in enumerate(polys):
-        a.scatter(*X[y==j].T, color=plt.cm.tab10(j), s=4)
-        p.plot(ax=a, color=plt.cm.tab10(j), alpha=0.2)
+        a.scatter(*X[y==j].T, color=plt.cm.tab20(j/n), s=2)
+        p.plot(ax=a, color=plt.cm.tab20(j/n), alpha=0.2, linewidth=1)
+    a.set_xlim([-0.01,1.01])
+    a.set_ylim([-0.01,1.01])
 
 if __name__ == "__main__":
 
     from scipy.spatial import Voronoi
 
     # Sample points for Voronoi
-    n_pts = 100
-    points = np.random.rand(n_pts, 2)  # 10 random points in 2D
+    n_vor_regions = 100
+    points = np.random.rand(n_vor_regions, 2)  # 10 random points in 2D
     vor = Voronoi(points)
 
     def get_perp_bis(p1, p2):
@@ -255,7 +258,7 @@ if __name__ == "__main__":
 
     ridge_points = vor.ridge_points
     polytopes = []
-    for i in range(n_pts):
+    for i in range(n_vor_regions):
         polytopes.append([np.ndarray((0,2)), np.ndarray((0,))])
     
     for rp in ridge_points:
@@ -295,10 +298,19 @@ if __name__ == "__main__":
     a.scatter(*points.T, s=2)
     for i, p in enumerate(bounded_polytopes):
         print(i)
-        p.plot(ax = a, color=plt.cm.tab20(i / n_pts), alpha=0.2, linewidth=1)
+        p.plot(ax = a, color=plt.cm.tab20(i / n_vor_regions), alpha=0.2, linewidth=1)
     
     a.set_xlim([-0.01,1.01])
     a.set_ylim([-0.01,1.01])
+
+
+
+    partial = 50
+    X = generate_random(1000)
+    y = which_classes(X, bounded_polytopes)
+    plot_with_polys(X[y<partial], y[y<partial], bounded_polytopes[:partial])
+
+
     plt.show()
     exit()
 
