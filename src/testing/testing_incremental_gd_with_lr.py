@@ -135,7 +135,7 @@ class IncrementalLogsiticRGD_withLR:
             
             if not Xplt is None:
                 self.define_region_polytopes()
-                self.plot_classi(Xplt, yplt)
+                self.plot_classi(Xplt, yplt, title="After adding new points without applying GD")
             
 
 
@@ -178,7 +178,7 @@ class IncrementalLogsiticRGD_withLR:
         return np.argmax(self.decision_function(X), axis=1)
 
 
-    def plot_classi(self, X, y, h = 0.05):
+    def plot_classi(self, X, y, h = 0.05, title=""):
         n = np.unique(y).size
 
         fig, ax = plt.subplots()
@@ -204,7 +204,10 @@ class IncrementalLogsiticRGD_withLR:
             print(p)
             p.plot(ax, color=plt.cm.tab10(col_ind), alpha=0.3)
             col_ind += 1
-        ax.set_title(f"Learning Rate={self.learning_rate}")
+        if title == "":
+            ax.set_title(f"Learning Rate={self.learning_rate}")
+        else:
+            ax.set_title(title)
         ax.legend()
 
         return fig, ax
@@ -246,7 +249,13 @@ if __name__ == "__main__":
     from scipy.spatial import Voronoi
 
     # Sample points for Voronoi
-    n_vor_regions = 100
+    n_vor_regions = 20
+    n_pts = 500
+    partial = 15
+
+    learning_rate = 0.1
+    nb_epochs = 50
+
     points = np.random.rand(n_vor_regions, 2)  # 10 random points in 2D
     vor = Voronoi(points)
 
@@ -311,11 +320,25 @@ if __name__ == "__main__":
 
 
 
-    partial = 100
-    X = generate_random(2000)
+    X = generate_random(n_pts)
     y = which_classes(X, bounded_polytopes)
+
+
+    X_fit = X[y<partial]; y_fit = y[y<partial]
+    X_new = X[y>= partial]; y_new = y[y>=partial]
+
     plot_with_polys(X[y<partial], y[y<partial], bounded_polytopes[:partial], colors=colors)
 
+
+    LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
+
+    LR.fit(X_fit,y_fit)
+    LR.plot_classi(X,y, title="First fit")
+
+
+    LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X, yplt=Y)
+    
+    LR.plot_classi(X, y, title="After applying GD on new data")
 
     plt.show()
     exit()
