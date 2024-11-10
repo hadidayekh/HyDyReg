@@ -232,12 +232,12 @@ def generate_random_in_poly(N, m, poly):
             i += 1
     return X
 
-def plot_with_polys(X, y, polys):
+def plot_with_polys(X, y, polys, colors):
     f, a = plt.subplots()
     n = max(y)
     for j, p in enumerate(polys):
-        a.scatter(*X[y==j].T, color=plt.cm.tab20(j/n), s=2)
-        p.plot(ax=a, color=plt.cm.tab20(j/n), alpha=0.2, linewidth=1)
+        a.scatter(*X[y==j].T, color=plt.cm.tab20(colors[j]), s=1)
+        p.plot(ax=a, color=plt.cm.tab20(colors[j]), alpha=0.2, linewidth=1)
     a.set_xlim([-0.01,1.01])
     a.set_ylim([-0.01,1.01])
 
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     from scipy.spatial import Voronoi
 
     # Sample points for Voronoi
-    n_vor_regions = 100
+    n_vor_regions = 50
     points = np.random.rand(n_vor_regions, 2)  # 10 random points in 2D
     vor = Voronoi(points)
 
@@ -271,9 +271,14 @@ if __name__ == "__main__":
 
         A1, b1 = polytopes[i1]
         A2, b2 = polytopes[i2]
-        print(A1.shape, A_p.shape)
         polytopes[i1] = [np.vstack([A1, A_p]), np.hstack([b1, b_p])]
         polytopes[i2] = [np.vstack([A2, -A_p]), np.hstack([b2, -b_p])]
+
+    import networkx as nx
+    G = nx.Graph()
+    G.add_edges_from(ridge_points)
+
+    colors = nx.coloring.equitable_color(G, 20)
 
 
     # Define bounding box constraints, e.g., for a box from [0,0] to [1,1]
@@ -297,18 +302,17 @@ if __name__ == "__main__":
     f, a = plt.subplots()
     a.scatter(*points.T, s=2)
     for i, p in enumerate(bounded_polytopes):
-        print(i)
-        p.plot(ax = a, color=plt.cm.tab20(i / n_vor_regions), alpha=0.2, linewidth=1)
+        p.plot(ax = a, color=plt.cm.tab20(colors[i]), alpha=0.2, linewidth=1)
     
     a.set_xlim([-0.01,1.01])
     a.set_ylim([-0.01,1.01])
 
 
 
-    partial = 50
-    X = generate_random(1000)
+    partial = 100
+    X = generate_random(2000)
     y = which_classes(X, bounded_polytopes)
-    plot_with_polys(X[y<partial], y[y<partial], bounded_polytopes[:partial])
+    plot_with_polys(X[y<partial], y[y<partial], bounded_polytopes[:partial], colors=colors)
 
 
     plt.show()
