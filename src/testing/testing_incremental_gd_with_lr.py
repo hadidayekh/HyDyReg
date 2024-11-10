@@ -246,7 +246,7 @@ if __name__ == "__main__":
     from scipy.spatial import Voronoi
 
     # Sample points for Voronoi
-    n_vor_regions = 50
+    n_vor_regions = 100
     points = np.random.rand(n_vor_regions, 2)  # 10 random points in 2D
     vor = Voronoi(points)
 
@@ -278,8 +278,10 @@ if __name__ == "__main__":
     G = nx.Graph()
     G.add_edges_from(ridge_points)
 
-    colors = nx.coloring.equitable_color(G, 20)
-
+    try:
+        colors = nx.coloring.equitable_color(G, 20)
+    except:
+        colors = nx.coloring.greedy_color(G)
 
     # Define bounding box constraints, e.g., for a box from [0,0] to [1,1]
     A_box = np.array([
