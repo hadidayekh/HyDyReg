@@ -1,7 +1,6 @@
 from cmath import inf
 import enum
 from time import sleep
-from tkinter import Y
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -10,7 +9,7 @@ from sklearn.linear_model import LogisticRegression
 import polytope as pc
 
 
-
+global colormap
 class IncrementalLogsiticRGD_withLR:
     def __init__(self, learning_rate=0.0001, nb_epochs=50) -> None:
         self.learning_rate = learning_rate
@@ -42,6 +41,15 @@ class IncrementalLogsiticRGD_withLR:
         for k in range(self.K):
             A = [[1, 0], [0, 1], [-1, 0], [0, -1]]
             b = [1e20]*4
+
+            A = [
+                [1, 0],   # x >= 0
+                [-1, 0],  # x <= 1
+                [0, 1],   # y >= 0
+                [0, -1],  # y <= 1
+            ]
+            b = [15, 15, 15, 15]
+
             for j in range(self.K):
                 if j != k:
                     A.append(self.W[k] - self.W[j])
@@ -73,11 +81,11 @@ class IncrementalLogsiticRGD_withLR:
         '''
         assert len(X[0]) == self.D
         N = X.shape[0]          # number of data points
-        new_K = np.max(y) + 1   # this assumes that new classes are always added in ascending order
+        new_K = int(np.max(y) + 1)   # this assumes that new classes are always added in ascending order
 
         # First deal with NEW classes
         if new_K > self.K:
-            n_new_classes = new_K - self.K
+            n_new_classes = (new_K - self.K)
             
             Xnew = X[y >= self.K]
             ynew = y[y >= self.K]
@@ -92,7 +100,7 @@ class IncrementalLogsiticRGD_withLR:
 
             regions = np.unique(np.array(regions))
             n_affected_regions = len(regions)
-            print("affected regions", regions)
+            # print("affected regions", regions)
 
             # run a logistic regression algorithm with all *new* points and
             # all points in affected regions
@@ -144,7 +152,7 @@ class IncrementalLogsiticRGD_withLR:
         y_old = y
         if with_prev_portion > 0:            
             rand_ints = np.random.permutation(self.X_.shape[0])[:int(self.X_.shape[0]*with_prev_portion)]
-            print(rand_ints)
+            # print(rand_ints)
             X_prev_rand = self.X_[rand_ints]
             y_prev_rand = self.y_[rand_ints]
             X = np.r_[X, X_prev_rand]
@@ -166,9 +174,9 @@ class IncrementalLogsiticRGD_withLR:
         self.X_ = np.r_[self.X_, X_old]
         self.y_ = np.r_[self.y_, y_old]
         
-        for r in self.regions:
-            print(r.A)
-            print(r.b)
+        # for r in self.regions:
+        #     print(r.A)
+        #     print(r.b)
         return self
 
     def decision_function(self, X):
@@ -180,11 +188,11 @@ class IncrementalLogsiticRGD_withLR:
 
     def plot_classi(self, X, y, h = 0.05, title=""):
         n = np.unique(y).size
-
+        
         fig, ax = plt.subplots()
 
         for i in range(n):
-            ax.scatter(*X[y == i].T, color=plt.cm.tab10(i), s=4, label="Class " + str(i))
+            ax.scatter(*X[y == i].T, color=colormap(i), s=4, label="Class " + str(i))
 
         xmin, xmax = ax.get_xlim()
         ymin, ymax = ax.get_ylim()
@@ -194,15 +202,15 @@ class IncrementalLogsiticRGD_withLR:
         # print(np.c_[xx.ravel(), yy.ravel()].shape)
         Z = np.argmax(self.decision_function(np.c_[xx.ravel(), yy.ravel()]), axis=1).reshape(xx.shape)
 
-        cmap = ListedColormap([plt.cm.tab10(i) for i in range(n)])
+        cmap = ListedColormap([colormap(i) for i in range(n)])
         
         # ax.contourf(xx, yy, Z, cmap=cmap, alpha=0.3)
         col_ind = 0
         plot_box_poly = pc.box2poly([[xmin, xmax], [ymin, ymax]])
         for p in self.regions:
-            p = p.intersect(plot_box_poly)
-            print(p)
-            p.plot(ax, color=plt.cm.tab10(col_ind), alpha=0.3)
+            # p = p.intersect(plot_box_poly)
+            # print(p)
+            p.plot(ax, color=colormap(col_ind), alpha=0.3)
             col_ind += 1
         if title == "":
             ax.set_title(f"Learning Rate={self.learning_rate}")
@@ -239,8 +247,8 @@ def plot_with_polys(X, y, polys, colors):
     f, a = plt.subplots()
     n = max(y)
     for j, p in enumerate(polys):
-        a.scatter(*X[y==j].T, color=plt.cm.tab20(colors[j]), s=1)
-        p.plot(ax=a, color=plt.cm.tab20(colors[j]), alpha=0.2, linewidth=1)
+        a.scatter(*X[y==j].T, color=colormap(colors[j]), s=1)
+        p.plot(ax=a, color=colormap(colors[j]), alpha=0.2, linewidth=1)
     a.set_xlim([-0.01,1.01])
     a.set_ylim([-0.01,1.01])
 
@@ -249,9 +257,9 @@ if __name__ == "__main__":
     from scipy.spatial import Voronoi
 
     # Sample points for Voronoi
-    n_vor_regions = 20
-    n_pts = 500
-    partial = 15
+    n_vor_regions = 10
+    n_pts = 2000
+    partial = 9
 
     learning_rate = 0.1
     nb_epochs = 50
@@ -288,9 +296,15 @@ if __name__ == "__main__":
     G.add_edges_from(ridge_points)
 
     try:
-        colors = nx.coloring.equitable_color(G, 20)
+        colors = nx.coloring.equitable_color(G, 10)
+        colormap = plt.cm.tab10
     except:
-        colors = nx.coloring.greedy_color(G)
+        try:
+            colors = nx.coloring.equitable_color(G, 20)
+            colormap = plt.cm.tab20
+        except:
+            colors = nx.coloring.greedy_color(G)
+            colormap = plt.cm.tab10
 
     # Define bounding box constraints, e.g., for a box from [0,0] to [1,1]
     A_box = np.array([
@@ -313,7 +327,7 @@ if __name__ == "__main__":
     f, a = plt.subplots()
     a.scatter(*points.T, s=2)
     for i, p in enumerate(bounded_polytopes):
-        p.plot(ax = a, color=plt.cm.tab20(colors[i]), alpha=0.2, linewidth=1)
+        p.plot(ax = a, color=colormap(colors[i]), alpha=0.2, linewidth=1)
     
     a.set_xlim([-0.01,1.01])
     a.set_ylim([-0.01,1.01])
@@ -324,19 +338,22 @@ if __name__ == "__main__":
     y = which_classes(X, bounded_polytopes)
 
 
-    X_fit = X[y<partial]; y_fit = y[y<partial]
-    X_new = X[y>= partial]; y_new = y[y>=partial]
+    X_fit = X[y<partial]
+    y_fit = y[y<partial]
+    X_new = X[y>= partial]
+    y_new = y[y>=partial]
 
+    plot_with_polys(X, y, bounded_polytopes, colors=colors)
     plot_with_polys(X[y<partial], y[y<partial], bounded_polytopes[:partial], colors=colors)
 
 
     LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
 
     LR.fit(X_fit,y_fit)
-    LR.plot_classi(X,y, title="First fit")
+    LR.plot_classi(X_fit,y_fit, title="First fit")
 
 
-    LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X, yplt=Y)
+    LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X, yplt=y)
     
     LR.plot_classi(X, y, title="After applying GD on new data")
 
