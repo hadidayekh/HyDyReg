@@ -75,7 +75,7 @@ class IncrementalLogsiticRGD_withLR:
 
 
 
-    def partial_fit(self, X, y, with_prev_portion=0, Xplt=None, yplt=None):
+    def partial_fit(self, X, y, with_prev_portion=0, Xplt=None, yplt=None, colors=lambda x: x):
         '''
         Runs the fitting algorithm using gradient descent and without re-initializing the coefficients.
         '''
@@ -143,7 +143,7 @@ class IncrementalLogsiticRGD_withLR:
             
             if not Xplt is None:
                 self.define_region_polytopes()
-                self.plot_classi(Xplt, yplt, title="After adding new points and initializing weight vectors before applying SGD.")
+                self.plot_classi(Xplt, yplt, title="After adding new points and initializing weight vectors before applying SGD.", colors=colors)
             
 
 
@@ -186,13 +186,13 @@ class IncrementalLogsiticRGD_withLR:
         return np.argmax(self.decision_function(X), axis=1)
 
 
-    def plot_classi(self, X, y, h = 0.05, title=""):
+    def plot_classi(self, X, y, h = 0.05, title="", colors = lambda x : x):
         n = np.unique(y).size
         
         fig, ax = plt.subplots()
 
         for i in range(n):
-            ax.scatter(*X[y == i].T, color=colormap(i), s=4, label="Class " + str(i))
+            ax.scatter(*X[y == i].T, color=colormap(colors(i)), s=4, label="Class " + str(i))
 
         xmin, xmax = ax.get_xlim()
         ymin, ymax = ax.get_ylim()
@@ -210,13 +210,13 @@ class IncrementalLogsiticRGD_withLR:
         for p in self.regions:
             # p = p.intersect(plot_box_poly)
             # print(p)
-            p.plot(ax, color=colormap(col_ind), alpha=0.3)
+            p.plot(ax, color=colormap(colors(col_ind)), alpha=0.3)
             col_ind += 1
         if title == "":
             ax.set_title(f"Learning Rate={self.eta}")
         else:
             ax.set_title(title + f'\n$\eta = {self.eta}$', fontsize=10)
-        ax.legend()
+        # ax.legend()
 
         return fig, ax
 
@@ -259,11 +259,11 @@ if __name__ == "__main__":
     from scipy.spatial import Voronoi
 
     # Sample points for Voronoi
-    n_vor_regions = 10
+    n_vor_regions = 5
     n_pts = 2000
-    partial = 8
+    partial = 4
 
-    etas = [0.01, 0.1, 1, 10]
+    etas = [0.01, 0.1, 1]
     nb_epochs = 50
 
     points = np.random.rand(n_vor_regions, 2)  # 10 random points in 2D
@@ -297,10 +297,10 @@ if __name__ == "__main__":
     G = nx.Graph()
     G.add_edges_from(ridge_points)
 
-    try:
+    if n_vor_regions <= 10:
         colors = nx.coloring.equitable_color(G, 10)
         colormap = plt.cm.tab10
-    except:
+    else:
         try:
             colors = nx.coloring.equitable_color(G, 20)
             colormap = plt.cm.tab20
@@ -341,12 +341,12 @@ if __name__ == "__main__":
         LR = IncrementalLogsiticRGD_withLR(eta=eta, nb_epochs=nb_epochs)
 
         LR.fit(X_fit,y_fit)
-        LR.plot_classi(X_fit,y_fit, title="First fit.")
+        LR.plot_classi(X_fit,y_fit, title="First fit.", colors=lambda x: colors[x])
 
 
-        LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X, yplt=y)
+        LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X, yplt=y, colors=lambda x: colors[x])
         
-        LR.plot_classi(X, y, title="After applying GD on new data.")
+        LR.plot_classi(X, y, title="After applying GD on new data.", colors=lambda x: colors[x])
 
 
     f, a = plt.subplots()
