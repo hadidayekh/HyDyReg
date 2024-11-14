@@ -11,8 +11,8 @@ import polytope as pc
 
 global colormap
 class IncrementalLogsiticRGD_withLR:
-    def __init__(self, learning_rate=0.0001, nb_epochs=50) -> None:
-        self.learning_rate = learning_rate
+    def __init__(self, eta=0.0001, nb_epochs=50) -> None:
+        self.eta = eta
         self.nb_epochs = nb_epochs
 
     # Calculates the gradient of L with respect to W and B on x,y
@@ -167,8 +167,8 @@ class IncrementalLogsiticRGD_withLR:
             for i in range(N):
                 for k in range(self.K):
                     grad_L_w, grad_L_b = self.grad_L(X_shuffled[i], y_shuffled[i], k)
-                    self.W[k] = self.W[k] - self.learning_rate * grad_L_w
-                    self.B[k] = self.B[k] - self.learning_rate * grad_L_b
+                    self.W[k] = self.W[k] - self.eta * grad_L_w
+                    self.B[k] = self.B[k] - self.eta * grad_L_b
         self.define_region_polytopes()
         
         self.X_ = np.r_[self.X_, X_old]
@@ -213,9 +213,9 @@ class IncrementalLogsiticRGD_withLR:
             p.plot(ax, color=colormap(col_ind), alpha=0.3)
             col_ind += 1
         if title == "":
-            ax.set_title(f"Learning Rate={self.learning_rate}")
+            ax.set_title(f"Learning Rate={self.eta}")
         else:
-            ax.set_title(title + f'\n$\eta = {self.learning_rate}$', fontsize=10)
+            ax.set_title(title + f'\n$\eta = {self.eta}$', fontsize=10)
         ax.legend()
 
         return fig, ax
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     n_pts = 2000
     partial = 8
 
-    learning_rates = [0.01, 0.1, 1, 10]
+    etas = [0.01, 0.1, 1, 10]
     nb_epochs = 50
 
     points = np.random.rand(n_vor_regions, 2)  # 10 random points in 2D
@@ -337,8 +337,8 @@ if __name__ == "__main__":
     y_new = y[y>=partial]
 
 
-    for learning_rate in learning_rates:
-        LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
+    for eta in etas:
+        LR = IncrementalLogsiticRGD_withLR(eta=eta, nb_epochs=nb_epochs)
 
         LR.fit(X_fit,y_fit)
         LR.plot_classi(X_fit,y_fit, title="First fit.")
@@ -401,10 +401,10 @@ if __name__ == "__main__":
     
 
 
-    learning_rate = 0.1
+    eta = 0.1
     nb_epochs = 50
 
-    LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
+    LR = IncrementalLogsiticRGD_withLR(eta=eta, nb_epochs=nb_epochs)
 
     LR.fit(X,y)
     LR.plot_classi(X,y)
@@ -423,15 +423,15 @@ if __name__ == "__main__":
     exit()
     n_samples = 200
     n_classes = 4
-    learning_rate = 0.1
+    eta = 0.1
     nb_epochs = 50
 
     X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
                             n_clusters_per_class=1, n_redundant=0, n_classes=n_classes, random_state=1)
 
 
-    # for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1 , 1]:
-    LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
+    # for eta in [0.00001, 0.0001, 0.001, 0.01, 0.1 , 1]:
+    LR = IncrementalLogsiticRGD_withLR(eta=eta, nb_epochs=nb_epochs)
 
 
     # LR.W = np.array([[-1.00231, -0.98778], [ 0.99056, -0.85561], [-1.08337,  0.80221], [1.0791,   1.02797]])
