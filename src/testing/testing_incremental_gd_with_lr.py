@@ -143,7 +143,7 @@ class IncrementalLogsiticRGD_withLR:
             
             if not Xplt is None:
                 self.define_region_polytopes()
-                self.plot_classi(Xplt, yplt, title="After adding new points without applying GD")
+                self.plot_classi(Xplt, yplt, title="After adding new points and initializing weight vectors before applying SGD.")
             
 
 
@@ -215,7 +215,7 @@ class IncrementalLogsiticRGD_withLR:
         if title == "":
             ax.set_title(f"Learning Rate={self.learning_rate}")
         else:
-            ax.set_title(title)
+            ax.set_title(title + f'\n$\eta = {self.learning_rate}$', fontsize=10)
         ax.legend()
 
         return fig, ax
@@ -243,7 +243,7 @@ def generate_random_in_poly(N, m, poly):
             i += 1
     return X
 
-def plot_with_polys(X, y, polys, colors):
+def plot_with_polys(X, y, polys, colors, title=""):
     f, a = plt.subplots()
     n = max(y)
     for j, p in enumerate(polys):
@@ -252,6 +252,8 @@ def plot_with_polys(X, y, polys, colors):
     a.set_xlim([-0.01,1.01])
     a.set_ylim([-0.01,1.01])
 
+    a.set_title(title)
+
 if __name__ == "__main__":
 
     from scipy.spatial import Voronoi
@@ -259,9 +261,9 @@ if __name__ == "__main__":
     # Sample points for Voronoi
     n_vor_regions = 10
     n_pts = 2000
-    partial = 9
+    partial = 8
 
-    learning_rate = 0.1
+    learning_rates = [0.01, 0.1, 1, 10]
     nb_epochs = 50
 
     points = np.random.rand(n_vor_regions, 2)  # 10 random points in 2D
@@ -323,15 +325,6 @@ if __name__ == "__main__":
         bounded_polytope = pc.Polytope(A_full, b_full)
         bounded_polytopes.append(bounded_polytope)
 
-    
-    f, a = plt.subplots()
-    a.scatter(*points.T, s=2)
-    for i, p in enumerate(bounded_polytopes):
-        p.plot(ax = a, color=colormap(colors[i]), alpha=0.2, linewidth=1)
-    
-    a.set_xlim([-0.01,1.01])
-    a.set_ylim([-0.01,1.01])
-
 
 
     X = generate_random(n_pts)
@@ -343,19 +336,30 @@ if __name__ == "__main__":
     X_new = X[y>= partial]
     y_new = y[y>=partial]
 
-    plot_with_polys(X, y, bounded_polytopes, colors=colors)
-    plot_with_polys(X[y<partial], y[y<partial], bounded_polytopes[:partial], colors=colors)
+
+    for learning_rate in learning_rates:
+        LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
+
+        LR.fit(X_fit,y_fit)
+        LR.plot_classi(X_fit,y_fit, title="First fit.")
 
 
-    LR = IncrementalLogsiticRGD_withLR(learning_rate=learning_rate, nb_epochs=nb_epochs)
+        LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X, yplt=y)
+        
+        LR.plot_classi(X, y, title="After applying GD on new data.")
 
-    LR.fit(X_fit,y_fit)
-    LR.plot_classi(X_fit,y_fit, title="First fit")
 
-
-    LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X, yplt=y)
+    f, a = plt.subplots()
+    a.scatter(*points.T, s=2)
+    for i, p in enumerate(bounded_polytopes):
+        p.plot(ax = a, color=colormap(colors[i]), alpha=0.2, linewidth=1)
     
-    LR.plot_classi(X, y, title="After applying GD on new data")
+    a.set_xlim([-0.01,1.01])
+    a.set_ylim([-0.01,1.01])
+    a.set_title("Voronoi points and regions")
+
+    plot_with_polys(X, y, bounded_polytopes, colors=colors, title="Sampled points")
+    plot_with_polys(X_fit, y_fit, bounded_polytopes[:partial], colors=colors, title="Points given to the first fit")
 
     plt.show()
     exit()
