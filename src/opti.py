@@ -871,7 +871,7 @@ class HybridRegressor:
         self.Omegas_[j] = regressor.coef_
         self.betas_[j] = regressor.intercept_
     
-    def improve_classification(self, X, X_dot, classifier=None, partial_fit=True):
+    def improve_classification(self, X, X_dot, classifier=None, partial_fit=False):
         self.check_if_fitted()
         if X.size == 0:
             return
