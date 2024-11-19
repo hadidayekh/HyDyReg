@@ -148,6 +148,38 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     trajs_test_sul = sul.simulate_trajectory(
         time_step_test, time_range_test, x0s_test)
 
+    def compute_errors_and_plot(learned_model : HybridRegressor, fig_suffix=""):
+        learned_SNDS = learned_model.to_SNDS()
+
+        trajs_train_learned = learned_SNDS.simulate_trajectory(
+            time_step, time_range, x0s)
+        trajs_test_learned = learned_SNDS.simulate_trajectory(
+            time_step_test, time_range_test, x0s_test)
+
+        train_RD = compare_trajs(
+            trajs_train_sul_unsegmented, trajs_train_learned, measure="RD")
+        test_RD = compare_trajs(
+            trajs_test_learned, trajs_test_sul, measure="RD")
+
+        if with_plots:
+            ftrain, atrain = plotting_function(trajs_train_sul_unsegmented, colors=[
+                                               'b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            ftrain, atrain = plotting_function(trajs_train_learned, fig=ftrain, axs=atrain, colors=[
+                                               'm'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=learned_model.labelfun_)
+
+            ftest, atest = plotting_function(trajs_test_sul, colors=[
+                                             'b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
+            ftest, atest = plotting_function(trajs_test_learned, fig=ftest, axs=atest, colors=[
+                                             'r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=learned_model.labelfun_)
+            if write_on:
+                ftrain.savefig(dir_plots + exp_name +
+                               "_training" + fig_suffix + save_ext, dpi=dpi)
+                ftest.savefig(dir_plots + exp_name + "_test" +
+                              fig_suffix + save_ext, dpi=dpi)
+
+        return train_RD, test_RD
+
+
     # Segmenting the given trajectories
     segments = trajs_train_sul.segment_trajectories(seg_tol)
     trajs_train_sul_unsegmented = trajs_train_sul.return_unsegmented()
@@ -268,13 +300,44 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
 
     # Classify and improve classification by generating points between segments
     model.classify_modes(classifier)
+
+    # Store first model (purely passive)
+    first_learned_SNDS = copy.deepcopy(model.to_SNDS())
+    first_model = copy.deepcopy(model)
+    ################### COMPUTING TRAINING AND TEST ERRORS AT EACH STAGE ##############################
+    # after learning purely passively with first trajectories
+    train_RD1, test_RD1 = compute_errors_and_plot(first_model)
+
     # plot_Xfit(model)
     # print(model.gen_full_latex_eq())
     # print(gen_full_matlab_hyeq_class(model, name="NSLDR"))
     # exit()
+    
+
+    # Improve classification by generating points in between segments
+    start = time.time()
     fine_X, fine_X_dot = sul.generate_points_between_segments(
         trajs_train_sul, segments, seg_tol/10, timestep=time_step_test/20)
     model.improve_classification(fine_X, fine_X_dot, classifier)
+    time_active = time.time() - start
+    
+    f, a = plot_Xfit(model)
+    plt.show()
+
+    #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
+    learned_SNDS_active_before_EQ = copy.deepcopy(model.to_SNDS())
+    model_active_before_EQ = copy.deepcopy(model)
+    # after learning with first trajectories and refining boundaries with fine points between segments
+    train_RD2, test_RD2 = compute_errors_and_plot(
+        model_active_before_EQ, fig_suffix="_gen")
+
+    # train_RD1, test_RD1 = compute_errors_and_plot(first_model)
+    # # after learning with first trajectories and refining boundaries with fine points between segments
+    # train_RD2, test_RD2 = compute_errors_and_plot(
+    #     model_active_before_EQ, fig_suffix="_gen")
+    # plt.show()
+    # exit()
+    
     # plot_Xfit(model)
     # plt.show()
     # exit()
@@ -283,64 +346,23 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     # else:
     #     print_classifier_boundaries(model.classifier_)
     # print(fine_X, fine_X_dot)
-    first_learned_SNDS = copy.deepcopy(model.to_SNDS())
-    first_model = copy.deepcopy(model)
-
-    def compute_errors_and_plot(model: HybridRegressor, fig_suffix=""):
-        learned_SNDS = model.to_SNDS()
-
-        trajs_train_learned = learned_SNDS.simulate_trajectory(
-            time_step, time_range, x0s)
-        trajs_test_learned = learned_SNDS.simulate_trajectory(
-            time_step_test, time_range_test, x0s_test)
-
-        train_RD = compare_trajs(
-            trajs_train_sul_unsegmented, trajs_train_learned, measure="RD")
-        test_RD = compare_trajs(
-            trajs_test_learned, trajs_test_sul, measure="RD")
-
-        if with_plots:
-            ftrain, atrain = plotting_function(trajs_train_sul_unsegmented, colors=[
-                                               'b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-            ftrain, atrain = plotting_function(trajs_train_learned, fig=ftrain, axs=atrain, colors=[
-                                               'm'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
-
-            ftest, atest = plotting_function(trajs_test_sul, colors=[
-                                             'b'], label='From SUL', mark_beginning=True, plot_xt=plot_xt)
-            ftest, atest = plotting_function(trajs_test_learned, fig=ftest, axs=atest, colors=[
-                                             'r'], label='From learned system', mark_beginning=True, plot_xt=plot_xt, labelfun=model.labelfun_)
-            if write_on:
-                ftrain.savefig(dir_plots + exp_name +
-                               "_training" + fig_suffix + save_ext, dpi=dpi)
-                ftest.savefig(dir_plots + exp_name + "_test" +
-                              fig_suffix + save_ext, dpi=dpi)
-
-        return train_RD, test_RD
-
-    # compute_errors_and_plot(first_model)
-    # plt.show()
-
+    
+    
     # print(model.gen_full_latex_eq())
-    start = time.time()
-    # fine_X, fine_X_dot = sul.generate_points_between_segments(trajs_train_sul, segments, seg_tol/10)
-    # model.improve_classification(fine_X, fine_X_dot, classifier)
-    f, a = plot_Xfit(model)
-    plt.show()
-    time_active = time.time() - start
-    if classifier_poly_trans:
-        print_classifier_boundaries(model.classifier_, model.classifier_poly_)
-    else:
-        print_classifier_boundaries(model.classifier_)
 
-    print(model.Omegas_, model.betas_)
+    if print_on:
+        if classifier_poly_trans:
+            print_classifier_boundaries(model.classifier_, model.classifier_poly_)
+        else:
+            print_classifier_boundaries(model.classifier_)
+
+        print(model.Omegas_, model.betas_)
 
     # Compute training error
     X_dot_pred = model.predict(X)
     MSE_all = mean_squared_error(X_dot, X_dot_pred)
 
-    #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
-    learned_SNDS_active_before_EQ = copy.deepcopy(model.to_SNDS())
-    model_active_before_EQ = copy.deepcopy(model)
+    
 
     if do_eq_query:
         def plot_eq_query(sul_trajs, cexs_learned, conforming_trajs_learned, count):
@@ -454,16 +476,11 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
             print("Equivalence query is TRUE!")
             print("NUMBER OF EQ QUERIES:", count)
             print_classifier_boundaries(model.classifier_)
-            print(gen_full_matlab_hyeq_class(model, name="HySys"))
+            # print(gen_full_matlab_hyeq_class(model, name="HySys"))
 
         time_EQ = time.time() - start
 
-    ################### COMPUTING TRAINING AND TEST ERRORS AT EACH STAGE ##############################
-    # after learning purely passively with first trajectories
-    train_RD1, test_RD1 = compute_errors_and_plot(first_model)
-    # after learning with first trajectories and refining boundaries with fine points between segments
-    train_RD2, test_RD2 = compute_errors_and_plot(
-        model_active_before_EQ, fig_suffix="_gen")
+    
     if do_eq_query:
         # after learning with equivalence queries and producing a final model
         train_RD3, test_RD3 = compute_errors_and_plot(model, fig_suffix="_EQ")
@@ -472,6 +489,8 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     X_dot_sul = sul.get_derivatives(trajs_test_sul)
     X_dot_learned = learned_SNDS.get_derivatives(trajs_test_sul)
     RD_dot = np.mean(relative_diff(X_dot_sul, X_dot_learned))
+
+    plt.show()
 
     if print_on:
         print(
