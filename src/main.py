@@ -21,6 +21,85 @@ def get_modes(Chis_sol):
 
 
 def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50):
+    '''
+    Wrapper function to simulate a SNDS and learn it using HybridRegressor, passively or actively.
+
+    Parameters:
+        exp_name (str): Experiment name.
+        
+        sul (SNDS): the system under learning to simulate.
+        
+        time_step: time step of the training trajectories.
+        
+        time_range: time range of the training trajectories.
+        
+        x0s: initial conditions of the training trajectories.
+        
+        time_step_test: time step of the test trajectories.
+        
+        time_range_test: time range of the test trajectories.
+        
+        x0s_test: initial conditions of the test trajectories.
+        
+        nmodes: number of modes (required when using the optimization-based method).
+        
+        poly_degree: the maximum polynomial degree of the continuous dynamics.
+        
+        random_test_set: when True, uses a randomly generated set of test trajectories instead of relying on provided initial conditions.
+        
+        classifier_poly_trans: when True, applies PolynomialFeatures on data before running the classifier to find mode regions. Used for nonlinear boundaries.
+        
+        classifier_poly_deg: the maximum polynomial degree of the mode region boundaries.
+        
+        seg_tol: the segmentation tolerance.
+        
+        diff_method: the numerical differentiation method used to construct the training data.
+        
+        train_coefs: when True, uses the polynomial feature extraction in the optimization function, rather than kernel methods. False is deprecated.
+        
+        kernels_list: deprecated
+        
+        kargs_list: deprecated
+        
+        with_plots: when True, provides plots.
+        
+        print_on: when True, prints details of the learning method.
+        
+        classifier: the classifier used to learn mode regions.
+        
+        C_space: the search space of the C hyperparameter when using the optimization-based approach.
+        
+        write_on: when True, writes the results in files.
+        
+        deltas: the insensitivity error in the optimization function.
+        
+        tol: ??
+        
+        break_at_low_MSE: when True, breaks the hyperparameter search of C in the optimization-based approach when a good result is found without continuing the search.
+        
+        apply_LR: when True, applies linear regression after the optimization-based approach for each mode.
+        
+        do_eq_query: when True, applies active learning to perform equivalence query testing.
+        
+        eq_query_bounds: the bounds for the initial conditions in the state space when doing equivalence queries.
+        
+        eq_query_ntrajs: the number of trajectories tested in an equivalence query.
+        
+        eq_query_tol: the RD tolerance to decide whether a pair of equivalence query trajectories is a counterexample or not.
+        
+        sampling method: by default, 'random'. Sampling method of the equivalence query initial conditions in eq_query_bounds. Otherwise 'sobol', deprecated.
+        
+        plot_xt: when plotting 2D or 3D system trajectories, plot, in addition to the trajectories in the state space, each component with respect to time.
+        
+        improve_cont: ??
+        
+        fit_active_only: ??
+        
+        stop_at_sliding_motion: by default True. Considers a trajectory simulated in an equivalence query as a counterexample when it behaves with sliding motion.
+        
+        N_cexs: return equivalence query when reaching N_cexs counterexamples, even before testing eq_query_ntrajs trajectories.
+    '''
+
     D = len(x0s[0])
     save_ext = '.png'
     dpi = None
