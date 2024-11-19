@@ -20,83 +20,83 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, tol=1e-5, break_at_low_MSE=True, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50):
+def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, break_at_low_MSE=True, MSE_break_tol=1e-5, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50):
     '''
     Wrapper function to simulate a SNDS and learn it using HybridRegressor, passively or actively.
 
     Parameters:
         exp_name (str): Experiment name.
-        
+
         sul (SNDS): the system under learning to simulate.
-        
+
         time_step: time step of the training trajectories.
-        
+
         time_range: time range of the training trajectories.
-        
+
         x0s: initial conditions of the training trajectories.
-        
+
         time_step_test: time step of the test trajectories.
-        
+
         time_range_test: time range of the test trajectories.
-        
+
         x0s_test: initial conditions of the test trajectories.
-        
+
         nmodes: number of modes (required when using the optimization-based method).
-        
+
         poly_degree: the maximum polynomial degree of the continuous dynamics.
-        
+
         random_test_set: when True, uses a randomly generated set of test trajectories instead of relying on provided initial conditions.
-        
+
         classifier_poly_trans: when True, applies PolynomialFeatures on data before running the classifier to find mode regions. Used for nonlinear boundaries.
-        
+
         classifier_poly_deg: the maximum polynomial degree of the mode region boundaries.
-        
+
         seg_tol: the segmentation tolerance.
-        
+
         diff_method: the numerical differentiation method used to construct the training data.
-        
+
         train_coefs: when True, uses the polynomial feature extraction in the optimization function, rather than kernel methods. False is deprecated.
-        
+
         kernels_list: deprecated
-        
+
         kargs_list: deprecated
-        
+
         with_plots: when True, provides plots.
-        
+
         print_on: when True, prints details of the learning method.
-        
+
         classifier: the classifier used to learn mode regions.
-        
+
         C_space: the search space of the C hyperparameter when using the optimization-based approach.
-        
+
         write_on: when True, writes the results in files.
-        
+
         deltas: the insensitivity error in the optimization function.
-        
-        tol: ??
-        
+
         break_at_low_MSE: when True, breaks the hyperparameter search of C in the optimization-based approach when a good result is found without continuing the search.
-        
+
+        MSE_break_tol: defines the MSE tolerance to break the hyperparameter search on when using the optimization-based approach.
+
         apply_LR: when True, applies linear regression after the optimization-based approach for each mode.
-        
+
         do_eq_query: when True, applies active learning to perform equivalence query testing.
-        
+
         eq_query_bounds: the bounds for the initial conditions in the state space when doing equivalence queries.
-        
+
         eq_query_ntrajs: the number of trajectories tested in an equivalence query.
-        
+
         eq_query_tol: the RD tolerance to decide whether a pair of equivalence query trajectories is a counterexample or not.
-        
+
         sampling method: by default, 'random'. Sampling method of the equivalence query initial conditions in eq_query_bounds. Otherwise 'sobol', deprecated.
-        
+
         plot_xt: when plotting 2D or 3D system trajectories, plot, in addition to the trajectories in the state space, each component with respect to time.
-        
-        improve_cont: ??
-        
-        fit_active_only: ??
-        
+
+        improve_cont: Used for active learning. When False, upon equivalence query counterexamples, improve only the classifier boundaries assuming continuous dynamics are correctly identified. When True, apply the incremental learning approach to improve the continuous dynamics and possibly discover new modes.
+
+        fit_active_only: Decides which method to use for *passive* learning of first trajectories. When True, uses our incremental learning appraoch. When False, uses our optimization-based approach.
+
         stop_at_sliding_motion: by default True. Considers a trajectory simulated in an equivalence query as a counterexample when it behaves with sliding motion.
-        
+
         N_cexs: return equivalence query when reaching N_cexs counterexamples, even before testing eq_query_ntrajs trajectories.
     '''
 
@@ -158,18 +158,24 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     # Extracting the derivatives and updated segment indices
     X, X_dot, seg_res, _ = diff_method(
         trajs_train_sul.t_list, trajs_train_sul.x_list, segments=segments, remove_seg=True)
-    # Finding segment of each point
+
+    # Finding segment of each point (seg_all is equivalent to sigma in the papers : seg_all[point] = segment index)
     seg_all = which_segment_all(X.shape[0], seg_res)
 
-    # Splitting the data into train and validation per segment
-    X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val = train_test_split_segments(
-        X, X_dot, seg_res, seg_all, test_size=0.2)
-    # Define the model
-    model_curr = HybridRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list,
-                                 kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
     print("Starting " + exp_name + "\n")
 
     if not fit_active_only:
+
+        ###########################################################
+        #               OPTIMIZATION-BASED APPROACH               #
+        ###########################################################
+
+        # Splitting the data into train and validation per segment for tuning hyperparameter C
+        X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val = train_test_split_segments(
+            X, X_dot, seg_res, seg_all, test_size=0.2)
+        # Define the model
+        model_curr = HybridRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list,
+                                     kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
         # Starting the hyperparamater tuning
         Cs = []
         MSEs = []
@@ -177,9 +183,8 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         total_time = 0
 
         C_tested = []
-        for i in range(len(C_space)):
+        for i, C_curr in enumerate(C_space):
             t_start = time.time()
-            C_curr = C_space[i]
             try:
                 # Fit the model with the current hyperparameter C_curr
                 model_curr.fit(X_train, Xdot_train, norm='L2', deltas=deltas, C=C_curr,
@@ -216,7 +221,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
                 file.write("C = " + str(C_curr) + " MSE = " +
                            str(MSE_val_curr) + ' time = ' + str(curr_time) + "\n")
 
-            if break_at_low_MSE and MSE_val_curr < tol:
+            if break_at_low_MSE and MSE_val_curr < MSE_break_tol:
                 print("MSE low enough; no need to continue.")
                 break
 
@@ -240,7 +245,13 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
             file2.write(f"$t_{{\\text{{total}}}} = {total_time:.3f}$s\\\\\n")
             file2.write(
                 f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):.3f}$s\\\\\n")
+
     else:
+
+        ####################################$$#######################
+        #               INCREMANTAL LEARNING APPROACH               #
+        ######################################$$#####################
+
         t_best_C = 0
         model = model_curr
         model.fit_first_hypothesis(X, X_dot, seg_res)
@@ -448,10 +459,13 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         time_EQ = time.time() - start
 
     ################### COMPUTING TRAINING AND TEST ERRORS AT EACH STAGE ##############################
+    # after learning purely passively with first trajectories
     train_RD1, test_RD1 = compute_errors_and_plot(first_model)
+    # after learning with first trajectories and refining boundaries with fine points between segments
     train_RD2, test_RD2 = compute_errors_and_plot(
         model_active_before_EQ, fig_suffix="_gen")
     if do_eq_query:
+        # after learning with equivalence queries and producing a final model
         train_RD3, test_RD3 = compute_errors_and_plot(model, fig_suffix="_EQ")
 
     # Computing final RD between derivatives
@@ -517,26 +531,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     return sul, learned_SNDS, trajs_train_sul_unsegmented, trajs_test_sul, data
 
 
-def equivalence_query(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, time_step, time_range, tol=0.1):
-    x0s = []
-    for i in range(n_trajs):
-        x0 = []
-        for d in range(sul.dim):
-            x0.append(np.random.random() *
-                      (bounds[d][1] - bounds[d][0]) + bounds[d][0])
-        x0s.append(x0)
-    sul_trajs = sul.simulate_trajectory(time_step, time_range, x0s)
-    learned_trajs = learned_snds.simulate_trajectory(
-        time_step, time_range, x0s)
-
-    comp_traj_test_MSE = compare_trajs(learned_trajs, sul_trajs, measure="MSE")
-    comp_traj_test_RD = compare_trajs(learned_trajs, sul_trajs, measure="RD")
-
-    print(comp_traj_test_MSE, comp_traj_test_RD)
-    return comp_traj_test_RD <= tol, sul_trajs, learned_trajs
-
-
-def equivalence_query_by_traj(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, time_step, time_range, tol=0.1, sampling_method='random', sobol_skip=0, stop_at_sliding_motion=False, N_cexs=1):
+def equivalence_query_by_traj(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, time_step, time_range, tol_eq=0.1, sampling_method='random', sobol_skip=0, stop_at_sliding_motion=False, N_cexs=1):
     cexs_sul = Trajectories([], [])
     cexs_sul.d = sul.dim
     conforming_trajs_sul = Trajectories([], [])
@@ -579,7 +574,7 @@ def equivalence_query_by_traj(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, ti
         comp_traj_test_RD = compare_trajs(learned_traj, sul_traj, measure="RD")
         total_RD += comp_traj_test_RD
 
-        if comp_traj_test_RD >= tol:
+        if comp_traj_test_RD >= tol_eq:
             cexs_sul.append_trajs(sul_traj)
             cexs_learned.append_trajs(learned_traj)
             cexs_RD += comp_traj_test_RD
