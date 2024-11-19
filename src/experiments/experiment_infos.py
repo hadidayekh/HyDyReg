@@ -1,19 +1,19 @@
+import warnings
+import pickle
+import numpy as np
+import time
+from utils import *
+from snds import SNDS, SNDS_affine
+from main import learn_system
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import SVC
+from testing_incremental_gd_with_lr import IncrementalLogsiticRGD_withLR
 import sys
 sys.path.append('./')
 sys.path.append('./testing')
-from testing_incremental_gd_with_lr import IncrementalLogsiticRGD_withLR
 
-from sklearn.svm import SVC
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.linear_model import LogisticRegression
-import matplotlib.pyplot as plt
-from main import learn_system
-from snds import SNDS, SNDS_affine
-from utils import *
-import time
-import numpy as np
-import pickle
-import warnings
 # setting ignore as a parameter and further adding category
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -451,6 +451,11 @@ exp_infos = {
     }
 }
 
+
+optimization_based = True
+improve_continuous = False
+
+
 DATA = []
 exps = [list(exp_infos.keys())[3]]
 exps = list(exp_infos.keys())[3:]
@@ -460,40 +465,40 @@ for exp_title in exps:
     exp = exp_infos[exp_title]
     # try:
     sul, learned_SNDS, trajectories, traj_test_sul, data = learn_system(exp_name=exp_title,
-                                                                                            sul=exp['sul'],
-                                                                                            time_step=exp['time_step'],
-                                                                                            time_range=exp['time_range'],
-                                                                                            x0s=exp['x0s'],
-                                                                                            time_step_test=exp['time_step_test'],
-                                                                                            time_range_test=exp['time_range_test'],
-                                                                                            x0s_test=exp['x0s_test'],
-                                                                                            random_test_set=exp['random_test_set'],
-                                                                                            nmodes=exp['nmodes'],
-                                                                                            poly_degree=exp['poly_degree'],
-                                                                                            seg_tol=exp['seg_tol'],
-                                                                                            classifier=IncrementalLogsiticRGD_withLR(learning_rate=0.01),
-                                                                                            classifier_poly_deg=exp[
-                                                                                                'classifier_poly_deg'],
-                                                                                            classifier_poly_trans=exp[
-                                                                                                'classifier_poly_trans'],
-                                                                                            do_eq_query=True,
-                                                                                            eq_query_bounds=exp['eq_query_bounds'],
-                                                                                            eq_query_ntrajs=exp['eq_query_ntrajs'],
-                                                                                            eq_query_tol=exp['eq_query_tol'],
-                                                                                            sampling_method='random',
-                                                                                            C_space=[
-                                                                                                0, 0.001, 0.01, 0.1, 1],
-                                                                                            write_on=True,
-                                                                                            deltas=0.001,
-                                                                                            break_at_low_MSE=False,
-                                                                                            apply_LR=False,
-                                                                                            with_plots=True,
-                                                                                            plot_xt=False,
-                                                                                            print_on=True,
-                                                                                            stop_at_sliding_motion=False,
-                                                                                            fit_active_only=True,
-                                                                                            improve_cont=True,
-                                                                                            N_cexs = 5)
+                                                                        sul=exp['sul'],
+                                                                        time_step=exp['time_step'],
+                                                                        time_range=exp['time_range'],
+                                                                        x0s=exp['x0s'],
+                                                                        time_step_test=exp['time_step_test'],
+                                                                        time_range_test=exp['time_range_test'],
+                                                                        x0s_test=exp['x0s_test'],
+                                                                        random_test_set=exp['random_test_set'],
+                                                                        nmodes=exp['nmodes'],
+                                                                        poly_degree=exp['poly_degree'],
+                                                                        seg_tol=exp['seg_tol'],
+                                                                        classifier=exp['classifier'],
+                                                                        classifier_poly_deg=exp[
+                                                                            'classifier_poly_deg'],
+                                                                        classifier_poly_trans=exp[
+                                                                            'classifier_poly_trans'],
+                                                                        do_eq_query=True,
+                                                                        eq_query_bounds=exp['eq_query_bounds'],
+                                                                        eq_query_ntrajs=exp['eq_query_ntrajs'],
+                                                                        eq_query_tol=exp['eq_query_tol'],
+                                                                        sampling_method='random',
+                                                                        C_space=[
+                                                                            0, 0.001, 0.01, 0.1, 1],
+                                                                        write_on=True,
+                                                                        deltas=0.001,
+                                                                        break_at_low_MSE=False,
+                                                                        apply_LR=False,
+                                                                        with_plots=True,
+                                                                        plot_xt=False,
+                                                                        print_on=True,
+                                                                        stop_at_sliding_motion=False,
+                                                                        fit_active_only=not optimization_based,
+                                                                        improve_cont=improve_continuous,
+                                                                        N_cexs=5)
 
     print("Test derivatives RD:", data[-1])
 
