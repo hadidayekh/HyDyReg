@@ -1,4 +1,5 @@
 from cmath import inf
+from copy import deepcopy
 import enum
 from time import sleep
 import numpy as np
@@ -75,71 +76,134 @@ class IncrementalLogsiticRGD_withLR:
 
 
 
-    def partial_fit(self, X, y, with_prev_portion=0, Xplt=None, yplt=None, colors=lambda x: x):
+    def partial_fit(self, X, y, init_method='eps', eps=1, with_prev_portion=0, Xplt=None, yplt=None, colors=lambda x: x):
         '''
         Runs the fitting algorithm using gradient descent and without re-initializing the coefficients.
+
+        init_method:    'lr-sum' in case of a new class, runs logistic regression locally, redefines w for all affected regions by perturbing the barycenter of the weight coefficients of the new class with the result of the local logistic regression
+                        'lr-centroid' in case of a new class, runs logistic regression locally, then another optimization problem to define w_new in such a way that borders between classes in the affected regions are close to the result of the local logistic regression
+                        'eps' in case of a new class, initializes w_new by perturbing the barycenter of the weight vectors of the affected regions by epsilon.
+                        'random' in case of a new class, randomly initializes the new weight vector
+                        'zero' in case of a new class, initializes the new weight vector to zero
         '''
         assert len(X[0]) == self.D
         N = X.shape[0]          # number of data points
         new_K = int(np.max(y) + 1)   # this assumes that new classes are always added in ascending order
 
-        # First deal with NEW classes
+        # First deal with NEW classes, one at a time
         if new_K > self.K:
             n_new_classes = (new_K - self.K)
             
-            Xnew = X[y >= self.K]
-            ynew = y[y >= self.K]
+            for new_class in range(self.K+1, new_K):
+                Xnew = X[y == new_class]
+                ynew = y[y == new_class]
 
-            # regions contains all regions in which new-class points appear
-            regions = []
-            for i in range(len(ynew)):
-                for j in range(self.K):
-                    if X[i] in self.regions[j]:
-                        regions.append(j)
-                        break
+                # regions contains all regions in which new-class points appear
+                regions = []
+                for i in range(len(ynew)):
+                    for j in range(self.K):
+                        if X[i] in self.regions[j]:
+                            regions.append(j)
+                            break
 
-            regions = np.unique(np.array(regions))
-            n_affected_regions = len(regions)
-            # print("affected regions", regions)
+                regions = np.unique(np.array(regions))
+                n_affected_regions = len(regions)
+                # print("affected regions", regions)
+                
+                if init_method == 'random':
+                    new_W = np.random.random((1, self.D))
+                    new_B = np.random.random((1,))
+                else:
+                    new_W = np.zeros((1, self.D))
+                    new_B = np.zeros((1,))
 
-            # run a logistic regression algorithm with all *new* points and
-            # all points in affected regions
-            LR = LogisticRegression(penalty='none')
-            X_lr = Xnew
-            y_lr = ynew
-            for r in regions:
-                X_lr = np.r_[X_lr, self.X_[self.y_ == r]]
-                y_lr = np.r_[y_lr, self.y_[self.y_ == r]]
-            LR.fit(X_lr, y_lr)
-            LR_classes = np.array(LR.classes_, dtype=int)
-            
-            new_W = np.zeros((n_new_classes, self.D))
-            new_B = np.zeros(n_new_classes)
-            self.W = np.r_[self.W, new_W]
-            self.B = np.r_[self.B, new_B]
-            self.K = new_K
-            eps = 0.01
+                self.W = np.r_[self.W, new_W]
+                self.B = np.r_[self.B, new_B]
+                old_K = self.K
+                self.K += 1
 
-            if len(LR_classes) == 2:
-                self.W[LR_classes[1]] = (LR.coef_[0] + self.W[LR_classes[0]])
-                self.B[LR_classes[1]] = (LR.intercept_[0] + self.B[LR_classes[0]])
-            else:
-                # more than one new class / multinomial LR
-                # get the W of the potentially merged regions
-                W_region = self.W[regions[0]] / n_affected_regions
-                b_region = self.B[regions[0]] / n_affected_regions
+                if init_method == 'random' or init_method=='zero':
+                    continue
 
-                # in case of more than one region, take the mean of W,B                
-                for i in range(1, n_affected_regions):
-                    W_region += self.W[regions[i]] / n_affected_regions
-                    b_region += self.B[regions[i]] / n_affected_regions
+                if init_method == 'lr-centroid' or init_method == 'lr-sum' or n_affected_regions == 1:
+                    # run a logistic regression algorithm with all *new* points and
+                    # all points in affected regions
+                    LR = LogisticRegression(penalty='none')
+                    X_lr = Xnew
+                    y_lr = ynew
+                    for r in regions:
+                        X_lr = np.r_[X_lr, self.X_[self.y_ == r]]
+                        y_lr = np.r_[y_lr, self.y_[self.y_ == r]]
+                    LR.fit(X_lr, y_lr)
+                    LR_classes = np.array(LR.classes_, dtype=int) ## must be equal to regions ∪ new_class
+                
+                # eps = 0.01
 
-                # define initial conditions of W,B for the new and old classes
-                # based on LR results
-                for i in range(len(LR_classes)):
-                    c = LR_classes[i]
-                    self.W[c] = W_region + eps * LR.coef_[i]
-                    self.B[c] = b_region + eps * LR.intercept_[i]
+                if len(LR_classes) == 2: # equivalent to n_affected_regions == 1
+                    self.W[LR_classes[1]] = (LR.coef_[0] + self.W[LR_classes[0]])
+                    self.B[LR_classes[1]] = (LR.intercept_[0] + self.B[LR_classes[0]])
+                else:
+                    # more than one new class / multinomial LR
+                    # get the W of the potentially merged regions
+                    w_region = self.W[regions[0]] / n_affected_regions
+                    b_region = self.B[regions[0]] / n_affected_regions
+
+                    # in case of more than one region, take the mean of W,B                
+                    for i in range(1, n_affected_regions):
+                        w_region += self.W[regions[i]] / n_affected_regions
+                        b_region += self.B[regions[i]] / n_affected_regions
+
+                    '''
+                    W_temp = deepcopy(self.W)
+                    B_temp = deepcopy(self.B)
+                    self.W[-1] = w_region
+                    self.B[-1] = b_region
+                    for i in range(len(LR_classes)):
+                        c = LR_classes[i]
+                        if c < self.W.shape[0] - 1:
+                            self.W[c] = np.zeros(self.W[c].shape)
+                            self.B[c] = np.zeros(self.B[c].shape)
+                    if not Xplt is None:
+                        self.define_region_polytopes()
+                        self.plot_classi(Xplt, yplt, title="After adding new points and merging regions.", colors=colors)
+                    self.W = W_temp
+                    self.B = B_temp'''
+
+                    if init_method == 'lr-sum':
+                        for i, c in enumerate(LR_classes):
+                            self.W[c] = w_region + eps * LR.coef_[i]
+                            self.B[c] = b_region + eps * LR.intercept_[i]
+                    elif init_method == 'eps':
+                        self.W[-1] = w_region
+                        self.B[-1] = b_region + eps
+                    elif init_method == 'lr-centroid':
+                        W_new = np.array((n_affected_regions, self.D))
+                        B_new = np.array((n_affected_regions,))
+
+                        new_class_LR_index = np.where(LR_classes == new_class)[0][0]
+                        alpha_new = LR.coef_[new_class_LR_index]
+                        beta_new = LR.coef_[new_class_LR_index]
+
+                        for i, region in enumerate(regions):
+                            # find index of class in LR_classes
+                            region_LR_index = np.where(LR_classes == region)[0][0]
+                            # define w_new and b_new according to the desired result
+                            W_new[i] = alpha_new - LR.coef_[region_LR_index] + self.W[region]
+                            B_new[i] = beta_new - LR.intercept_[region_LR_index] + self.B[region]
+                        
+                        # now define w for new class based on the centroid
+                        self.W[-1] = np.mean(W_new, axis=0)
+                        self.B[-1] = np.mean(B_new, axis=0)
+
+                    # # define initial conditions of W,B for the new and old classes
+                    # # based on LR results
+                    # for i, c in enumerate(LR_classes):
+                    #     if c >= old_K:
+                    #         self.W[c] = w_region #+ eps * LR.coef_[i]
+                    #         self.B[c] = b_region + 1 #* LR.intercept_[i]
+                    #     # self.W[c] = w_region + eps * LR.coef_[i]
+                    #     # self.B[c] = b_region + eps * LR.intercept_[i]
+
             
             if not Xplt is None:
                 self.define_region_polytopes()
@@ -259,13 +323,14 @@ if __name__ == "__main__":
     from scipy.spatial import Voronoi
 
     # Sample points for Voronoi
-    n_vor_regions = 5
-    n_pts = 2000
-    partial = 4
+    n_vor_regions = 10
+    n_pts = 1000
+    partial = 9
+    with_prev_portion = 0.3
 
-    etas = [0.01, 0.1, 1]
+    etas = [0.01, 0.1, 1, 10]
     nb_epochs = 50
-
+    np.random.seed(2)
     points = np.random.rand(n_vor_regions, 2)  # 10 random points in 2D
     vor = Voronoi(points)
 
@@ -344,9 +409,11 @@ if __name__ == "__main__":
         LR.plot_classi(X_fit,y_fit, title="First fit.", colors=lambda x: colors[x])
 
 
-        LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X, yplt=y, colors=lambda x: colors[x])
+        LR.partial_fit(X_new, y_new, init_method='lr-centroid', with_prev_portion=with_prev_portion, Xplt=X, yplt=y, colors=lambda x: colors[x])
         
         LR.plot_classi(X, y, title="After applying GD on new data.", colors=lambda x: colors[x])
+
+        plt.show()
 
 
     f, a = plt.subplots()
