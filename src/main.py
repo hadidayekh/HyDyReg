@@ -103,7 +103,8 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     D = len(x0s[0])
     save_ext = '.png'
     dpi = None
-
+    prefix = "INCR-" if fit_active_only else "OPTI-"
+    exp_name = prefix + exp_name
     if write_on:
         # Setting up files
         dir_plots = "experi-plots/"
@@ -196,6 +197,10 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
 
     print("Starting " + exp_name + "\n")
 
+    # Define the model
+    model_curr = HybridRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list,
+                                kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
+
     if not fit_active_only:
 
         ###########################################################
@@ -205,9 +210,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         # Splitting the data into train and validation per segment for tuning hyperparameter C
         X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val = train_test_split_segments(
             X, X_dot, seg_res, seg_all, test_size=0.2)
-        # Define the model
-        model_curr = HybridRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list,
-                                     kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
+
         # Starting the hyperparamater tuning
         Cs = []
         MSEs = []
@@ -299,6 +302,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         # model.augment_fit(X_curr, X_dot_curr)
 
     # Classify and improve classification by generating points between segments
+    print(model.Omegas_, model.betas_)
     model.classify_modes(classifier)
 
     # Store first model (purely passive)
@@ -313,16 +317,16 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     # print(gen_full_matlab_hyeq_class(model, name="NSLDR"))
     # exit()
     
-
+    # plot_Xfit(model, X=model.X_classify_, modes=model.modes_classify_)
     # Improve classification by generating points in between segments
     start = time.time()
     fine_X, fine_X_dot = sul.generate_points_between_segments(
         trajs_train_sul, segments, seg_tol/10, timestep=time_step_test/20)
     model.improve_classification(fine_X, fine_X_dot, classifier)
     time_active = time.time() - start
-    
-    f, a = plot_Xfit(model)
-    plt.show()
+    # plot_Xfit(model, X=model.X_classify_, modes=model.modes_classify_)
+    # f, a = plot_Xfit(model)
+    # plt.show()
 
     #### TRANSFORMING INTO SNDS AND SIMULATING NEW TRAJECTORIES THEN PLOTTING RESULTS ####
     learned_SNDS_active_before_EQ = copy.deepcopy(model.to_SNDS())
@@ -388,13 +392,13 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         if with_plots:
             plot_eq_query(sul_trajs, cexs_learned,
                           conforming_trajs_learned, count)
-            plt.show()
+            # plt.show()
 
         while not eq_query and count < 100:
             count += 1
             print("Equivalence query is FALSE. Improving...")
             segments_eq = cexs_sul.segment_trajectories(seg_tol)
-            print(segments_eq)
+            # print(segments_eq)
             # plotting_function(cexs_sul, segments=segments_eq)
             X, X_dot, seg_res_eq, _ = diff_method(
                 cexs_sul.t_list, cexs_sul.x_list, segments=segments_eq, remove_seg=True)
@@ -470,7 +474,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
             if with_plots:
                 plot_eq_query(sul_trajs, cexs_learned,
                               conforming_trajs_learned, count)
-                plt.show()
+                # plt.show()
 
         if eq_query:
             print("Equivalence query is TRUE!")
@@ -490,7 +494,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     X_dot_learned = learned_SNDS.get_derivatives(trajs_test_sul)
     RD_dot = np.mean(relative_diff(X_dot_sul, X_dot_learned))
 
-    plt.show()
+    # plt.show()
 
     if print_on:
         print(
@@ -505,6 +509,9 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
             f"Training RD of trajectories after equivalence queries = {train_RD3:.3e}")
         print(
             f"Test RD of trajectories after equivalence queries = {test_RD3:.3e}")
+
+        print('latex test:')
+        print(f"{test_RD1:.1e} & {test_RD2:.1e} & {test_RD3:.1e} & {count}")
 
     if write_on:
         file.write(
@@ -529,6 +536,10 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         file2.write(
             f"$\\text{{RD3}}_{{\\text{{train}}}} =$ {train_RD3:.3e}\\\\\n")
         file2.write(f"$\\text{{RD3}}_{{\\text{{test}}}} =$ {test_RD3:.3e}\n")
+
+
+        file2.write('latex test:\n')
+        file2.write(f"{test_RD1:.1e} & {test_RD2:.1e} & {test_RD3:.1e} & {count}")
 
     print("IS EVERYTHING WELL CLASSIFIED ?")
     if classifier_poly_trans:
