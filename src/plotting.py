@@ -411,9 +411,10 @@ def plot_train_test_2D(X_train, X_test):
 
     return f,a
 
-def plot_Xfit(model : HybridRegressor, with_contour=True):
-    X = model.Xfit_
-    modes = model.modesfit_
+def plot_Xfit(model, X=None, modes=None, with_contour=True):
+    if X is None:
+        X = model.Xfit_
+        modes = model.modesfit_
     # X = model.X_classify_
     # modes = model.modes_classify_
     assert X.shape[1] == 2
