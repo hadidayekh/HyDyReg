@@ -72,7 +72,14 @@ def compare_trajs(traj1, traj2, measure="MSE"):
     if measure == "MSE":
         return mean_squared_error(np.array(traj1.x_list).flatten(), np.array(traj2.x_list).flatten())
     elif measure == "RD":
-        return np.mean(relative_diff(np.array(traj1.x_list).flatten(), np.array(traj2.x_list).flatten()))
+        RDs = []
+        for i in range(len(traj1.x_list)):
+            xpts1 = traj1.x_list[i]
+            xpts2 = traj2.x_list[i]
+            RDs.append(relative_diff(xpts1, xpts2))
+        return np.mean(RDs), np.max(RDs)
+        # RDs = relative_diff(np.array(traj1.x_list).flatten(), np.array(traj2.x_list).flatten())
+        # return np.mean(relative_diff(np.array(traj1.x_list).flatten(), np.array(traj2.x_list).flatten()))
 
 def compare_snds(snds1, snds2, x0s, time_step, time_range, measure="MSE"):
     traj1 = snds1.simulate_trajectory(time_step, time_range, x0s)
@@ -545,20 +552,37 @@ def check_SVC(model_SVC, X, coefs):
         yc[i] = coefs[0]*X[i][0]**2 + coefs[1]*X[i][1]**2 + coefs[2]*X[i][0]*X[i][1] + coefs[3]
     return y, yc, ydc
 
-def print_experi_data(DATA):
+def print_experi_data(DATA, both=False):
     # Data is made of exp_name, RD1, RD2, RD3, t_best_C, t_active, t_EQ, count, RDdot, RDmerge, tmerge, RDpwa, tpwa
     for i in range(len(DATA)):
         d = DATA[i]
-        exp_name, RD1, RD2, RD3, t1, t2, t3, count, RD_dot, RD_merge, t_merge, RD_piecelinear, t_piecelinear = d
-        s = d[0] + ' & '
-        for i in range(1, 4): #rd1,rd2,rd3
-            s += f'{d[i]:.5f} & '
-        for i in range(4, 7): #t1,t2,t3
-            s += f'{d[i]:.1f} & '
-        s += str(d[7]) + ' & ' #count
-        s += f'{d[8]:.1e} & ' #rddot
-        s += f'{d[9]:.1e} & ' #rdmerge
-        s += f'{d[11]:.1e} & ' #rdpl
-        s += f'{d[10]:.1f} & ' #tmerge
-        s += f'{d[12]:.1f}\\\\'    #tpl
-        print(s)
+        if not both:
+            exp_name, RD1, RD2, RD3, t1, t2, t3, count, RD_dot, RD_merge, t_merge, RD_piecelinear, t_piecelinear = d
+            s = d[0] + ' & '
+            for i in range(1, 4): #rd1,rd2,rd3
+                s += f'{d[i]:.5f} & '
+            for i in range(4, 7): #t1,t2,t3
+                s += f'{d[i]:.1f} & '
+            s += str(d[7]) + ' & ' #count
+            s += f'{d[8]:.1e} & ' #rddot
+            s += f'{d[9]:.1e} & ' #rdmerge
+            s += f'{d[11]:.1e} & ' #rdpl
+            s += f'{d[10]:.1f} & ' #tmerge
+            s += f'{d[12]:.1f}\\\\'    #tpl
+        else:
+            exp_name, RD1, RD2, RD3, RD1_max, RD2_max, RD3_max, t1, t2, t3, count, RD_dot, RD_merge, t_merge, RD_piecelinear, t_piecelinear = d
+            s = d[0] + ' & '
+            for i in range(1, 4): #rd1,rd2,rd3
+                s += f'{d[i]:.5f} & '
+            for i in range(4, 7): #rd1,rd2,rd3
+                s += f'{d[i]:.5f} & '
+            for i in range(7, 10): #t1,t2,t3
+                s += f'{d[i]:.1f} & '
+            s += str(d[10]) + ' & ' #count
+            s += f'{d[11]:.1e} & ' #rddot
+            s += f'{d[12]:.1e} & ' #rdmerge
+            s += f'{d[14]:.1e} & ' #rdpl
+            s += f'{d[13]:.1f} & ' #tmerge
+            s += f'{d[15]:.1f}\\\\'    #tpl
+    print(s)
+    return s

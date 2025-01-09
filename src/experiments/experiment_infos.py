@@ -1,3 +1,7 @@
+import sys
+sys.path.append('./')
+sys.path.append('./testing')
+
 import warnings
 import pickle
 import numpy as np
@@ -9,10 +13,6 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
-from testing_incremental_gd_with_lr import IncrementalLogsiticRGD_withLR
-import sys
-sys.path.append('./')
-sys.path.append('./testing')
 
 # setting ignore as a parameter and further adding category
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -368,7 +368,7 @@ exp_infos = {
         'classifier_poly_trans': False,
         'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
         'eq_query_bounds': np.array([[-6, 7], [-5, 15]]),
-        'eq_query_ntrajs': 100,
+        'eq_query_ntrajs': 50,
         'eq_query_tol': 0.1
     },
     'poly3_2modes_nonlinclass': {
@@ -452,19 +452,23 @@ exp_infos = {
 }
 
 
-optimization_based = True
-improve_continuous = False
+optimization_based = False
+improve_continuous = True
 
 
-DATA = []
-exps = [list(exp_infos.keys())[3]]
-exps = list(exp_infos.keys())[3:]
+DATA_avg = []
+DATA_max = []
+DATA_both = []
+
+exps = [list(exp_infos.keys())[0]]
+# exps = list(exp_infos.keys())[:3]
+# exps = ['ham']
 for exp_title in exps:
     # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
     np.random.seed(0)
     exp = exp_infos[exp_title]
     # try:
-    sul, learned_SNDS, trajectories, traj_test_sul, data = learn_system(exp_name=exp_title,
+    sul, learned_SNDS, trajectories, traj_test_sul, data_avg, data_max, data_both = learn_system(exp_name=exp_title,
                                                                         sul=exp['sul'],
                                                                         time_step=exp['time_step'],
                                                                         time_range=exp['time_range'],
@@ -500,7 +504,7 @@ for exp_title in exps:
                                                                         improve_cont=improve_continuous,
                                                                         N_cexs=5)
 
-    print("Test derivatives RD:", data[-1])
+    print("Test derivatives RD:", data_avg[-1])
 
     if compare_with_inferDynamic:
         if exp['nmodes'] == 2 or exp['nmodes'] == 3:
@@ -524,8 +528,14 @@ for exp_title in exps:
                         res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
                                          exp['sul'].eventlist[0], exp['poly_degree'], exp['classifier_poly_deg'])
                         print(res)
-                        data.append(res)
-                        data.append(infer_time)
+                        data_avg.append(res)
+                        data_avg.append(infer_time)
+
+                        data_max.append(res)
+                        data_max.append(infer_time)
+
+                        data_both.append(res)
+                        data_both.append(infer_time)
                 else:
                     for mergeep in mergeps:
                         start = time.time()
@@ -537,16 +547,35 @@ for exp_title in exps:
                         res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
                                          exp['sul'].eventlist, exp['poly_degree'], exp['classifier_poly_deg'], labeltest=exp['sul'].labelfun)
                         print(res)
-                        data.append(res)
-                        data.append(infer_time)
+                        data_avg.append(res)
+                        data_avg.append(infer_time)
+
+                        data_max.append(res)
+                        data_max.append(infer_time)
+
+                        data_both.append(res)
+                        data_both.append(infer_time)
+    else:
+        data_avg.extend([-1,-1,-1,-1])
+        data_max.extend([-1,-1,-1,-1])
+        data_both.extend([-1,-1,-1,-1])
     # except Exception as e:
     #     print(e)
     #     print("Experiment " + exp_title + " failed.")
-    DATA.append(data)
+    DATA_avg.append(data_avg)
+    DATA_max.append(data_max)
+    DATA_both.append(data_both)
 
-print_experi_data(DATA)
+print("avg")
+s_avg = print_experi_data(DATA_avg)
+print("max")
+s_max = print_experi_data(DATA_max)
+print("both")
+s_both = print_experi_data(DATA_both, both=True)
 
-with open('other_experi_data.pkl', 'wb') as f:
-    pickle.dump(DATA, f)
+
+pickle_name = 'opti_other_experi_data.pkl' if optimization_based else 'incr_other_experi_data.pkl'
+with open(pickle_name, 'wb') as f:
+    pickle.dump([DATA_avg, DATA_max, DATA_both], f)
 
 plt.show()

@@ -561,9 +561,16 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         file2.close()
         file3.close()
 
-    data = [exp_name, test_RD1[0], test_RD2[0], test_RD3[0], time_passive, time_active_gen_segments, time_EQ,
+    data_avg = [exp_name, test_RD1[0], test_RD2[0], test_RD3[0], time_passive, time_active_gen_segments, time_EQ,
             count, RD_dot] if do_eq_query else [exp_name, test_RD1[0], time_passive, RD_dot]
-    return sul, learned_SNDS, trajs_train_sul_unsegmented, trajs_test_sul, data
+
+    data_max = [exp_name, test_RD1[1], test_RD2[1], test_RD3[1], time_passive, time_active_gen_segments, time_EQ,
+            count, RD_dot]
+
+    data_both = [exp_name, test_RD1[0], test_RD2[0], test_RD3[0], test_RD1[1], test_RD2[1], test_RD3[1], time_passive, time_active_gen_segments, time_EQ, count, RD_dot]
+
+            
+    return sul, learned_SNDS, trajs_train_sul_unsegmented, trajs_test_sul, data_avg, data_max, data_both
 
 
 def equivalence_query_by_traj(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, time_step, time_range, tol_eq=0.1, sampling_method='random', sobol_skip=0, stop_at_sliding_motion=False, N_cexs=1, max_step_factor=10):
@@ -606,7 +613,7 @@ def equivalence_query_by_traj(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, ti
             # cexs_learned.append_trajs(learned_traj)
             continue
             # return cexs_sul.num_trajectories == 0, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned
-        comp_traj_test_RD = compare_trajs(learned_traj, sul_traj, measure="RD")
+        comp_traj_test_RD = compare_trajs(learned_traj, sul_traj, measure="RD")[0]
         total_RD += comp_traj_test_RD
 
         if comp_traj_test_RD >= tol_eq:
