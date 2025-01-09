@@ -20,7 +20,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, break_at_low_MSE=True, MSE_break_tol=1e-5, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50):
+def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, break_at_low_MSE=True, MSE_break_tol=1e-5, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50, max_step_factor=10):
     '''
     Wrapper function to simulate a SNDS and learn it using HybridRegressor, passively or actively.
 
@@ -98,6 +98,8 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         stop_at_sliding_motion: by default True. Considers a trajectory simulated in an equivalence query as a counterexample when it behaves with sliding motion.
 
         N_cexs: return equivalence query when reaching N_cexs counterexamples, even before testing eq_query_ntrajs trajectories.
+
+        max_step_factor: division factor of maximum simulation time step for trajectory simulations, default is 10, meaning that max_step will be time_step / 10.
     '''
 
     D = len(x0s[0])
@@ -107,9 +109,9 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     exp_name = prefix + exp_name
     if write_on:
         # Setting up files
-        dir_plots = "experi-plots/"
-        dir = "experi-info/" + exp_name + "/"
-        dir2 = "experi-info/latex-files/"
+        dir_plots = "experi-plots-thesis/"
+        dir = "experi-info-thesis/" + exp_name + "/"
+        dir2 = "experi-info-thesis/latex-files/"
         dirs = [dir_plots, dir, dir2]
         for directory in dirs:
             if not os.path.exists(directory):
@@ -145,17 +147,17 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
             10, eq_query_bounds, random_generator=np.random.default_rng(0))
 
     # Simulate trajectories given initial conditions
-    trajs_train_sul = sul.simulate_trajectory(time_step, time_range, x0s)
+    trajs_train_sul = sul.simulate_trajectory(time_step, time_range, x0s, max_step_factor=max_step_factor)
     trajs_test_sul = sul.simulate_trajectory(
-        time_step_test, time_range_test, x0s_test)
+        time_step_test, time_range_test, x0s_test, max_step_factor=max_step_factor)
 
     def compute_errors_and_plot(learned_model : HybridRegressor, fig_suffix=""):
         learned_SNDS = learned_model.to_SNDS()
 
         trajs_train_learned = learned_SNDS.simulate_trajectory(
-            time_step, time_range, x0s)
+            time_step, time_range, x0s, max_step_factor=max_step_factor)
         trajs_test_learned = learned_SNDS.simulate_trajectory(
-            time_step_test, time_range_test, x0s_test)
+            time_step_test, time_range_test, x0s_test, max_step_factor=max_step_factor)
 
         train_RD = compare_trajs(
             trajs_train_sul_unsegmented, trajs_train_learned, measure="RD")
@@ -384,7 +386,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         start = time.time()
         print("Checking equivalence query...")
         eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(
-            sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, stop_at_sliding_motion=stop_at_sliding_motion, N_cexs=N_cexs)
+            sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, stop_at_sliding_motion=stop_at_sliding_motion, N_cexs=N_cexs, max_step_factor=max_step_factor)
         sul_trajs = copy.deepcopy(cexs_sul)
         sul_trajs.append_trajs(conforming_trajs_sul)
         count = 1
@@ -467,7 +469,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
             learned_SNDS = model.to_SNDS()
             print("Rechecking equivalence query...")
             eq_query, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned = equivalence_query_by_traj(
-                sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, sobol_skip=count*eq_query_ntrajs, stop_at_sliding_motion=stop_at_sliding_motion, N_cexs=N_cexs)
+                sul, learned_SNDS, eq_query_ntrajs, eq_query_bounds, time_step_test, time_range_test, eq_query_tol, sampling_method=sampling_method, sobol_skip=count*eq_query_ntrajs, stop_at_sliding_motion=stop_at_sliding_motion, N_cexs=N_cexs, max_step_factor=max_step_factor)
             sul_trajs = copy.deepcopy(cexs_sul)
             sul_trajs.append_trajs(conforming_trajs_sul)
 
@@ -561,7 +563,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     return sul, learned_SNDS, trajs_train_sul_unsegmented, trajs_test_sul, data
 
 
-def equivalence_query_by_traj(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, time_step, time_range, tol_eq=0.1, sampling_method='random', sobol_skip=0, stop_at_sliding_motion=False, N_cexs=1):
+def equivalence_query_by_traj(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, time_step, time_range, tol_eq=0.1, sampling_method='random', sobol_skip=0, stop_at_sliding_motion=False, N_cexs=1, max_step_factor=10):
     cexs_sul = Trajectories([], [])
     cexs_sul.d = sul.dim
     conforming_trajs_sul = Trajectories([], [])
@@ -585,10 +587,10 @@ def equivalence_query_by_traj(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, ti
         if cexs_sul.num_trajectories == N_cexs:
             return False, cexs_sul, conforming_trajs_sul, cexs_learned, conforming_trajs_learned
         x0 = x0s[i]
-        sul_traj = sul.simulate_trajectory(time_step, time_range, [x0])
+        sul_traj = sul.simulate_trajectory(time_step, time_range, [x0], max_step_factor=max_step_factor)
         try:
             learned_traj = learned_snds.simulate_trajectory(time_step, time_range, [
-                                                            x0], stop_at_sliding_motion=stop_at_sliding_motion, compare_with_traj=None)
+                                                            x0], stop_at_sliding_motion=stop_at_sliding_motion, compare_with_traj=None, max_step_factor=max_step_factor)
         except SlidingMotionException:
             cexs_sul.append_trajs(sul_traj)
             # cexs_learned.append_trajs(learned_traj)
