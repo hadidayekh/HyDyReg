@@ -250,7 +250,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
                 model = copy.deepcopy(model_curr)
                 MSE_val = MSE_val_curr
                 C = C_curr
-                t_best_C = curr_time
+                time_passive = curr_time
 
             if print_on:
                 print("C =", C_curr, "MSE =", MSE_val_curr, 'time =', curr_time)
@@ -278,7 +278,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
             file2.write(
                 f"$\\text{{MSE}}_{{\\text{{val}}}} =$ {MSE_val:.3e}\\\\\n")
             file2.write(
-                f"$t_{{C_{{\\text{{best}}}}}} = {t_best_C:.3f}$s\\\\\n")
+                f"$t_{{C_{{\\text{{best}}}}}} = {time_passive:.3f}$s\\\\\n")
             file2.write(f"$t_{{\\text{{total}}}} = {total_time:.3f}$s\\\\\n")
             file2.write(
                 f"$t_{{\\text{{avg}}}} = {total_time/len(C_tested):.3f}$s\\\\\n")
@@ -289,9 +289,11 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         #               INCREMANTAL LEARNING APPROACH               #
         ######################################$$#####################
 
-        t_best_C = 0
+
         model = model_curr
+        start = time.time()
         model.fit_first_hypothesis(X, X_dot, seg_res)
+        time_passive = time.time() - start
         # f, a = plot_Xfit(model)
         # plt.show()
         # model.classify_modes(classifier)
@@ -325,7 +327,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     fine_X, fine_X_dot = sul.generate_points_between_segments(
         trajs_train_sul, segments, seg_tol/10, timestep=time_step_test/20)
     model.improve_classification(fine_X, fine_X_dot, classifier)
-    time_active = time.time() - start
+    time_active_gen_segments = time.time() - start
     # plot_Xfit(model, X=model.X_classify_, modes=model.modes_classify_)
     # f, a = plot_Xfit(model)
     # plt.show()
@@ -538,6 +540,12 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         file2.write(f"$\\text{{RD3}}_{{\\text{{test}}}} =$ {test_RD3}\n")
 
 
+        s_avg = f"{exp_name} & {test_RD1[0]:.5f} & {test_RD2[0]:.5f} & {test_RD3[0]:.5f} & {time_passive:.1f} & {time_active_gen_segments:.1f} & {time_EQ:.1f} & {count} & {RD_dot:.1e}"
+        s_max = f"{exp_name} & {test_RD1[1]:.5f} & {test_RD2[1]:.5f} & {test_RD3[1]:.5f} & {time_passive:.1f} & {time_active_gen_segments:.1f} & {time_EQ:.1f} & {count} & {RD_dot:.1e}"
+
+        file2.write("\n" + s_avg + "\n" + s_max + "\n")
+
+
     print("IS EVERYTHING WELL CLASSIFIED ?")
     if classifier_poly_trans:
         X_class_trans = model.classifier_poly_.fit_transform(model.X_classify_)
@@ -553,8 +561,8 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         file2.close()
         file3.close()
 
-    data = [exp_name, test_RD1[0], test_RD2[0], test_RD3[0], t_best_C, time_active, time_EQ,
-            count, RD_dot] if do_eq_query else [exp_name, test_RD1[0], t_best_C, RD_dot]
+    data = [exp_name, test_RD1[0], test_RD2[0], test_RD3[0], time_passive, time_active_gen_segments, time_EQ,
+            count, RD_dot] if do_eq_query else [exp_name, test_RD1[0], time_passive, RD_dot]
     return sul, learned_SNDS, trajs_train_sul_unsegmented, trajs_test_sul, data
 
 
