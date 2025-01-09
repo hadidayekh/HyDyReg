@@ -37,13 +37,16 @@ class SNDS:
         self.labelfun = labelfun
         self.eventlist = eventlist
 
-    def simulate_trajectory(self, step, T, x0s, t0=0, stop_at_sliding_motion=False, compare_with_traj=None, compare_tol=0.5):
+    def simulate_trajectory(self, step, T, x0s, t0=0, stop_at_sliding_motion=False, compare_with_traj=None, compare_tol=0.5, max_step=None):
         # Inspired by https://github.com/Leslieaj/InferDynamic/
         compare = not compare_with_traj is None
         if compare:
             assert len(x0s) == compare_with_traj.num_trajectories
             assert len(x0s) == 1
         num = round(T/step + 1)
+
+        if max_step is None:
+            max_step = step/10
 
         t_list = []
         x_list = []
@@ -72,7 +75,7 @@ class SNDS:
                 # solve the ivp according to the label  of x0 while tracking events in eventlist
                 x_object = solve_ivp(self.eqs[label], (t_start, t_end), x0,
                                     t_eval=t_points, method='RK45', rtol=1e-7, atol=1e-9,
-                                    max_step=step/10, events=self.eventlist, dense_output=True)
+                                    max_step=max_step, events=self.eventlist, dense_output=True)
                 
                 # termination status, if 1 then a terminating event ocurred
                 status = x_object.status
