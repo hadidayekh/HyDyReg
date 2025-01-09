@@ -446,8 +446,8 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
                 X_classify = fine_X_eq
                 X_dot_classify = fine_X_dot_eq
             else:
-                X_classify = np.r_[X, fine_X_eq]
-                X_dot_classify = np.r_[X_dot, fine_X_dot_eq]
+                X_classify = np.r_[X, fine_X_eq] if len(fine_X_eq) > 0 else X
+                X_dot_classify = np.r_[X_dot, fine_X_dot_eq] if len(fine_X_dot_eq) > 0 else X_dot
 
             model.improve_classification(
                 X_classify, X_dot_classify, classifier)

@@ -448,7 +448,7 @@ class HybridRegressor:
                 mode = self.n
                 print(f"Creating new mode {mode}; RD was not good: {RD:.3f}")
                 print(RDs)
-                input("Press enter to continue...")
+                # input("Press enter to continue...")
                 self.n = self.n + 1
                 # LR = LinearRegression()
                 LR = clone(regressor)
