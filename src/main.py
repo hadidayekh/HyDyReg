@@ -500,48 +500,43 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
 
     if print_on:
         print(
-            f"Training RD of trajectories before active learning = {train_RD1:.3e}")
+            f"Training RD of trajectories before active learning = {train_RD1}")
         print(
-            f"Test RD of trajectories before active learning = {test_RD1:.3e}")
+            f"Test RD of trajectories before active learning = {test_RD1}")
         print(
-            f"Training RD of trajectories with active learning before equivalence queries = {train_RD2:.3e}")
+            f"Training RD of trajectories with active learning before equivalence queries = {train_RD2}")
         print(
-            f"Test RD of trajectories with active learning before equivalence queries = {test_RD2:.3e}")
+            f"Test RD of trajectories with active learning before equivalence queries = {test_RD2}")
         print(
-            f"Training RD of trajectories after equivalence queries = {train_RD3:.3e}")
+            f"Training RD of trajectories after equivalence queries = {train_RD3}")
         print(
-            f"Test RD of trajectories after equivalence queries = {test_RD3:.3e}")
+            f"Test RD of trajectories after equivalence queries = {test_RD3}")
 
-        print('latex test:')
-        print(f"{test_RD1:.1e} & {test_RD2:.1e} & {test_RD3:.1e} & {count}")
 
     if write_on:
         file.write(
-            f"Training RD of trajectories before active learning = {train_RD1:.3e}\n")
+            f"Training RD of trajectories before active learning = {train_RD1}\n")
         file.write(
-            f"Test RD of trajectories before active learning = {test_RD1:.3e}\n")
+            f"Test RD of trajectories before active learning = {test_RD1}\n")
         file.write(
-            f"Training RD of trajectories with active learning before equivalence queries = {train_RD2:.3e}\n")
+            f"Training RD of trajectories with active learning before equivalence queries = {train_RD2}\n")
         file.write(
-            f"Test RD of trajectories with active learning before equivalence queries = {test_RD2:.3e}\n")
+            f"Test RD of trajectories with active learning before equivalence queries = {test_RD2}\n")
         file.write(
-            f"Training RD of trajectories after equivalence queries = {train_RD3:.3e}\n")
+            f"Training RD of trajectories after equivalence queries = {train_RD3}\n")
         file.write(
-            f"Test RD of trajectories after equivalence queries = {test_RD3:.3e}\n")
+            f"Test RD of trajectories after equivalence queries = {test_RD3}\n")
 
         file2.write(
-            f"$\\text{{RD1}}_{{\\text{{train}}}} =$ {train_RD1:.3e}\\\\\n")
-        file2.write(f"$\\text{{RD1}}_{{\\text{{test}}}} =$ {test_RD1:.3e}\n")
+            f"$\\text{{RD1}}_{{\\text{{train}}}} =$ {train_RD1}\\\\\n")
+        file2.write(f"$\\text{{RD1}}_{{\\text{{test}}}} =$ {test_RD1}\n")
         file2.write(
-            f"$\\text{{RD2}}_{{\\text{{train}}}} =$ {train_RD2:.3e}\\\\\n")
-        file2.write(f"$\\text{{RD2}}_{{\\text{{test}}}} =$ {test_RD2:.3e}\n")
+            f"$\\text{{RD2}}_{{\\text{{train}}}} =$ {train_RD2}\\\\\n")
+        file2.write(f"$\\text{{RD2}}_{{\\text{{test}}}} =$ {test_RD2}\n")
         file2.write(
-            f"$\\text{{RD3}}_{{\\text{{train}}}} =$ {train_RD3:.3e}\\\\\n")
-        file2.write(f"$\\text{{RD3}}_{{\\text{{test}}}} =$ {test_RD3:.3e}\n")
+            f"$\\text{{RD3}}_{{\\text{{train}}}} =$ {train_RD3}\\\\\n")
+        file2.write(f"$\\text{{RD3}}_{{\\text{{test}}}} =$ {test_RD3}\n")
 
-
-        file2.write('latex test:\n')
-        file2.write(f"{test_RD1:.1e} & {test_RD2:.1e} & {test_RD3:.1e} & {count}")
 
     print("IS EVERYTHING WELL CLASSIFIED ?")
     if classifier_poly_trans:
@@ -558,8 +553,8 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         file2.close()
         file3.close()
 
-    data = [exp_name, test_RD1, test_RD2, test_RD3, t_best_C, time_active, time_EQ,
-            count, RD_dot] if do_eq_query else [exp_name, test_RD1, t_best_C, RD_dot]
+    data = [exp_name, test_RD1[0], test_RD2[0], test_RD3[0], t_best_C, time_active, time_EQ,
+            count, RD_dot] if do_eq_query else [exp_name, test_RD1[0], t_best_C, RD_dot]
     return sul, learned_SNDS, trajs_train_sul_unsegmented, trajs_test_sul, data
 
 
