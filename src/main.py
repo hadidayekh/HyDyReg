@@ -104,7 +104,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
 
     D = len(x0s[0])
     save_ext = '.png'
-    dpi = None
+    dpi = 600
     prefix = "INCR-" if fit_active_only else "OPTI-"
     exp_name = prefix + exp_name
     if write_on:
