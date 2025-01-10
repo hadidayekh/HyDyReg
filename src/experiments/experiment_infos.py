@@ -575,7 +575,17 @@ s_both = print_experi_data(DATA_both, both=True)
 
 
 pickle_name = 'opti_other_experi_data.pkl' if optimization_based else 'incr_other_experi_data.pkl'
-with open(pickle_name, 'wb') as f:
-    pickle.dump([DATA_avg, DATA_max, DATA_both], f)
+file_name = 'opti_other_experi_data.txt' if optimization_based else 'incr_other_experi_data.txt'
+with open(pickle_name, 'wb') as f1:
+    pickle.dump([DATA_avg, DATA_max, DATA_both], f1)
 
-plt.show()
+with open(file_name, 'w') as f2:
+    f2.write("avg\n")
+    f2.write(s_avg + "\n")
+
+    f2.write("max\n")
+    f2.write(s_max + "\n")
+
+    f2.write("both\n")
+    f2.write(s_both + "\n")
+# plt.show()
