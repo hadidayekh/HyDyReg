@@ -20,7 +20,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, break_at_low_MSE=True, MSE_break_tol=1e-5, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50, max_step_factor=10):
+def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, break_at_low_MSE=True, MSE_break_tol=1e-5, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50, max_step_factor=10, gen_fine_time_step_factor=20):
     '''
     Wrapper function to simulate a SNDS and learn it using HybridRegressor, passively or actively.
 
@@ -325,7 +325,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     # Improve classification by generating points in between segments
     start = time.time()
     fine_X, fine_X_dot = sul.generate_points_between_segments(
-        trajs_train_sul, segments, seg_tol/10, timestep=time_step_test/20)
+        trajs_train_sul, segments, seg_tol/10, timestep=time_step_test/gen_fine_time_step_factor)
     model.improve_classification(fine_X, fine_X_dot, classifier)
     time_active_gen_segments = time.time() - start
     # plot_Xfit(model, X=model.X_classify_, modes=model.modes_classify_)
@@ -438,7 +438,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
             #     # If at least one trajectories contains multiple segments, generate fine points between segments
             #     if len(segments_eq[k]) > 2:
             fine_X_eq, fine_X_dot_eq = sul.generate_points_between_segments(
-                cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/20)
+                cexs_sul, segments_eq, seg_tol/10, timestep=time_step_test/gen_fine_time_step_factor)
             # The function generate_points_between_segments will already deal with all trajectories --> break.
             # break
             if improve_cont:
