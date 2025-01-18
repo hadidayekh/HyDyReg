@@ -109,9 +109,9 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     exp_name = prefix + exp_name
     if write_on:
         # Setting up files
-        dir_plots = "experi-plots-thesis/"
-        dir = "experi-info-thesis/" + exp_name + "/"
-        dir2 = "experi-info-thesis/latex-files/"
+        dir_plots = "experi-plots/"
+        dir = "experi-info/" + exp_name + "/"
+        dir2 = "experi-info/latex-files/"
         dirs = [dir_plots, dir, dir2]
         for directory in dirs:
             if not os.path.exists(directory):
