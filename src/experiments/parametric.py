@@ -43,7 +43,7 @@ if len(sys.argv) < 2:
     if optimization_based:
         nmodes_list = [2,3,4,5]
     else:
-        nmodes_list = [2,3,4,5]
+        nmodes_list = [2,3,4,5, 10, 20]
 else:
     nmodes_list = [int(sys.argv[1])]
 
