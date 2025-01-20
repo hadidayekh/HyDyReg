@@ -8,9 +8,22 @@ from matplotlib.colors import ListedColormap
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression
 import polytope as pc
+from math import floor, sqrt
+import pickle
+import sys
+import time
 
+# setting path to access parent directory files
+sys.path.append('./')
+sys.path.append('../')
+
+from snds import SNDS
+from plotting import draw_trajectories_2D
 
 global colormap
+
+n_vor_regions = 30
+
 
 def define_region_polytopes(self):
         '''
@@ -109,7 +122,6 @@ def plot_with_polys(X, y, polys, colors, title=""):
 from scipy.spatial import Voronoi
 
 # Sample points for Voronoi
-n_vor_regions = 10
 n_pts = 1000
 partial = 9
 with_prev_portion = 0.3
@@ -134,6 +146,7 @@ polytopes = []
 for i in range(n_vor_regions):
     polytopes.append([np.ndarray((0,2)), np.ndarray((0,))])
 
+events = []
 for rp in ridge_points:
     i1, i2 = rp
     
@@ -147,6 +160,13 @@ for rp in ridge_points:
     polytopes[i1] = [np.vstack([A1, A_p]), np.hstack([b1, b_p])]
     polytopes[i2] = [np.vstack([A2, -A_p]), np.hstack([b2, -b_p])]
 
+    events.append(lambda t, x, A_p=A_p, b_p=b_p: A_p.T @ x - b_p)
+    
+for e in events:
+    e.terminal = True
+    e.direction = 0
+print(len(events))
+# exit()
 import networkx as nx
 G = nx.Graph()
 G.add_edges_from(ridge_points)
@@ -200,9 +220,46 @@ a.set_xlim([-0.01,1.01])
 a.set_ylim([-0.01,1.01])
 a.set_title("Voronoi points and regions")
 
-plot_with_polys(X, y, bounded_polytopes, colors=colors, title="Sampled points")
-plot_with_polys(X_fit, y_fit, bounded_polytopes[:partial], colors=colors, title="Points given to the first fit")
+# plot_with_polys(X, y, bounded_polytopes, colors=colors, title="Sampled points")
+# plot_with_polys(X_fit, y_fit, bounded_polytopes[:partial], colors=colors, title="Points given to the first fit")
 
+
+
+
+# Label function to decide which mode
+def labelfun(x):
+    rs = []
+    for i, p in enumerate(bounded_polytopes):
+        if x in p:
+            # print(i)
+            # sleep(0.1)
+            return i    
+
+
+eqs = []
+star = 5
+p_star = points[star]
+for i,p in enumerate(bounded_polytopes):
+    if i == star:
+        def eq(t, x, i = i):
+            # print(i, 'star')
+            return p_star - x
+        
+        eqs.append(eq)
+    else:
+        def eq(t, x, i = i):
+            # if i != 1:
+            #     print(i)
+            return p_star - points[i]
+        
+        eqs.append(eq)
+
+sul = SNDS(len(bounded_polytopes), 2, eqs, eventlist=events, labelfun=labelfun)
+
+x0s = [[0.3,0.5], [0.5,0.8], [0.1, 0.9], [0.5,0.5], [0.9,0.1], [0.3,0.1]]
+trajs = sul.simulate_trajectory(0.1, 5, x0s)
+f, a = draw_trajectories_2D(trajs, mark_beginning=True, fig=f, axs=a)
+a.scatter(*p_star)
 plt.show()
 exit()
 
