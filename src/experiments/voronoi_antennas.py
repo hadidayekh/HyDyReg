@@ -20,6 +20,34 @@ sys.path.append('../')
 from snds import SNDS
 from plotting import draw_trajectories_2D
 
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+
+
+
+def imscatter(x, y, image, ax=None, zoom=1):
+    if ax is None:
+        ax = plt.gca()
+    try:
+        image = plt.imread(image)
+    except TypeError:
+        # Likely already an array...
+        pass
+    im = OffsetImage(image, zoom=zoom)
+    x, y = np.atleast_1d(x, y)
+    artists = []
+    for x0, y0 in zip(x, y):
+        ab = AnnotationBbox(im, (x0, y0), xycoords='data', frameon=False)
+        artists.append(ax.add_artist(ab))
+    ax.update_datalim(np.column_stack([x, y]))
+    ax.autoscale()
+    return artists
+
+
+
+
 global colormap
 
 n_vor_regions = 8
@@ -211,8 +239,19 @@ X_new = X[y>= partial]
 y_new = y[y>=partial]
 
 
+
+image_path = 'antenna.png'
+
+star = 0
+p_star = points[star]
+
+
 f, a = plt.subplots()
-a.scatter(*points.T, s=4, marker='*', color='k')
+# a.scatter(*points.T, s=4, marker='*', color='k')
+
+imscatter(*points.T, image_path, zoom=0.015, ax=a)
+imscatter(*p_star, image_path, zoom=0.025, ax=a)
+
 for i, p in enumerate(bounded_polytopes):
     p.plot(ax = a, color=colormap(colors[i]), alpha=0.2, linewidth=1)
 
@@ -237,8 +276,6 @@ def labelfun(x):
 
 
 eqs = []
-star = 0
-p_star = points[star]
 for i,p in enumerate(bounded_polytopes):
     if i == star:
         def eq(t, x, i = i):
@@ -257,129 +294,45 @@ for i,p in enumerate(bounded_polytopes):
 sul = SNDS(len(bounded_polytopes), 2, eqs, eventlist=events, labelfun=labelfun)
 
 x0s = [[0.3,0.5], [0.5,0.8], [0.1, 0.9], [0.5,0.5], [0.9,0.1], [0.3,0.1]]
-trajs = sul.simulate_trajectory(0.01, 10, points)
-f, a = draw_trajectories_2D(trajs, mark_beginning=True, fig=f, axs=a)
-a.scatter(*p_star)
-plt.show()
-exit()
-
-
-m = 10
-boxpoly = pc.box2poly([[-m,m],[-m,m]])
-
-A1 = np.array([[-1.,-0.], [-0.,-1.],[ 1.,-0.], [-0.,1.], [ 0.99755,  0.06997], [ 0.34677, -0.93795]])
-b1 = np.array([ 1.00000e+20, 1.00000e+20,  1.00000e+20,  1.00000e+20,  2.50281e-01, -6.25994e-01])
-A2 = np.array([[-1.,-0.], [-0.,-1.],[ 1.,-0.], [-0.,1.], [-0.99755, -0.06997], [-0.19863, -0.98008]])
-b2 = np.array([ 1.00000e+20, 1.00000e+20,  1.00000e+20,  1.00000e+20,  -2.50281e-01, -7.65697e-01])
-A3 = np.array([[-1.,-0.], [-0.,-1.],[ 1.,-0.], [-0.,1.], [-0.34677, 0.93795], [0.19863, 0.98008], [0.9, 0.1]])
-b3 = np.array([ 1.00000e+20, 1.00000e+20,  1.00000e+20,  1.00000e+20,  6.25994e-01, 7.65697e-01, -0.5])
-A4 = np.array([[-1.,-0.], [-0.,-1.],[ 1.,-0.], [-0.,1.], [-0.34677, 0.93795], [0.19863, 0.98008], [-0.9, -0.1]])
-b4 = np.array([ 1.00000e+20, 1.00000e+20,  1.00000e+20,  1.00000e+20,  6.25994e-01, 7.65697e-01, 0.5])
+x0s = np.random.rand(15, 2) 
+trajs = sul.simulate_trajectory(0.01, 10, x0s)
 
 
 
 
-p1 = pc.Polytope(A1, b1).intersect(boxpoly)
-p2 = pc.Polytope(A2, b2).intersect(boxpoly)
-p3 = pc.Polytope(A3, b3).intersect(boxpoly)
-p4 = pc.Polytope(A4, b4).intersect(boxpoly)
+from diff_methods import diff_method_fps
+from opti import HybridRegressor
+from sklearn.linear_model import Ridge, RidgeCV
 
 
 
-polys = [p1, p2, p3]
+segments = trajs.segment_trajectories(0.001)
 
-X = generate_random(1000, m)
-y = which_classes(X, polys)
-X = X[y != -1]
-y = y[y != -1]
+# f, a = draw_trajectories_2D(trajs, mark_beginning=True, fig=f, axs=a, segments=segments)
 
+X, X_dot, seg_res, _ = diff_method_fps(
+    trajs.t_list, trajs.x_list, segments=segments, remove_seg=True)
 
-N_new = 200
-X_new = generate_random_in_poly(N_new, m, p4)
-y_new = np.array([3]*N_new)
-
-
-
-eta = 0.1
-nb_epochs = 50
-
-LR = IncrementalLogsiticRGD_withLR(eta=eta, nb_epochs=nb_epochs)
-
-LR.fit(X,y)
-LR.plot_classi(X,y)
-
-X_all = np.r_[X, X_new]
-y_all = np.r_[y, y_new]
-
-LR.partial_fit(X_new, y_new, with_prev_portion=0.3, Xplt=X_all, yplt=y_all)
-LR.plot_classi(X_all, y_all)
-
-plot_with_polys(X_all, y_all, [p1,p2,p3,p4])
-
-# p4 = pc.Polytope((p1.A+p2.A)/2,(p1.b+p2.b)/2)
-# p4.plot(ax=a, alpha=0.2)
-plt.show()
-exit()
-n_samples = 200
-n_classes = 4
-eta = 0.1
-nb_epochs = 50
-
-X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
-                        n_clusters_per_class=1, n_redundant=0, n_classes=n_classes, random_state=1)
-
-
-# for eta in [0.00001, 0.0001, 0.001, 0.01, 0.1 , 1]:
-LR = IncrementalLogsiticRGD_withLR(eta=eta, nb_epochs=nb_epochs)
-
-
-# LR.W = np.array([[-1.00231, -0.98778], [ 0.99056, -0.85561], [-1.08337,  0.80221], [1.0791,   1.02797]])
-# LR.B = np.array([-0.17557, -0.09156,  0.14826,  0.12181])
-# LR.W = np.array([[-1, -1], [ 1, -1], [-1,  1], [1,   1]])
-# LR.B = np.array([0,0,0,0])
-# LR.W = np.array([[0, -1], [-1,  1], [1,   1]])
-# LR.B = np.array([0,0,0])
-
-# LR.K = LR.B.size
-# LR.define_region_polytopes()
-# LR.plot_classi(X, y)
+a.scatter(*X.T,s=2)
 # plt.show()
 # exit()
 
 
-LR.fit(X,y)
-LR.plot_classi(X,y)
+model = HybridRegressor(train_coefs=True, deg=1, classifier_poly_deg=1, classifier_poly_trans=False)
 
-print(LR.W)
-print(LR.B)
+alphas=[1000,100,10,1,.1,.01]
+model.fit_first_hypothesis(X, X_dot, seg_res, good_RD = 0.1, regressor = RidgeCV(alpha_per_target=True, alphas=alphas))
 
-# LR.fit(X,y)
-# LR.plot_classi(X,y)
-# plt.show()
-# exit()
-X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1], [-1.5, -3], [-2, -3]])
-y_new = np.array([4, 4, 0, 5, 5])
-# X_new = np.array([[-2,-2], [-1.9, -1.3], [0.3, -1]])
-# y_new = np.array([4, 4, 0])
-X_all = np.r_[X, X_new]
-y_all = np.r_[y, y_new]
+model.classify_modes(LogisticRegression())
 
+print(model.gen_full_latex_eq())
 
-# LR.partial_fit(X_new, y_new, with_prev=True, with_prev_portion=0.4)
-# LR.plot_classi(X_all, y_all)
+learned_hyp = model.to_SNDS()
+trajs_learned = learned_hyp.simulate_trajectory(0.02, 10, x0s)
 
-# LR.fit(X, y)
-LR.partial_fit(X_new, y_new, with_prev_portion=0.75, Xplt=X_all, yplt=y_all)
-LR.plot_classi(X_all, y_all)
-
-# LR.fit(X, y)
-# LR.partial_fit(X_all, y_all)
-# LR.plot_classi(X_all, y_all)
-
-# LR.fit(X_all, y_all)
-# LR.plot_classi(X_all, y_all)
+f2, a2 = draw_trajectories_2D(trajs, mark_beginning=True)
+f2, a2 = draw_trajectories_2D(trajs_learned, fig=f2, axs=a2, mark_beginning=True, labelfun=model.labelfun_) 
 
 plt.show()
+exit()
 
-## NEED TO ADD:
-# with_prev needs to select privilege selecting points that are close to boundaries
