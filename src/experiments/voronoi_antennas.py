@@ -22,7 +22,7 @@ from plotting import draw_trajectories_2D
 
 global colormap
 
-n_vor_regions = 30
+n_vor_regions = 8
 
 
 def define_region_polytopes(self):
@@ -212,7 +212,7 @@ y_new = y[y>=partial]
 
 
 f, a = plt.subplots()
-a.scatter(*points.T, s=2)
+a.scatter(*points.T, s=4, marker='*', color='k')
 for i, p in enumerate(bounded_polytopes):
     p.plot(ax = a, color=colormap(colors[i]), alpha=0.2, linewidth=1)
 
@@ -237,27 +237,27 @@ def labelfun(x):
 
 
 eqs = []
-star = 5
+star = 0
 p_star = points[star]
 for i,p in enumerate(bounded_polytopes):
     if i == star:
         def eq(t, x, i = i):
             # print(i, 'star')
-            return p_star - x
+            return (p_star - x)
         
         eqs.append(eq)
     else:
         def eq(t, x, i = i):
             # if i != 1:
             #     print(i)
-            return p_star - points[i]
+            return 0.1*(p_star - points[i]) / np.linalg.norm(p_star - points[i])
         
         eqs.append(eq)
 
 sul = SNDS(len(bounded_polytopes), 2, eqs, eventlist=events, labelfun=labelfun)
 
 x0s = [[0.3,0.5], [0.5,0.8], [0.1, 0.9], [0.5,0.5], [0.9,0.1], [0.3,0.1]]
-trajs = sul.simulate_trajectory(0.1, 5, x0s)
+trajs = sul.simulate_trajectory(0.01, 10, points)
 f, a = draw_trajectories_2D(trajs, mark_beginning=True, fig=f, axs=a)
 a.scatter(*p_star)
 plt.show()
