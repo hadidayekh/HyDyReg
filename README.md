@@ -1,10 +1,31 @@
-# INSTALLATION #
+# Installation #
 
 This repository requires Python 3.9+ with the following dependencies installed as follows:
+```
+pip install -r requirements.txt
+```
 
+# Running Experiments #
 
+All runs need must happen in the `src` folder.
 
-#               INCREMENTAL LEARNING APPROACH               #
+To run the experiments and get a table of results, it suffices to run:
+```
+python3 experiments/experiment_infos.py
+python3 experiments/parametric.py
+```
+
+For the **incremental approach**, in the above files, you must set the following :
+```python
+optimization_based = False
+improve_continuous = True
+```
+For the **optimization-based approach**, in the above files, you must set the following:
+```python
+optimization_based = True
+improve_continuous = False
+```
+#               Example Flow Using the Incremental Learning Approach               #
 ```python
 from diff_methods import diff_method_fps
 from opti import HybridRegressor
