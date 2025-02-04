@@ -1,3 +1,9 @@
+# INSTALLATION #
+
+This repository requires Python 3.9+ with the following dependencies installed as follows:
+
+
+
 #               INCREMENTAL LEARNING APPROACH               #
 ```python
 from diff_methods import diff_method_fps
