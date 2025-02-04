@@ -6,9 +6,9 @@ sys.path.append('./')
 sys.path.append('../')
 
 from sklearn.metrics import mean_squared_error
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 from diff_methods import diff_method_fps
-from snds import SNDS_linear
+from snds import SNDS_affine
 import plotting
 import numpy as np
 import matplotlib.pyplot as plt
@@ -85,7 +85,7 @@ params = np.array(params)
 
 
 ##### DEFINING SNDS #####
-sul = SNDS_linear(params, eventlist, labelfun)
+sul = SNDS_affine(params, eventlist, labelfun)
 
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
@@ -136,7 +136,7 @@ if k_learn:
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments2, remove_seg=True)
+    X, X_dot, seg_res, _ = diff_method_fps(t_arr, x_arr, segments=segments2, remove_seg=True)
     
     if load_pickle:
         file = open('../models/' + exp_title + '.model', 'rb')
@@ -144,7 +144,7 @@ if k_learn:
         file.close()
     else:
         # Defining the model
-        model = HybridKernelRegressor(train_coefs=True, n=3, deg=1, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
+        model = HybridRegressor(train_coefs=True, n=3, deg=1, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
 
         # Fitting the model with its corresponding derivatives
         model.fit(X, X_dot, norm='L2', deltas=0.001, C=1, segmentation='strict', segments=seg_res)

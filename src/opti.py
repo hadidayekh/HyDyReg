@@ -1,9 +1,11 @@
 from asyncio.proactor_events import _ProactorBaseWritePipeTransport
+import random
+from time import sleep
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 import casadi
 import numpy as np
 import kernels
-from snds import SNDS, SNDS_linear
+from snds import SNDS, SNDS_affine
 from utils import *
 from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
@@ -29,8 +31,8 @@ x_dot is a NxD matrix
 x_dot.T is DxN
 """
 
-class HybridKernelRegressor:
-    def __init__(self, train_coefs, n, deg=1, classifier_poly_trans=False, classifier_poly_deg=None, kernels_list=None, kargs_list=None):
+class HybridRegressor:
+    def __init__(self, train_coefs=True, n=None, deg=1, classifier_poly_trans=False, classifier_poly_deg=None, kernels_list=None, kargs_list=None):
         self.train_coefs = train_coefs
         self.n = n
         self.deg = deg
@@ -49,6 +51,8 @@ class HybridKernelRegressor:
     # For segmentation, will introduce variable segmentation which can belong to
     # {'squared_diff', 'strict'} or be None
     def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False):
+        if self.n is None:
+            raise Exception("To use the optimization based method, the number of modes n must be provided.")
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
             raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
         if not segmentation is None and len(segments) == 0:
@@ -303,6 +307,205 @@ class HybridKernelRegressor:
         # self.Chis_ = Chis_sol
         self.Xfit_ = X
         self.Xfit_trans_ = X_trans
+        self.X_dot_fit_ = X_dot
+
+        self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
+
+    def fit_first_hypothesis(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None, shuffle_segments=False):
+        self.n = 1
+
+        if len(segments) > 1:
+            segment_index_pairs = []
+            for i in range(len(segments)-1):
+                segment_index_pairs.append((segments[i], segments[i+1]))
+            segment_index_pairs.append((segments[-1], X.shape[0]))
+            if shuffle_segments:
+                random.shuffle(segment_index_pairs)
+
+            X_first = X[segment_index_pairs[0][0]:segment_index_pairs[0][1]]
+            X_dot_first = X_dot[segment_index_pairs[0][0]:segment_index_pairs[0][1]]
+            if not Time is None:
+                Time_first = Time[segment_index_pairs[0][0]:segment_index_pairs[0][1]]
+        else:
+            X_first = X[segments[0]:]
+            X_dot_first = X_dot[segments[0]:]
+            if not Time is None:
+                Time_first = Time[segments[0]:]
+            
+
+        print("first segment with",X_first.shape[0],"points")
+        poly = PolynomialFeatures(degree=self.deg, include_bias=False)
+        X_trans = poly.fit_transform(X_first)
+        D = X_first.shape[1]
+        Q = X_trans.shape[1]
+        self.poly = poly
+        LR = clone(regressor)
+        LR.fit(X_trans, X_dot_first)
+        self.Omegas_ = np.ndarray((1, D, Q))
+        self.betas_ = np.ndarray((1, D))
+
+        self.Omegas_[0] = LR.coef_
+        self.betas_[0] = LR.intercept_
+        self.regressors_ = [LR]
+
+        self.Xfit_ = X_first
+        self.Xfit_trans_ = X_trans
+        self.X_dot_fit_ = X_dot_first
+        if not Time is None:
+            self.Time_fit_ = Time_first
+        self.modesfit_ = np.array([0] * X_first.shape[0])
+
+        if len(segments) > 1:
+            for i in range(1, len(segment_index_pairs)):
+                print("seg", i+1)
+                X_curr = X[segment_index_pairs[i][0] : segment_index_pairs[i][1]]
+                print(X_curr.shape[0], "points")
+                X_dot_curr = X_dot[segment_index_pairs[i][0] : segment_index_pairs[i][1]]
+                Time_curr = None if Time is None else Time[segment_index_pairs[i][0] : segment_index_pairs[i][1]]
+                
+                self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor, Time=Time_curr)
+            
+
+            # for i in range(1, len(segments) - 1):
+            #     print("seg", i+1)
+            #     X_curr = X[segments[i]:segments[i+1]]
+            #     print(X_curr.shape[0], "points")
+            #     X_dot_curr = X_dot[segments[i]:segments[i+1]]
+            #     self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
+            # print("last seg")
+            # X_curr = X[segments[-1]:]
+            # print(X_curr.shape[0], "points")
+            # X_dot_curr = X_dot[segments[-1]:]
+            # self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
+
+
+    
+    def compare_with_dynamics(self, X, Xdot, tol=0.01):
+        RDs = np.ndarray((self.n,))
+        for j in range(self.n):
+            Xdot_pred = self.predict(X, lambda x: j)
+            RDs[j] = np.mean(relative_diff(Xdot, Xdot_pred))
+            # print("mode", j, RDs[j])
+            # print(Xdot - Xdot_pred)
+            # print(Xdot, Xdot_pred)
+            # RDs[j] = np.linalg.norm(Xdot - Xdot_pred, ord='fro')
+        min_RD = np.min(RDs)
+        # print(RDs)
+        if min_RD < tol:
+            print("No need to improve, mode", np.argmin(RDs), f"matches. RD = {min_RD:.3e}")
+        else:
+            print(f"Need to improve, min(RDs) = {min_RD:.3e}")
+            # print(RDs)
+        return min_RD < tol, np.argmin(RDs)
+
+    def augment_fit(self, X, X_dot, good_RD=0.001, regressor=LinearRegression(), Time = None):
+        if not self.train_coefs:
+            raise NotImplementedError
+        # X and X dot belong to one segment
+        N_new = X.shape[0]
+        if self.deg > 1:
+            X_trans = self.poly.fit_transform(X)
+        else:
+            X_trans = X
+        
+        is_already_captured, j_star = self.compare_with_dynamics(X, X_dot, tol=good_RD)
+        if is_already_captured:
+            mode = j_star
+        else:
+            LRs = []
+            RDs = np.ndarray((self.n,))
+            for j in range(self.n):
+                # LR = LinearRegression()
+                LR = clone(regressor)
+                Xfit_trans_j, X_dot_j = self.get_points_of_mode(j)
+                aug_X = np.r_[Xfit_trans_j, X_trans]
+                aug_X_dot = np.r_[X_dot_j, X_dot]
+
+                LR.fit(aug_X, aug_X_dot)
+                
+                # Calculating RD for segment
+                X_dot_pred = LR.predict(X_trans)
+                RD_seg = np.mean(relative_diff(X_dot, X_dot_pred))
+                # RD_seg = np.linalg.norm(X_dot - X_dot_pred, ord='fro')
+                # Calculating RD for rest of the data
+                X_dot_pred_j = LR.predict(Xfit_trans_j)
+                RD_j = np.mean(relative_diff(X_dot_j, X_dot_pred_j))
+                # RD_j = np.linalg.norm(X_dot_j - X_dot_pred_j, ord='fro')
+
+                LRs.append(LR)
+                RDs[j] = np.max([RD_seg, RD_j])
+
+            RD = np.min(RDs)
+            if RD < good_RD:
+                mode = np.argmin(RDs)
+                print("Merging with mode", mode, "RD is", RD)
+                LR = LRs[mode]
+                self.Omegas_[mode] = LR.coef_
+                self.betas_[mode] = LR.intercept_
+                self.regressors_[mode] = LR
+
+            else:
+                mode = self.n
+                print(f"Creating new mode {mode}; RD was not good: {RD:.3f}")
+                print(RDs)
+                # input("Press enter to continue...")
+                self.n = self.n + 1
+                # LR = LinearRegression()
+                LR = clone(regressor)
+                LR.fit(X_trans, X_dot)
+                self.Omegas_ = np.r_[self.Omegas_, LR.coef_.reshape((1, LR.coef_.shape[0], LR.coef_.shape[1]))]
+                self.betas_ = np.r_[self.betas_, LR.intercept_.reshape((1, LR.intercept_.shape[0]))]
+                self.regressors_.append(LR)
+                # self.reassign_modes()
+        
+        self.Xfit_ = np.r_[self.Xfit_, X]
+        self.Xfit_trans_ = np.r_[self.Xfit_trans_, X_trans]
+        self.X_dot_fit_ = np.r_[self.X_dot_fit_, X_dot]
+        if not Time is None:
+            self.Time_fit_ = np.r_[self.Time_fit_, Time]
+
+        modes_new = np.array([mode] * N_new)
+        self.modesfit_ = np.r_[self.modesfit_, modes_new]
+        # print(self.gen_full_latex_eq(with_classifier_boundaries=False))
+        # self.reassign_modes()
+
+
+    def get_points_of_mode(self, j):
+        self.check_if_fitted()
+        assert j < self.n
+
+        indices = np.where(self.modesfit_ == j)
+        return self.Xfit_trans_[indices], self.X_dot_fit_[indices]
+
+    def reassign_modes(self):
+        # X = self.X_classify_
+        # X_dot = self.X_dot_classify_
+        # N = X.shape[0]
+        # D = X.shape[1]
+        # X_dot_pred_diff = np.ndarray((self.n, N, D))
+        # for j in range(self.n):
+        #     X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)
+        # X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
+        # self.modes_classify_ = np.argmin(X_dot_pred_diff, axis=0)
+
+        X = self.Xfit_
+        X_dot = self.X_dot_fit_
+        N = X.shape[0]
+        D = X.shape[1]
+        X_dot_pred_diff = np.ndarray((self.n, N, D))
+        for j in range(self. n):
+            X_dot_pred_diff[j] = np.abs(self.predict(X, lambda x : j) - X_dot)
+        X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
+        new_modesfit_ = np.argmin(X_dot_pred_diff, axis=0)
+        new_modesfit_old = new_modesfit_[:len(self.modesfit_)]
+        diff = new_modesfit_old - self.modesfit_
+        changed_modes = np.unique(np.r_[self.modesfit_[diff != 0], new_modesfit_old[diff != 0]])
+        print(changed_modes)
+        sleep(1)
+        self.modesfit_ = new_modesfit_
+        for j in changed_modes:
+            self.retrain_continuous(j)
+            
 
     def fit_LR(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
@@ -547,17 +750,17 @@ class HybridKernelRegressor:
             for d in range(D):
                 if segmentation != 'strict':
                     if not tc:
-                        cons_j_d = HybridKernelRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
+                        cons_j_d = HybridRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
                     else:
-                        cons_j_d = HybridKernelRegressor.scipy_opti_cons_tc(j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j])
+                        cons_j_d = HybridRegressor.scipy_opti_cons_tc(j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j])
                     cons.append({'type': 'ineq', 'fun': cons_j_d[0]})
                     cons.append({'type': 'ineq', 'fun': cons_j_d[1]})
                 else:
                     for i in range(N):
                         if not tc:
-                            cons_i_j_d = HybridKernelRegressor.scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j], segments)
+                            cons_i_j_d = HybridRegressor.scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j], segments)
                         else:
-                            cons_i_j_d = HybridKernelRegressor.scipy_opti_cons_strict_seg_tc(i, j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j], segments)
+                            cons_i_j_d = HybridRegressor.scipy_opti_cons_strict_seg_tc(i, j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j], segments)
                         cons.append({'type': 'ineq', 'fun': cons_i_j_d[0]})
                         cons.append({'type': 'ineq', 'fun': cons_i_j_d[1]})
 
@@ -569,9 +772,9 @@ class HybridKernelRegressor:
             x0 = np.random.rand(n * (D * (Q + 1) + chi_size_per_mode))
 
         if not tc:
-            res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
+            res = minimize(lambda x : HybridRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
         else:
-            res = minimize(lambda x : HybridKernelRegressor.scipy_opti_fun_tc(x, N, n, D, Q, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
+            res = minimize(lambda x : HybridRegressor.scipy_opti_fun_tc(x, N, n, D, Q, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
 
         res_x = res.x
 
@@ -597,11 +800,21 @@ class HybridKernelRegressor:
         self.Xfit_   = X
         self.Xfit_trans_ = X_trans
 
-    def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None):
+    def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None, X_dot=None, partial_fit=False):
         self.check_if_fitted()
         if X is None:
-            X = self.Xfit_
-            modes = self.get_modes()
+            if hasattr(self, 'X_classify_'):
+                X = np.r_[self.Xfit_, self.X_classify_]
+                X_dot = np.r_[self.X_dot_fit_, self.X_dot_classify_]
+                modes = np.r_[self.modesfit_, self.modes_classify_]
+                _, unique_indices = np.unique(X, axis=0, return_index=True)
+                X = X[unique_indices]
+                X_dot = X_dot[unique_indices]
+                modes = modes[unique_indices]
+            else:
+                X = self.Xfit_
+                X_dot = self.X_dot_fit_
+                modes = self.modesfit_
         
         num_modes = len(np.unique(modes))
 
@@ -615,7 +828,7 @@ class HybridKernelRegressor:
             X_class_trans = X
         
         if num_modes > 1:
-            self.classifier_ = classifier.fit(X_class_trans, modes)
+            self.classifier_ = classifier.partial_fit(X_class_trans, modes) if partial_fit else classifier.fit(X_class_trans, modes)
 
             if not do_poly_transform:
                 def event(t, x):
@@ -636,12 +849,29 @@ class HybridKernelRegressor:
             self.labelfun_ = lf
             self.eventlist_ = event
         else:
+            print(modes[0])
             self.labelfun_ = lambda x : modes[0]
             self.eventlist_ = None
+            self.classifier_ = classifier
         self.X_classify_ = X
+        self.X_dot_classify_ = X_dot
         self.modes_classify_ = modes
 
-    def improve_classification(self, X, X_dot, classifier=None):
+        modes_predict = classifier.predict(X_class_trans)
+        from sklearn.metrics import accuracy_score
+        print("Classification training accuracy:", accuracy_score(modes, modes_predict))
+
+    def retrain_continuous(self, j, regressor=None):
+        X, Xdot = self.get_points_of_mode(j)
+        if X.shape[0] == 0:
+            return
+        if regressor is None:
+            regressor = self.regressors_[j]
+        regressor.fit(X, Xdot)
+        self.Omegas_[j] = regressor.coef_
+        self.betas_[j] = regressor.intercept_
+    
+    def improve_classification(self, X, X_dot, classifier=None, partial_fit=False):
         self.check_if_fitted()
         if X.size == 0:
             return
@@ -651,7 +881,11 @@ class HybridKernelRegressor:
         
         X_dot_pred_diff = np.sum(X_dot_pred_diff, axis=-1)
         modes = np.argmin(X_dot_pred_diff, axis=0)
-        self.classify_modes(classifier = clone(self.classifier_), X = np.r_[self.X_classify_, X], modes = np.r_[self.modes_classify_, modes])
+        if hasattr(self, "X_classify_"):
+            X = np.r_[self.X_classify_, X]
+            X_dot = np.r_[self.X_dot_classify_, X_dot]
+            modes = np.r_[self.modes_classify_, modes]
+        self.classify_modes(classifier = classifier, X = X, modes = modes, X_dot = X_dot, partial_fit=partial_fit)
     
     def predict(self, X, labelfun=None):
         # FIRST WE WILL ASSUME THAT THERE IS A GIVEN LABEL FUNCTION
@@ -754,7 +988,7 @@ class HybridKernelRegressor:
                     for l in range(D):
                         params[j][d][l] = self.Omegas_[j][d][l]
                     params[j][d][D] = self.betas_[j][d]
-            return SNDS_linear(params, eventlist, labelfun)
+            return SNDS_affine(params, eventlist, labelfun)
         else:
             eqs = []
             for j in range(n):
@@ -815,7 +1049,7 @@ class HybridKernelRegressor:
                     coefs = self.Omegas_[j][d]
                     print(coefs.T, " ", self.betas_[j][d])
 
-    def gen_full_latex_eq(self, with_classifier_boundaries=True):
+    def gen_full_latex_eq(self, with_classifier_boundaries=True, round_dig=3):
         self.check_if_fitted()
         if not self.train_coefs:
             raise NotImplementedError
@@ -830,7 +1064,7 @@ class HybridKernelRegressor:
             eq_string += f'\\textbf{{Mode {j+1}:}}\n\\[\n\\begin{{cases}}\n'
             for d in range(D):
                 eq_string += f'\t\\begin{{aligned}}\n'
-                eq_string += f'\t\t\\xddim{{{d+1}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d]) + '\n'
+                eq_string += f'\t\t\\xddim{{{d+1}}} &=' + get_latex_eq(self.poly, omegas[j][d], biases[j][d], round_dig=round_dig) + '\n'
                 eq_string += f'\t\\end{{aligned}}\\\\\n'
             eq_string += f'\\end{{cases}}\n\\]\n'
 

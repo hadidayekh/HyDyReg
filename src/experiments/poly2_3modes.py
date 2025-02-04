@@ -8,7 +8,7 @@ sys.path.append('../')
 sys.path.append('src/')
 
 from sklearn.metrics import mean_squared_error
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 from diff_methods import diff_method_fps
 from snds import SNDS
 import plotting
@@ -91,7 +91,7 @@ if save_plots:
 if k_learn:
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
+    X, X_dot, seg_res, _ = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
     
     seg_all = utils.which_segment_all(X.shape[0], seg_res)
     X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val = utils.train_test_split_segments(X, X_dot, seg_res, utils.which_segment_all(X.shape[0], seg_res), test_size=0.1)
@@ -102,8 +102,8 @@ if k_learn:
         file.close()
     else:
         # Defining the model
-        #model = HybridKernelRegressor(['linear', 'polynomial', 'linear'], [[0], [2, 1, 1], [0]])
-        model_curr = HybridKernelRegressor(train_coefs=True, n=3, deg=2, kernels_list=['linear', 'polynomial', 'linear'], kargs_list=[[0], [2, 1, 1], [0]])
+        #model = HybridRegressor(['linear', 'polynomial', 'linear'], [[0], [2, 1, 1], [0]])
+        model_curr = HybridRegressor(train_coefs=True, n=3, deg=2, kernels_list=['linear', 'polynomial', 'linear'], kargs_list=[[0], [2, 1, 1], [0]])
         # Extracting derivatives through numerical differentiation
         # Fitting the model with its corresponding derivatives
         

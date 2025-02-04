@@ -8,7 +8,7 @@ def which_segment(i, segments):
     r = 0
     while r < len(segments) and i >= segments[r]:
         r += 1
-    return r - 1
+    return r
 
 def which_segment_all(N, segments):
     segments_per_point = np.ndarray((N,), int)
@@ -72,7 +72,14 @@ def compare_trajs(traj1, traj2, measure="MSE"):
     if measure == "MSE":
         return mean_squared_error(np.array(traj1.x_list).flatten(), np.array(traj2.x_list).flatten())
     elif measure == "RD":
-        return np.mean(relative_diff(np.array(traj1.x_list).flatten(), np.array(traj2.x_list).flatten()))
+        RDs = []
+        for i in range(len(traj1.x_list)):
+            xpts1 = traj1.x_list[i]
+            xpts2 = traj2.x_list[i]
+            RDs.append(relative_diff(xpts1, xpts2))
+        return np.mean(RDs), np.max(RDs)
+        # RDs = relative_diff(np.array(traj1.x_list).flatten(), np.array(traj2.x_list).flatten())
+        # return np.mean(relative_diff(np.array(traj1.x_list).flatten(), np.array(traj2.x_list).flatten()))
 
 def compare_snds(snds1, snds2, x0s, time_step, time_range, measure="MSE"):
     traj1 = snds1.simulate_trajectory(time_step, time_range, x0s)
@@ -80,6 +87,16 @@ def compare_snds(snds1, snds2, x0s, time_step, time_range, measure="MSE"):
     return compare_trajs(traj1, traj2, measure=measure)
 
 def relative_diff(x, y):
+    if x.ndim == 1:
+        return np.linalg.norm(x - y) / (np.linalg.norm(x) + np.linalg.norm(y))
+    else:
+        return np.linalg.norm(x - y, axis=1) / (np.linalg.norm(x, axis=1) + np.linalg.norm(y,axis=1))
+
+def relative_diff_by_component(x, y):
+    res = np.zeros((x.size,))
+    for i in range(x.size):
+        res[i] = np.abs(x[i]-y[i]) / (np.abs(x[i]) + np.abs(y[i]))
+    return res
     if x.ndim == 1:
         return np.linalg.norm(x - y) / (np.linalg.norm(x) + np.linalg.norm(y))
     else:
@@ -130,13 +147,14 @@ def get_latex_eq(polyf : PolynomialFeatures, coefs : np.ndarray, bias, round_dig
                 x_part += f'^{{{pow}}}'
         if i > 0 and coefs[i] >= 0 and started:
             eq_string += ' + '
-        eq_string += str(coefs[i]) + ' ' + x_part
+        eq_string += f"{coefs[i]:.4f}" + ' ' + x_part
         started = True
-
-    if bias != 0:
+    if not started:
+        eq_string += f"{bias:.4f}"
+    elif bias != 0:
         if bias > 0:
             eq_string += ' + '
-        eq_string += str(bias) 
+        eq_string += f"{bias:.4f}" 
 
     return eq_string
 
@@ -244,10 +262,10 @@ def print_classifier_boundaries(classifier, polyfeatures=None):
         else:
             for i in range(ncoef):
                 for j in range(i+1, ncoef):
-                    s = f"Classifier boundary between {i} and {j}: "
+                    s = f"Classifier boundary between {i:2d} and {j:2d}: "
                     w = W[i] - W[j]
                     b = B[i] - B[j]
-                    max_w = w[np.argmax(np.abs(w))]
+                    max_w = np.max(np.abs(w))
                     w = w / max_w
                     b = b / max_w
                     for d in range(D):
@@ -261,6 +279,7 @@ def get_latex_classifier_boundaries(classifier, polyfeatures=None):
     try:
         W = classifier.coef_
         B = classifier.intercept_
+        classes = classifier.classes_
         ncoef = W.shape[0]
         D = W.shape[1]
 
@@ -273,7 +292,7 @@ def get_latex_classifier_boundaries(classifier, polyfeatures=None):
         if ncoef == 1:
             w = W[0]
             b = B[0]
-            max_w = w[np.argmax(np.abs(w))]
+            max_w = np.max(np.abs(w))
             w = w / max_w
             b = b / max_w
             s = "Classifier boundary: $"
@@ -285,7 +304,7 @@ def get_latex_classifier_boundaries(classifier, polyfeatures=None):
             S = ''
             for i in range(ncoef):
                 for j in range(i+1, ncoef):
-                    s = f"Classifier boundary between modes ${i+1}$ and ${j+1}$: $"
+                    s = f"Classifier boundary between modes ${classes[i]+1}$ and ${classes[j]+1}$: $"
                     w = W[i] - W[j]
                     b = B[i] - B[j]
                     max_w = w[np.argmax(np.abs(w))]
@@ -294,12 +313,214 @@ def get_latex_classifier_boundaries(classifier, polyfeatures=None):
                     for d in range(D):
                         s += f'{w[d]:.3f} {fn[d]} + '
                     s += f'{b:.3f}$\\\\\n'
-                    print(s)
                     S+=s
             return S
     except:
         print("Could not get boundary.")
         return ''
+
+
+def gen_matlab_hyeq_jumpMap(classifier, polyfeatures : PolynomialFeatures =None, ind=""):
+    try:
+        W = classifier.coef_
+        B = classifier.intercept_
+        ncoef = W.shape[0]
+        D = W.shape[1]
+
+        if not polyfeatures is None:
+            dim_cont = polyfeatures.n_features_in_
+            fn = [f'x({i+1})' for i in range(dim_cont)]
+            fn = polyfeatures.get_feature_names_out(fn)
+            fn = [s.replace(" ", " * ") for s in fn]
+        else:
+            dim_cont = D
+            fn = [f'x({i+1})' for i in range(D)]
+        
+        s = f"{ind}function xplus = jumpMap(this, x)\n"
+        s += f"{ind}\tz = x(1:{dim_cont});\n"
+        s += f"{ind}\tmode = x({dim_cont + 1});\n"
+        if ncoef == 1:
+            w = W[0]
+            b = B[0]
+            max_w = np.max(np.abs(w))
+            w = w / max_w
+            b = b / max_w
+            s += f"{ind}\tif "
+            for d in range(D):
+                s += f'({w[d]} * {fn[d]}) + '
+            s += f'({b}) >= 0\n'
+            s += f"{ind}\t\txplus = [z; 2];\n{ind}\telse\n"
+            s += f"{ind}\t\txplus = [z; 1];\n{ind}\tend\n{ind}end"
+            return s
+        else:
+            for i in range(ncoef):
+                s += f"{ind}\tif " if i == 0 else f"{ind}\telseif "
+                amp = False
+                for j in range(ncoef):
+                    if j == i:
+                        continue
+                    if not amp:
+                        amp = True
+                    else:
+                        s += " && "
+                    w = W[i] - W[j]
+                    b = B[i] - B[j]
+                    max_w = np.abs(w[np.argmax(np.abs(w))])
+                    w = w / max_w
+                    b = b / max_w
+                    for d in range(D):
+                        s += f'({w[d]})*({fn[d]}) + '
+                    s += f'({b}) >= 0'
+                s += '\n'
+                s += f'{ind}\t\txplus = [z; {i+1}];\n'
+            s += f"{ind}\tend\n{ind}end"
+            return s
+    except:
+        print("Could not get boundary.")
+        return ''
+
+def gen_matlab_hyeq_jumpSetIndicator(classifier, polyfeatures : PolynomialFeatures =None, ind=""):
+    W = classifier.coef_
+    B = classifier.intercept_
+    ncoef = W.shape[0]
+    D = W.shape[1]
+
+    if not polyfeatures is None:
+        dim_cont = polyfeatures.n_features_in_
+        fn = [f'x({i+1})' for i in range(dim_cont)]
+        fn = polyfeatures.get_feature_names_out(fn)
+        fn = [s.replace(" ", " * ") for s in fn]
+    else:
+        dim_cont = D
+        fn = [f'x({i+1})' for i in range(D)]
+    
+    s = f"{ind}function D = jumpSetIndicator(this, x)\n"
+    s += f"{ind}\tz = x(1:{dim_cont});\n"
+    s += f"{ind}\tmode = x({dim_cont + 1});\n"
+    s += f"{ind}\tswitch mode\n"
+    
+    if ncoef == 1:
+        w = W[0]
+        b = B[0]
+        max_w = np.max(np.abs(w))
+        w = w / max_w
+        b = b / max_w
+        s += f"{ind}\t\tcase 1\n"
+        s += f"{ind}\t\t\tD = "
+        bnd = ""
+        for d in range(D):
+            bnd += f'({w[d]} * {fn[d]}) + '
+        bnd += f'({b})'
+        s += bnd + ' >= 0;\n'
+
+        s += f"{ind}\t\tcase 2\n"
+        s += f"{ind}\t\t\tD = "
+        s += bnd + ' < 0;\n'
+        
+        s += f"{ind}\tend\n{ind}end"
+        return s
+    else:
+        for i in range(ncoef):
+            # s += f"{ind}\tif " if i == 0 else f"{ind}\telseif "
+            s += f"{ind}\t\tcase {i+1}\n"
+            s += f"{ind}\t\t\tD = "
+            amp = False
+            for j in range(ncoef):
+                if j == i:
+                    continue
+                if not amp:
+                    amp = True
+                else:
+                    s += " || "
+                w = W[i] - W[j]
+                b = B[i] - B[j]
+                max_w = np.abs(w[np.argmax(np.abs(w))])
+                w = w / max_w
+                b = b / max_w
+                for d in range(D):
+                    s += f'({w[d]})*({fn[d]}) + '
+                s += f'({b}) < 0'
+            s += ';\n'
+        s += f"{ind}\tend\n{ind}end"
+        return s
+
+
+def gen_matlab_hyeq_flowMap(model, ind=""):
+    assert model.train_coefs
+    omegas = model.Omegas_
+    betas = model.betas_
+    print(omegas)
+    print(betas.shape)
+    
+    polyfeatures = model.poly
+    dim_cont = polyfeatures.n_features_in_
+    fn = [f'x({i+1})' for i in range(dim_cont)]
+    fn = polyfeatures.get_feature_names_out(fn)
+    fn = [s.replace(" ", " * ") for s in fn]
+
+    n_modes = model.n
+
+    s = f"{ind}function xdot = flowMap(this, x)\n"
+    s += f"{ind}\tz = x(1:{dim_cont});\n"
+    s += f"{ind}\tmode = x({dim_cont + 1});\n"
+
+    s += f"{ind}\tz_poly = ["
+    for i in range(len(fn)-1):
+        s += fn[i] + "; "
+    s += fn[-1] + "];\n"
+
+    s += f"{ind}\tswitch mode\n"
+    for mode in range(n_modes):
+        s += f"{ind}\t\tcase {mode+1}\n"
+        s += f"{ind}\t\t\txdot = [this.A{mode+1} * z_poly + this.B{mode+1}; 0];\n"
+    s += f"{ind}\tend\n"
+    s += f"{ind}end"
+    return s
+
+def gen_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
+    s = "classdef " + name + " < HybridSystem\n"
+    
+    omegas = model.Omegas_
+    betas = model.betas_
+
+    n = omegas.shape[0]
+    D = omegas.shape[1]
+    Q = omegas.shape[2]
+
+    s += "\tproperties\n"
+    for mode in range(n):
+        s += f"\t\tA{mode+1} = ["
+        for d in range(D-1):
+            for q in range(Q-1):
+                s += f"{omegas[mode][d][q]}, "
+            s += f"{omegas[mode][d][Q-1]}; "
+        for q in range(Q-1):
+            s += f"{omegas[mode][D-1][q]}, "
+        s += f"{omegas[mode][D-1][Q-1]}]\n"
+    
+    s += "\n"
+
+    for mode in range(n):
+        s += f"\t\tB{mode+1} = ["
+        for d in range(D-1):
+            s += f"{betas[mode][d]}; "
+        s += f"{betas[mode][D-1]}]\n"
+    
+    s += "\tend\n\n"
+
+    s += "\tmethods\n"
+
+    s += gen_matlab_hyeq_flowMap(model, ind = "\t\t") + "\n"
+    s += gen_matlab_hyeq_jumpMap(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
+    s += gen_matlab_hyeq_jumpSetIndicator(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
+
+    s += "\t\tfunction C = flowSetIndicator(this, x)\n\t\t\tC = 1;\n\t\tend\n\n"
+
+    s += "\tend\n"
+    s += "end"
+
+    return s.expandtabs(4)
+
 def get_SVC_boundary_eq_dim2_poly2(model_SVC):
     if model_SVC.kernel != 'poly' or model_SVC.degree != 2:
         raise NotImplementedError
@@ -331,20 +552,43 @@ def check_SVC(model_SVC, X, coefs):
         yc[i] = coefs[0]*X[i][0]**2 + coefs[1]*X[i][1]**2 + coefs[2]*X[i][0]*X[i][1] + coefs[3]
     return y, yc, ydc
 
-def print_experi_data(DATA):
+def print_experi_data(DATA, both=False, jin=False):
     # Data is made of exp_name, RD1, RD2, RD3, t_best_C, t_active, t_EQ, count, RDdot, RDmerge, tmerge, RDpwa, tpwa
-    for i in range(len(DATA)):
-        d = DATA[i]
-        exp_name, RD1, RD2, RD3, t1, t2, t3, count, RD_dot, RD_merge, t_merge, RD_piecelinear, t_piecelinear = d
-        s = d[0] + ' & '
-        for i in range(1, 4): #rd1,rd2,rd3
-            s += f'{d[i]:.5f} & '
-        for i in range(4, 7): #t1,t2,t3
-            s += f'{d[i]:.1f} & '
-        s += str(d[7]) + ' & ' #count
-        s += f'{d[8]:.1e} & ' #rddot
-        s += f'{d[9]:.1e} & ' #rdmerge
-        s += f'{d[11]:.1e} & ' #rdpl
-        s += f'{d[10]:.1f} & ' #tmerge
-        s += f'{d[12]:.1f}\\\\'    #tpl
-        print(s)
+    s = ''
+    for j in range(len(DATA)):
+        d = DATA[j]
+        if not both:
+            exp_name, RD1, RD2, RD3, t1, t2, t3, count, RD_dot, RD_merge, t_merge, RD_piecelinear, t_piecelinear = d
+            s += d[0] + ' & '
+            for i in range(1, 4): #rd1,rd2,rd3
+                s += f'{d[i]:.5f} & '
+            for i in range(4, 7): #t1,t2,t3
+                s += f'{d[i]:.2f} & '
+            s += str(d[7]) + ' & ' #count
+            s += f'{d[8]:.1e} ' #rddot
+            if jin:
+                s += f'& {d[9]:.1e} & ' #rdmerge
+                s += f'{d[11]:.1e} & ' #rdpl
+                s += f'{d[10]:.1f} & ' #tmerge
+                s += f'{d[12]:.1f}'    #tpl
+            s += '\\\\'
+        else:
+            exp_name, RD1, RD2, RD3, RD1_max, RD2_max, RD3_max, t1, t2, t3, count, RD_dot, RD_merge, t_merge, RD_piecelinear, t_piecelinear = d
+            s += d[0] + ' & '
+            for i in range(1, 4): #rd1,rd2,rd3
+                s += f'{d[i]:.5f} & '
+            for i in range(4, 7): #rd1,rd2,rd3
+                s += f'{d[i]:.5f} & '
+            for i in range(7, 10): #t1,t2,t3
+                s += f'{d[i]:.2f} & '
+            s += str(d[10]) + ' & ' #count
+            s += f'{d[11]:.1e} ' #rddot
+            if jin:
+                s += f'& {d[12]:.1e} & ' #rdmerge
+                s += f'{d[14]:.1e} & ' #rdpl
+                s += f'{d[13]:.1f} & ' #tmerge
+                s += f'{d[15]:.1f}\\\\'    #tpl
+            s += '\\\\'
+        s += '\n'
+    print(s)
+    return s

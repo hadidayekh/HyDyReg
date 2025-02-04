@@ -9,14 +9,14 @@ sys.path.append('../')
 import kernels
 import diff_methods
 from main import get_modes
-from snds import SNDS, SNDS_linear
+from snds import SNDS, SNDS_affine
 from scipy.integrate import solve_ivp
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 from sklearn.linear_model import LinearRegression
 from matplotlib.colors import ListedColormap
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 import plotting
 import time
 from sklearn.metrics import mean_squared_error
@@ -118,7 +118,7 @@ if poly:
 
 else:
     params = np.array([[[a, b, cons1], [c, d, cons2]], [[0, 0, 16], [0,0,-12]]])
-    sul = SNDS_linear(params, eventlist, labelfun)
+    sul = SNDS_affine(params, eventlist, labelfun)
     time_step = 0.005
     time_range = 3
     label_fun_used = labelfun
@@ -208,7 +208,7 @@ params2 = np.array([params2])
 x0s = [[-11, 11], [-14, 14], [-20, 5], [2,3], [10,4]]#, [-10, -3], [-20,-20], [-20, 10], [-30,10], [-30,-10], [20, 0], [40,20], [-60,-40], [-60,-60]]
 
 
-sul = SNDS_linear(params1, [], lambda x : 0)
+sul = SNDS_affine(params1, [], lambda x : 0)
 traj = sul.simulate_trajectory(time_step, time_range, x0s)
 fig,ax = traj.draw_trajectories_2D(mark_beginning=True, plot_xt=False)
 #ax = ax['main']
@@ -252,12 +252,12 @@ kernel_list2 = [[kernels.polynomial, [3, 1, 1], num_modes]]
 
 if k_learn:
     if poly:
-        model = HybridKernelRegressor(['polynomial', 'polynomial'], [[3, 1, 1], [3, 1, 1]])
+        model = HybridRegressor(['polynomial', 'polynomial'], [[3, 1, 1], [3, 1, 1]])
     else:
-        model = HybridKernelRegressor(['linear', 'linear'], [[0], [0]])
-    #model = HybridKernelRegressor(['polynomial', 'polynomial'], [[2, 1, 1], [2, 1, 1]])
+        model = HybridRegressor(['linear', 'linear'], [[0], [0]])
+    #model = HybridRegressor(['polynomial', 'polynomial'], [[2, 1, 1], [2, 1, 1]])
 
-    X, X_dot, seg_res = diff_methods.diff_method_fps(t_list, x_list, segments=segments)
+    X, X_dot, seg_res, _ = diff_methods.diff_method_fps(t_list, x_list, segments=segments)
     
     # X_dot_r = np.array([eqs2[label_fun_used(curr_x)](0, curr_x) for curr_x in X])
     # print(np.linalg.norm(X_dot - X_dot_r))
@@ -305,7 +305,7 @@ if k_learn:
     plt.show()
     exit()
     fig, ax = plt.subplots()
-    X, X_dot = diff_methods.diff_method_fps(t_list, x_list)
+    X, X_dot, _ = diff_methods.diff_method_fps(t_list, x_list)
     print(X.shape)
     kernel_mat_list, sol, Alphas_sol, betas_sol, Chis_sol = learn(
         t_list, x_list, diff_methods.diff_method_fps, kernel_list, 0.001, 100, norm='L2', print_on=True)

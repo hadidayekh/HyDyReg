@@ -9,7 +9,7 @@ sys.path.append('../')
 sys.path.append('src/')
 
 from sklearn.metrics import mean_squared_error
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 from diff_methods import diff_method_fps
 from snds import SNDS
 import plotting
@@ -132,7 +132,7 @@ if k_learn:
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
+    X, X_dot, seg_res, _ = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
 
     seg_all = utils.which_segment_all(X.shape[0], seg_res)
     X_train, X_val, Xdot_train, Xdot_val, seg_train, seg_val = utils.train_test_split_segments(X, X_dot, seg_res, utils.which_segment_all(X.shape[0], seg_res), test_size=0.1)
@@ -143,7 +143,7 @@ if k_learn:
         file.close()
     else:
         # Defining the model
-        model_curr = HybridKernelRegressor(train_coefs=True, n=2, deg=2, kernels_list=['polynomial', 'polynomial'], kargs_list=[[3, 1, 1], [3, 1, 1]])
+        model_curr = HybridRegressor(train_coefs=True, n=2, deg=2, kernels_list=['polynomial', 'polynomial'], kargs_list=[[3, 1, 1], [3, 1, 1]])
         
         C_space = [0.01, 0.1, 0.5, 1, 2, 5, 10]
         Cs = []

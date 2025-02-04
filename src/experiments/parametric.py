@@ -1,4 +1,5 @@
 from math import floor, sqrt
+import pickle
 import sys
 import time
 
@@ -6,7 +7,7 @@ import time
 sys.path.append('./')
 sys.path.append('../')
 
-from snds import SNDS_linear
+from snds import SNDS_affine
 import plotting
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,7 +21,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning) # setting ignore as a parameter and further adding category
  
 
-compare_with_inferDynamic = True
+compare_with_inferDynamic = False
 if compare_with_inferDynamic:
     try:
         f = open("pathtoinferdynamic.txt", 'r')
@@ -33,13 +34,16 @@ if compare_with_inferDynamic:
 
 
 exp_title = "parametric"
-save_plots = False
+save_plots = True
 seg_tol = 0.1
-
-np.random.seed(1)
+optimization_based = False
+improve_continuous = True
 
 if len(sys.argv) < 2:
-    nmodes_list = [2,3,4,5]
+    if optimization_based:
+        nmodes_list = [2,3,4,5]
+    else:
+        nmodes_list = [2,3,4,5, 10, 20]
 else:
     nmodes_list = [int(sys.argv[1])]
 
@@ -96,30 +100,42 @@ def parametric(nmodes, radius=1.0):
 
     params = np.array(params)
     ##### DEFINING SNDS #####
-    sul = SNDS_linear(params, eventlist, labelfun)
+    sul = SNDS_affine(params, eventlist, labelfun)
     return sul
 
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
 
-DATA = []
+DATA_avg = []
+DATA_max = []
+DATA_both = []
 for nmodes in nmodes_list:
+    np.random.seed(1)
+
     radius = 1.0
     radii = radius/nmodes
     sul = parametric(nmodes, radius)
 
     x0s = np.array([[-1.0, -1], [1,-1], [-1,1]])
-    x0s *= 1
+    # x0s *= 1.5/sqrt(2)/nmodes
+    # x0s = np.random.random((15, 2))*2 - 1
+
     x0s_test = np.random.random((5, 2))*4 - 2
 
-    time_step = 0.02
-    time_range = 1
-    time_step_test = 0.02
-    time_range_test = 1
+    if not optimization_based:
+        time_step = 0.001
+        time_range = 1
+        time_step_test = 0.001
+        time_range_test = 1
+    else:
+        time_step = 0.01
+        time_range = 1
+        time_step_test = 0.01
+        time_range_test = 1
 
     eq_query_bounds = np.array([[-1.0,1.0], [-1.0,1.0]])
 
-    c = LogisticRegression(penalty='none', multi_class='multinomial')
+    c = LogisticRegression(penalty='none', multi_class='multinomial', max_iter=100000)
     # c = SVC(C=1e10, kernel='poly', degree=2, gamma=1)
 
     if not learn:
@@ -157,7 +173,9 @@ for nmodes in nmodes_list:
         a1.set_ylabel('$x^{(2)}$')
 
     else:
-        sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2, data = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, 1, random_test_set=True, classifier_poly_trans=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=False, classifier = c, C_space = [0, 0.001, 0.01, 0.1, 1], write_on=True, deltas=0.001, tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False)
+        
+
+        sul, learned_SNDS, trajectories, traj_test_sul, data_avg, data_max, data_both  = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes=nmodes, poly_degree=1, random_test_set=True, classifier_poly_trans=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=True, classifier = c, C_space = [0, 0.001, 0.01], write_on=True, deltas=0.0001, MSE_break_tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=100, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False, improve_cont=improve_continuous, fit_active_only=not optimization_based, N_cexs=10, max_step_factor=2, gen_fine_time_step_factor=10 if nmodes >= 10 else 20)
 
         if compare_with_inferDynamic:
             if nmodes == 2 or nmodes == 3:
@@ -189,9 +207,38 @@ for nmodes in nmodes_list:
                             data.append(res)
                             data.append(infer_time)
             else:
-                data.extend([-1,-1,-1,-1])
+                data_avg.extend([-1,-1,-1,-1])
+                data_max.extend([-1,-1,-1,-1])
+                data_both.extend([-1,-1,-1,-1])
+        else:
+            data_avg.extend([-1,-1,-1,-1])
+            data_max.extend([-1,-1,-1,-1])
+            data_both.extend([-1,-1,-1,-1])
             
-            DATA.append(data)
-# print_experi_data(DATA)
+        DATA_avg.append(data_avg)
+        DATA_max.append(data_max)
+        DATA_both.append(data_both)# print_experi_data(DATA)
 
-plt.show()
+if learn:
+    print("avg")
+    s_avg = print_experi_data(DATA_avg)
+    print("max")
+    s_max = print_experi_data(DATA_max)
+    print("both")
+    s_both = print_experi_data(DATA_both, both=True)
+    pickle_name = 'opti_parametric_data.pkl' if optimization_based else 'incr_parametric_data.pkl'
+    file_name = 'opti_parametric_data.txt' if optimization_based else 'incr_parametric_data.txt'
+    with open(pickle_name, 'wb') as f1:
+        pickle.dump([DATA_avg, DATA_max, DATA_both], f1)
+
+    with open(file_name, 'w') as f2:
+        f2.write("avg\n")
+        f2.write(s_avg + "\n")
+
+        f2.write("max\n")
+        f2.write(s_max + "\n")
+
+        f2.write("both\n")
+        f2.write(s_both + "\n")
+
+# plt.show()

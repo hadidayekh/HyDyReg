@@ -1,17 +1,19 @@
 import sys
 sys.path.append('./')
+sys.path.append('./testing')
 
-from sklearn.svm import SVC
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.linear_model import LogisticRegression
-import matplotlib.pyplot as plt
-from main import learn_system
-from snds import SNDS, SNDS_linear
-from utils import *
-import time
-import numpy as np
-import pickle
 import warnings
+import pickle
+import numpy as np
+import time
+from utils import *
+from snds import SNDS, SNDS_affine
+from main import learn_system
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import SVC
+
 # setting ignore as a parameter and further adding category
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -64,7 +66,7 @@ def isolette():
 
     params = np.array(params)
 
-    return SNDS_linear(params, eventlist, labelfun)
+    return SNDS_affine(params, eventlist, labelfun)
 
 
 def affine_3modes():
@@ -107,7 +109,7 @@ def affine_3modes():
     params = np.array(params)
 
     ##### DEFINING SNDS #####
-    return SNDS_linear(params, eventlist, labelfun)
+    return SNDS_affine(params, eventlist, labelfun)
 
 
 def lorentz_attractor():
@@ -310,7 +312,7 @@ exp_infos = {
         'classifier': LogisticRegression(penalty='none', multi_class='multinomial'),
         'eq_query_bounds': np.array([[95, 105], [70, 110]]),
         'eq_query_ntrajs': 50,
-        'eq_query_tol': 0.1
+        'eq_query_tol': 0.05
     },
     'affine_3modes': {
         'sul': affine_3modes(),
@@ -391,7 +393,7 @@ exp_infos = {
     },
     'poly2_4d': {
         'sul': poly2_4d(),
-        'time_step': 0.05,
+        'time_step': 0.03,
         'time_range': 5,
         'x0s': [[6, 0.7, 2, 0], [4, 0.1, 3.1, 0], [5.9, 0.2, -3, 0], [4.1, 0.5, 2, 0]],
         'time_step_test': 0.01,
@@ -449,47 +451,60 @@ exp_infos = {
     }
 }
 
-DATA = []
+
+optimization_based = False
+improve_continuous = True
+
+
+DATA_avg = []
+DATA_max = []
+DATA_both = []
+
+exps = [list(exp_infos.keys())[0]]
 exps = list(exp_infos.keys())
-# exps=['poly2_3modes']
+# exps = ['ham']
 for exp_title in exps:
     # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
     np.random.seed(0)
     exp = exp_infos[exp_title]
     # try:
-    sul, learned_SNDS, trajectories, traj_test_sul, traj_test_learned2, data = learn_system(exp_name=exp_title,
-                                                                                            sul=exp['sul'],
-                                                                                            time_step=exp['time_step'],
-                                                                                            time_range=exp['time_range'],
-                                                                                            x0s=exp['x0s'],
-                                                                                            time_step_test=exp['time_step_test'],
-                                                                                            time_range_test=exp['time_range_test'],
-                                                                                            x0s_test=exp['x0s_test'],
-                                                                                            random_test_set=exp['random_test_set'],
-                                                                                            nmodes=exp['nmodes'],
-                                                                                            poly_degree=exp['poly_degree'],
-                                                                                            seg_tol=exp['seg_tol'],
-                                                                                            classifier=exp['classifier'],
-                                                                                            classifier_poly_deg=exp[
-                                                                                                'classifier_poly_deg'],
-                                                                                            classifier_poly_trans=exp[
-                                                                                                'classifier_poly_trans'],
-                                                                                            do_eq_query=True,
-                                                                                            eq_query_bounds=exp['eq_query_bounds'],
-                                                                                            eq_query_ntrajs=exp['eq_query_ntrajs'],
-                                                                                            eq_query_tol=exp['eq_query_tol'],
-                                                                                            sampling_method='random',
-                                                                                            C_space=[
-                                                                                                0, 0.001, 0.01, 0.1, 1],
-                                                                                            write_on=True,
-                                                                                            deltas=0.001,
-                                                                                            break_at_low_MSE=False,
-                                                                                            apply_LR=False,
-                                                                                            with_plots=True,
-                                                                                            plot_xt=False,
-                                                                                            print_on=False)
+    sul, learned_SNDS, trajectories, traj_test_sul, data_avg, data_max, data_both = learn_system(exp_name=exp_title,
+                                                                        sul=exp['sul'],
+                                                                        time_step=exp['time_step'],
+                                                                        time_range=exp['time_range'],
+                                                                        x0s=exp['x0s'],
+                                                                        time_step_test=exp['time_step_test'],
+                                                                        time_range_test=exp['time_range_test'],
+                                                                        x0s_test=exp['x0s_test'],
+                                                                        random_test_set=exp['random_test_set'],
+                                                                        nmodes=exp['nmodes'],
+                                                                        poly_degree=exp['poly_degree'],
+                                                                        seg_tol=exp['seg_tol'],
+                                                                        classifier=exp['classifier'],
+                                                                        classifier_poly_deg=exp[
+                                                                            'classifier_poly_deg'],
+                                                                        classifier_poly_trans=exp[
+                                                                            'classifier_poly_trans'],
+                                                                        do_eq_query=True,
+                                                                        eq_query_bounds=exp['eq_query_bounds'],
+                                                                        eq_query_ntrajs=exp['eq_query_ntrajs'],
+                                                                        eq_query_tol=exp['eq_query_tol'],
+                                                                        sampling_method='random',
+                                                                        C_space=[
+                                                                            0, 0.001, 0.01, 0.1, 1],
+                                                                        write_on=True,
+                                                                        deltas=0.001,
+                                                                        break_at_low_MSE=False,
+                                                                        apply_LR=False,
+                                                                        with_plots=True,
+                                                                        plot_xt=False,
+                                                                        print_on=True,
+                                                                        stop_at_sliding_motion=False,
+                                                                        fit_active_only=not optimization_based,
+                                                                        improve_cont=improve_continuous,
+                                                                        N_cexs=5)
 
-    print("Test derivatives RD:", data[-1])
+    print("Test derivatives RD:", data_avg[-1])
 
     if compare_with_inferDynamic:
         if exp['nmodes'] == 2 or exp['nmodes'] == 3:
@@ -513,8 +528,14 @@ for exp_title in exps:
                         res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
                                          exp['sul'].eventlist[0], exp['poly_degree'], exp['classifier_poly_deg'])
                         print(res)
-                        data.append(res)
-                        data.append(infer_time)
+                        data_avg.append(res)
+                        data_avg.append(infer_time)
+
+                        data_max.append(res)
+                        data_max.append(infer_time)
+
+                        data_both.append(res)
+                        data_both.append(infer_time)
                 else:
                     for mergeep in mergeps:
                         start = time.time()
@@ -526,16 +547,45 @@ for exp_title in exps:
                         res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
                                          exp['sul'].eventlist, exp['poly_degree'], exp['classifier_poly_deg'], labeltest=exp['sul'].labelfun)
                         print(res)
-                        data.append(res)
-                        data.append(infer_time)
+                        data_avg.append(res)
+                        data_avg.append(infer_time)
+
+                        data_max.append(res)
+                        data_max.append(infer_time)
+
+                        data_both.append(res)
+                        data_both.append(infer_time)
+    else:
+        data_avg.extend([-1,-1,-1,-1])
+        data_max.extend([-1,-1,-1,-1])
+        data_both.extend([-1,-1,-1,-1])
     # except Exception as e:
     #     print(e)
     #     print("Experiment " + exp_title + " failed.")
-    DATA.append(data)
+    DATA_avg.append(data_avg)
+    DATA_max.append(data_max)
+    DATA_both.append(data_both)
 
-print_experi_data(DATA)
+print("avg")
+s_avg = print_experi_data(DATA_avg)
+print("max")
+s_max = print_experi_data(DATA_max)
+print("both")
+s_both = print_experi_data(DATA_both, both=True)
 
-with open('other_experi_data.pkl', 'wb') as f:
-    pickle.dump(DATA, f)
 
-plt.show()
+pickle_name = 'opti_other_experi_data.pkl' if optimization_based else 'incr_other_experi_data.pkl'
+file_name = 'opti_other_experi_data.txt' if optimization_based else 'incr_other_experi_data.txt'
+with open(pickle_name, 'wb') as f1:
+    pickle.dump([DATA_avg, DATA_max, DATA_both], f1)
+
+with open(file_name, 'w') as f2:
+    f2.write("avg\n")
+    f2.write(s_avg + "\n")
+
+    f2.write("max\n")
+    f2.write(s_max + "\n")
+
+    f2.write("both\n")
+    f2.write(s_both + "\n")
+# plt.show()

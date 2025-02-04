@@ -5,7 +5,7 @@ sys.path.append('./')
 sys.path.append('../')
 
 from sklearn.metrics import mean_squared_error
-from opti import HybridKernelRegressor
+from opti import HybridRegressor
 from diff_methods import diff_method_fps
 from snds import SNDS 
 import plotting
@@ -64,12 +64,12 @@ if save_plots:
 #### LEARNING THE SNDS ####
 if k_learn:
     # Defining the model
-    model = HybridKernelRegressor(train_coefs=True, n=2, deg=3)
+    model = HybridRegressor(train_coefs=True, n=2, deg=3)
 
     # Extracting derivatives through numerical differentiation
     t_arr = np.array(trajectories.t_list)
     x_arr = np.array(trajectories.x_list)
-    X, X_dot, seg_res = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
+    X, X_dot, seg_res, _ = diff_method_fps(t_arr, x_arr, segments=segments, remove_seg=True)
 
     # Fitting the model with its corresponding derivatives
     model.fit(X, X_dot, deltas=0.0001, C=100, segmentation='strict', segments=seg_res)
