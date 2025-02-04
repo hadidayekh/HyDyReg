@@ -76,7 +76,7 @@ class IncrementalLogsiticRGD_withLR:
 
 
 
-    def partial_fit(self, X, y, init_method='eps', eps=1, with_prev_portion=0, Xplt=None, yplt=None, colors=lambda x: x):
+    def partial_fit(self, X, y, init_method='eps', eps=1, with_prev_portion=0, Xplt=None, yplt=None, colors=lambda x: x, nb_epochs = None):
         '''
         Runs the fitting algorithm using gradient descent and without re-initializing the coefficients.
 
@@ -91,12 +91,16 @@ class IncrementalLogsiticRGD_withLR:
         new_K = int(np.max(y) + 1)   # this assumes that new classes are always added in ascending order
 
         # First deal with NEW classes, one at a time
+        print(self.K, new_K)
         if new_K > self.K:
             n_new_classes = (new_K - self.K)
             
-            for new_class in range(self.K+1, new_K):
+            for new_class in range(self.K, new_K):
+                print("new class is", new_class)
                 Xnew = X[y == new_class]
                 ynew = y[y == new_class]
+                print(X.shape, y.shape)
+                print(Xnew.shape, ynew.shape)
 
                 # regions contains all regions in which new-class points appear
                 regions = []
@@ -108,7 +112,7 @@ class IncrementalLogsiticRGD_withLR:
 
                 regions = np.unique(np.array(regions))
                 n_affected_regions = len(regions)
-                # print("affected regions", regions)
+                print("affected regions", regions)
                 
                 if init_method == 'random':
                     new_W = np.random.random((1, self.D))
@@ -126,6 +130,7 @@ class IncrementalLogsiticRGD_withLR:
                     continue
 
                 if init_method == 'lr-centroid' or init_method == 'lr-sum' or n_affected_regions == 1:
+                    print("yo i'm running this")
                     # run a logistic regression algorithm with all *new* points and
                     # all points in affected regions
                     LR = LogisticRegression(penalty='none')
@@ -139,10 +144,11 @@ class IncrementalLogsiticRGD_withLR:
                 
                 # eps = 0.01
 
-                if len(LR_classes) == 2: # equivalent to n_affected_regions == 1
+                if n_affected_regions == 1: # equivalent to n_affected_regions == 1
                     self.W[LR_classes[1]] = (LR.coef_[0] + self.W[LR_classes[0]])
                     self.B[LR_classes[1]] = (LR.intercept_[0] + self.B[LR_classes[0]])
                 else:
+                    print("yo i'm here")
                     # more than one new class / multinomial LR
                     # get the W of the potentially merged regions
                     w_region = self.W[regions[0]] / n_affected_regions
@@ -223,8 +229,10 @@ class IncrementalLogsiticRGD_withLR:
             y = np.r_[y, y_prev_rand]
             N = X.shape[0]
 
+        if nb_epochs is None:
+            nb_epochs = self.nb_epochs
         # stochastic gradient descent algorithm
-        for _ in range(self.nb_epochs):
+        for _ in range(nb_epochs):
             p = np.random.permutation(len(y))
             X_shuffled = X[p]
             y_shuffled = y[p]
@@ -327,9 +335,12 @@ if __name__ == "__main__":
     n_pts = 1000
     partial = 9
     with_prev_portion = 0.3
+    init_method='zero'
+    eps = 1
 
-    etas = [0.01, 0.1, 1, 10]
+    etas = [0.01, 0.1, 1]
     nb_epochs = 50
+    nb_epochs_partial=1
     np.random.seed(2)
     points = np.random.rand(n_vor_regions, 2)  # 10 random points in 2D
     vor = Voronoi(points)
@@ -395,6 +406,12 @@ if __name__ == "__main__":
     X = generate_random(n_pts)
     y = which_classes(X, bounded_polytopes)
 
+    for i, x in enumerate(X):
+        if x[0] > 0.65 and x[0] < 0.8 and x[1] > 0.2 and x[1] < 0.45:
+            y[i] = -1
+    plot_with_polys(X, y, bounded_polytopes, colors=colors, title="")
+    plt.show()
+    exit()
 
     X_fit = X[y<partial]
     y_fit = y[y<partial]
@@ -409,7 +426,7 @@ if __name__ == "__main__":
         LR.plot_classi(X_fit,y_fit, title="First fit.", colors=lambda x: colors[x])
 
 
-        LR.partial_fit(X_new, y_new, init_method='lr-centroid', with_prev_portion=with_prev_portion, Xplt=X, yplt=y, colors=lambda x: colors[x])
+        LR.partial_fit(X_new, y_new, init_method=init_method, eps=eps, with_prev_portion=with_prev_portion, Xplt=X, yplt=y, colors=lambda x: colors[x], nb_epochs=nb_epochs_partial)
         
         LR.plot_classi(X, y, title="After applying GD on new data.", colors=lambda x: colors[x])
 

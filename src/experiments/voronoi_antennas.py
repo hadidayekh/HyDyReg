@@ -242,7 +242,7 @@ y_new = y[y>=partial]
 
 image_path = 'antenna.png'
 
-star = 0
+star = 3
 p_star = points[star]
 
 
@@ -330,8 +330,8 @@ print(model.gen_full_latex_eq())
 learned_hyp = model.to_SNDS()
 trajs_learned = learned_hyp.simulate_trajectory(0.02, 10, x0s)
 
-f2, a2 = draw_trajectories_2D(trajs, mark_beginning=True)
-f2, a2 = draw_trajectories_2D(trajs_learned, fig=f2, axs=a2, mark_beginning=True, labelfun=model.labelfun_) 
+f2, a2 = draw_trajectories_2D(trajs, mark_beginning=True, colors = ['k'])
+f2, a2 = draw_trajectories_2D(trajs_learned, fig=f2, axs=a2, mark_beginning=True, labelfun=model.labelfun_, colors = ['r']) 
 
 plt.show()
 exit()

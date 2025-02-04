@@ -552,7 +552,7 @@ def check_SVC(model_SVC, X, coefs):
         yc[i] = coefs[0]*X[i][0]**2 + coefs[1]*X[i][1]**2 + coefs[2]*X[i][0]*X[i][1] + coefs[3]
     return y, yc, ydc
 
-def print_experi_data(DATA, both=False):
+def print_experi_data(DATA, both=False, jin=False):
     # Data is made of exp_name, RD1, RD2, RD3, t_best_C, t_active, t_EQ, count, RDdot, RDmerge, tmerge, RDpwa, tpwa
     s = ''
     for j in range(len(DATA)):
@@ -563,13 +563,15 @@ def print_experi_data(DATA, both=False):
             for i in range(1, 4): #rd1,rd2,rd3
                 s += f'{d[i]:.5f} & '
             for i in range(4, 7): #t1,t2,t3
-                s += f'{d[i]:.1f} & '
+                s += f'{d[i]:.2f} & '
             s += str(d[7]) + ' & ' #count
-            s += f'{d[8]:.1e} & ' #rddot
-            s += f'{d[9]:.1e} & ' #rdmerge
-            s += f'{d[11]:.1e} & ' #rdpl
-            s += f'{d[10]:.1f} & ' #tmerge
-            s += f'{d[12]:.1f}\\\\'    #tpl
+            s += f'{d[8]:.1e} ' #rddot
+            if jin:
+                s += f'& {d[9]:.1e} & ' #rdmerge
+                s += f'{d[11]:.1e} & ' #rdpl
+                s += f'{d[10]:.1f} & ' #tmerge
+                s += f'{d[12]:.1f}'    #tpl
+            s += '\\\\'
         else:
             exp_name, RD1, RD2, RD3, RD1_max, RD2_max, RD3_max, t1, t2, t3, count, RD_dot, RD_merge, t_merge, RD_piecelinear, t_piecelinear = d
             s += d[0] + ' & '
@@ -578,13 +580,15 @@ def print_experi_data(DATA, both=False):
             for i in range(4, 7): #rd1,rd2,rd3
                 s += f'{d[i]:.5f} & '
             for i in range(7, 10): #t1,t2,t3
-                s += f'{d[i]:.1f} & '
+                s += f'{d[i]:.2f} & '
             s += str(d[10]) + ' & ' #count
-            s += f'{d[11]:.1e} & ' #rddot
-            s += f'{d[12]:.1e} & ' #rdmerge
-            s += f'{d[14]:.1e} & ' #rdpl
-            s += f'{d[13]:.1f} & ' #tmerge
-            s += f'{d[15]:.1f}\\\\'    #tpl
+            s += f'{d[11]:.1e} ' #rddot
+            if jin:
+                s += f'& {d[12]:.1e} & ' #rdmerge
+                s += f'{d[14]:.1e} & ' #rdpl
+                s += f'{d[13]:.1f} & ' #tmerge
+                s += f'{d[15]:.1f}\\\\'    #tpl
+            s += '\\\\'
         s += '\n'
     print(s)
     return s

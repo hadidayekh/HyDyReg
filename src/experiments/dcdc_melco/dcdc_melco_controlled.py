@@ -19,7 +19,7 @@ data_file = "experiments/dcdc_melco/data_controlled.csv"
 py_data_file = "experiments/dcdc_melco/py_data_controlled.pkl"
 
 seg_tol = 0.01
-good_RD = 0.05
+good_RD = 0.005
 
 
 
@@ -92,11 +92,11 @@ segments = trajs.segment_trajectories_two_points(seg_tol)
 # dm = ps.SmoothedFiniteDifference(order=4, drop_endpoints=True, smoother_kws={'window_length': 5})
 # dm = ps.FiniteDifference(order=4, drop_endpoints=True)
 
-dm = ps.SINDyDerivative(kind='savitzky_golay', left=0.5, right=0.5, order=4)
-X, Xdot, seg_res, Time = diff_method_ps(trajs.t_list, trajs.x_list, segments, dm=dm)
+# dm = ps.SINDyDerivative(kind='savitzky_golay', left=0.5, right=0.5, order=4)
+# X, Xdot, seg_res, Time = diff_method_ps(trajs.t_list, trajs.x_list, segments, dm=dm)
 
-# with open(py_data_file, 'rb') as f:
-#     X, Xdot, seg_res, Time = pickle.load(f)
+with open(py_data_file, 'rb') as f:
+    X, Xdot, seg_res, Time = pickle.load(f)
 
 # X = X.T[[0,1,2,3], :].T
 # Xdot = Xdot.T[[0,1,2,3], :].T
