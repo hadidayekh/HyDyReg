@@ -70,7 +70,7 @@ def diff_method_fps(t_list, x_list, segments=None, remove_seg=False):
                 for j in range(0, D):
                     X_seg[j] = x_points_seg[j+2]
                     X_dot_seg[j] = (-x_points_seg[j+4] + 8*x_points_seg[j+3] - 8*x_points_seg[j+1] + x_points_seg[j]) / (12.0 * h)
-                    Time_seg = t_points_seg[j+2]
+                    Time_seg[j] = t_points_seg[j+2]
 
                 if first:
                     X = X_seg
