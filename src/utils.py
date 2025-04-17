@@ -7,6 +7,8 @@ import sobol
 import warnings
 
 from statsmodels.tsa.api import VAR
+from statsmodels.tsa.stattools import arma_order_select_ic
+from statsmodels.tsa.ar_model import AutoReg
 
 def which_segment(i, segments):
     r = 0
@@ -626,39 +628,70 @@ def get_piccolo_distance(X, Y, x_order=None, y_order=None, x_maxlags=20, y_maxla
         The Piccolo distance between X and Y.
     '''
 
-    if X.ndim == 1:
-        X = X.reshape(-1, 1)
-    if Y.ndim == 1:
-        Y = Y.reshape(-1, 1)
-
     # Make sure each data set contains vectors of the same dimension
-    assert X.shape[1] == Y.shape[1], "Data sets X and Y must contain vectors of the same dimension."
+    assert Y.ndim == X.ndim, "Data sets X and Y must contain vectors of the same dimension."
+    if X.ndim > 1:
+        assert X.shape[1] == Y.shape[1], "Data sets X and Y must contain vectors of the same dimension."
 
-    # Create a VAR model with each dataset.
-    VAR1 = VAR(X)
-    VAR2 = VAR(Y)
+        if X.shape[1] == 1:
+            X = X.flatten()
+            Y = Y.flatten()
 
-    # Fit a VAR model with the given order (if given), else select and fit an order according to the AIC criterion (use 1 if this fails)
-    if x_order is not None:
-        VAR1_results = VAR1.fit(x_order)
+    # Fit AutoReg if one-dimensional else VAR
+    if X.ndim == 1:
+        # Check best order up to maxlags for each vector if order not given
+        if x_order is None:
+            x_orders = arma_order_select_ic(X, max_ar=x_maxlags, max_ma=0, ic=['aic'])
+            x_order = x_orders.aic_min_order[0]
+            if x_order == 0:
+                warnings.warn('Selected order for X based on AIC is 0. Fitting an AR model with order 1.')
+                x_order = 1
+
+        if y_order is None:
+            y_orders = arma_order_select_ic(Y, max_ar=y_maxlags, max_ma=0, ic=['aic'])
+            y_order = y_orders.aic_min_order[0]
+            if y_order == 0:
+                warnings.warn('Selected order for X based on AIC is 0. Fitting an AR model with order 1.')
+                y_order = 1
+
+        # Set up AR models
+        AR1 = AutoReg(X, lags=x_order)
+        AR2 = AutoReg(Y, lags=y_order)
+
+        # Fit the AR models
+        AR1_results = AR1.fit()
+        AR2_results = AR2.fit()
+
+        # Get parametrs (0th is intercept)
+        coefs1 = AR1_results.params[1:]
+        coefs2 = AR2_results.params[1:]
+        
     else:
-        VAR1_results = VAR1.fit(maxlags=x_maxlags, ic='aic')
-        if VAR1_results.k_ar == 0:
-            warnings.warn('Selected order for X based on AIC is 0. Fitting a VAR model with order 1.')
-            VAR1_results = VAR1.fit(1)
+        # Create a VAR model with each dataset.
+        VAR1 = VAR(X)
+        VAR2 = VAR(Y)
 
-    if y_order is not None:
-        VAR2_results = VAR2.fit(y_order)
-    else:
-        VAR2_results = VAR2.fit(maxlags=y_maxlags, ic='aic')
-        if VAR2_results.k_ar == 0:
-            warnings.warn('Selected order for Y based on AIC is 0. Fitting a VAR model with order 1.')
-            VAR2_results = VAR2.fit(1)
+        # Fit a VAR model with the given order (if given), else select and fit an order according to the AIC criterion (use 1 if this fails)
+        if x_order is not None:
+            VAR1_results = VAR1.fit(x_order)
+        else:
+            VAR1_results = VAR1.fit(maxlags=x_maxlags, ic='aic')
+            if VAR1_results.k_ar == 0:
+                warnings.warn('Selected order for X based on AIC is 0. Fitting a VAR model with order 1.')
+                VAR1_results = VAR1.fit(1)
+
+        if y_order is not None:
+            VAR2_results = VAR2.fit(y_order)
+        else:
+            VAR2_results = VAR2.fit(maxlags=y_maxlags, ic='aic')
+            if VAR2_results.k_ar == 0:
+                warnings.warn('Selected order for Y based on AIC is 0. Fitting a VAR model with order 1.')
+                VAR2_results = VAR2.fit(1)
 
 
-    # Concatenate and pad VAR coefficients
-    coefs1 = np.concatenate([A.flatten() for A in VAR1_results.coefs])
-    coefs2 = np.concatenate([A.flatten() for A in VAR2_results.coefs])
+        # Concatenate and pad VAR coefficients
+        coefs1 = np.concatenate([A.flatten() for A in VAR1_results.coefs])
+        coefs2 = np.concatenate([A.flatten() for A in VAR2_results.coefs])
 
     max_len = max(len(coefs1), len(coefs2))
     padded_coefs1 = np.pad(coefs1, (0, max_len - len(coefs1)))
