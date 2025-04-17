@@ -4,6 +4,10 @@ from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.svm import SVC
 import sobol
+import warnings
+
+from statsmodels.tsa.api import VAR
+
 def which_segment(i, segments):
     r = 0
     while r < len(segments) and i >= segments[r]:
@@ -592,3 +596,67 @@ def print_experi_data(DATA, both=False, jin=False):
         s += '\n'
     print(s)
     return s
+
+
+def get_piccolo_distance(X, Y, x_order=None, y_order=None, x_maxlags=20, y_maxlags=20):
+    '''
+    Returns the Piccolo distance between datasets X and Y by fitting a vector autoregressive model (VAR) on each data set and calculating the Euclidean distance between the VAR coefficients.
+
+    Parameters
+    -----------
+
+    X : ndarray  (N_X x D)
+        First data set of length N_X and dimension D.
+    Y : ndarray  (N_Y x D)
+        Second data set of length N_Y and dimension D.
+    x_order : int or None
+        AR order for fitting `X`. If None, the fitting is optmized up to the order `x_maxlags` with AIC criterion.
+    y_order : int or None
+        AR order for fitting `Y`. If None, the fitting is optmized up to the order `y_maxlags` with AIC criterion.
+    x_maxlags : int
+        Maximum VAR fitting order for `X` based on the AIC criterion in case the order is not given in `x_order`.
+    y_maxlags : int
+        Maximum VAR fitting order for `Y` based on the AIC criterion in case the order is not given in `y_order`.
+
+    
+    Returns
+    -------
+    float
+        The Piccolo distance between X and Y.
+    '''
+
+    # Make sure each data set contains vectors of the same dimension
+    assert X.shape[1] == Y.shape[1], "Data sets X and Y must contain vectors of the same dimension."
+
+    # Create a VAR model with each dataset.
+    VAR1 = VAR(X)
+    VAR2 = VAR(Y)
+
+    # Fit a VAR model with the given order (if given), else select and fit an order according to the AIC criterion (use 1 if this fails)
+    if x_order is not None:
+        VAR1_results = VAR1.fit(x_order)
+    else:
+        VAR1_results = VAR1.fit(maxlags=x_maxlags, ic='aic')
+        if VAR1_results.k_ar == 0:
+            warnings.warn('Selected order for X based on AIC is 0. Fitting a VAR model with order 1.')
+            VAR1_results = VAR1.fit(1)
+
+    if y_order is not None:
+        VAR2_results = VAR2.fit(y_order)
+    else:
+        VAR2_results = VAR2.fit(maxlags=y_maxlags, ic='aic')
+        if VAR2_results.k_ar == 0:
+            warnings.warn('Selected order for Y based on AIC is 0. Fitting a VAR model with order 1.')
+            VAR2_results = VAR2.fit(1)
+
+
+    # Concatenate and pad VAR coefficients
+    coefs1 = np.concatenate([A.flatten() for A in VAR1_results.coefs])
+    coefs2 = np.concatenate([A.flatten() for A in VAR2_results.coefs])
+
+    max_len = max(len(coefs1), len(coefs2))
+    padded_coefs1 = np.pad(coefs1, (0, max_len - len(coefs1)))
+    padded_coefs2 = np.pad(coefs2, (0, max_len - len(coefs2)))
+
+    # Return the Piccolo distance
+    return np.linalg.norm(padded_coefs1 - padded_coefs2)
