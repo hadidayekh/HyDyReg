@@ -600,6 +600,7 @@ def print_experi_data(DATA, both=False, jin=False):
 
 def get_piccolo_distance(X, Y, x_order=None, y_order=None, x_maxlags=20, y_maxlags=20):
     '''
+    CURRENTLY ONLY WORKS WITH X VECTORS BEING MULTIDIMENSIONAL.
     Returns the Piccolo distance between datasets X and Y by fitting a vector autoregressive model (VAR) on each data set and calculating the Euclidean distance between the VAR coefficients.
 
     Parameters
@@ -624,6 +625,11 @@ def get_piccolo_distance(X, Y, x_order=None, y_order=None, x_maxlags=20, y_maxla
     float
         The Piccolo distance between X and Y.
     '''
+
+    if X.ndim == 1:
+        X = X.reshape(-1, 1)
+    if Y.ndim == 1:
+        Y = Y.reshape(-1, 1)
 
     # Make sure each data set contains vectors of the same dimension
     assert X.shape[1] == Y.shape[1], "Data sets X and Y must contain vectors of the same dimension."
