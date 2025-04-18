@@ -224,7 +224,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
             t_start = time.time()
             try:
                 # Fit the model with the current hyperparameter C_curr
-                model_curr.fit(X_train, Xdot_train, norm='L2', deltas=deltas, C=C_curr,
+                model_curr.fit_opti(X_train, Xdot_train, norm='L2', deltas=deltas, C=C_curr,
                                segmentation='strict', segments=seg_train, apply_LR=apply_LR)
                 curr_time = time.time() - t_start
                 total_time += curr_time
@@ -292,7 +292,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
 
         model = model_curr
         start = time.time()
-        model.fit_first_hypothesis(X, X_dot, seg_res)
+        model.fit_first_incremental(X, X_dot, seg_res)
         time_passive = time.time() - start
         # f, a = plot_Xfit(model)
         # plt.show()
@@ -300,10 +300,10 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         # for i in range(1, len(seg_res)-1):
         #     X_curr = X[seg_res[i]:seg_res[i+1]]
         #     X_dot_curr = X_dot[seg_res[i]:seg_res[i+1]]
-        #     model.augment_fit(X_curr, X_dot_curr)
+        #     model.update_continuous(X_curr, X_dot_curr)
         # X_curr = X[seg_res[-1]:]
         # X_dot_curr = X_dot[seg_res[-1]:]
-        # model.augment_fit(X_curr, X_dot_curr)
+        # model.update_continuous(X_curr, X_dot_curr)
 
     # Classify and improve classification by generating points between segments
     print(model.Omegas_, model.betas_)
@@ -422,13 +422,13 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
                     print("Segment", i, "with", X_curr.shape[0], "points:")
                     X_dot_curr = X_dot[seg_res_eq[i]:seg_res_eq[i+1]]
 
-                    model.augment_fit(X_curr, X_dot_curr)
+                    model.update_continuous(X_curr, X_dot_curr)
 
                 X_curr = X[seg_res_eq[-1]:]
                 X_dot_curr = X_dot[seg_res_eq[-1]:]
 
                 print("Last segment", ":")
-                model.augment_fit(X_curr, X_dot_curr)
+                model.update_continuous(X_curr, X_dot_curr)
 
                 # f, a = plot_Xfit(model)
                 # plt.show()

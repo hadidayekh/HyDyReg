@@ -174,7 +174,7 @@ if k_learn:
 
             try:
                 # Fitting the model with its corresponding derivatives
-                model_curr.fit(X_train, Xdot_train, norm='L2', deltas=0.001, C=C_curr, segmentation='strict', segments=seg_train)
+                model_curr.fit_opti(X_train, Xdot_train, norm='L2', deltas=0.001, C=C_curr, segmentation='strict', segments=seg_train)
             except:
                 print('C =', C_curr, 'failed.')
                 continue

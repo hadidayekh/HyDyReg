@@ -114,7 +114,7 @@ if k_learn:
         for i in range(len(C_space)):
             C_curr = C_space[i]
             try:
-                model_curr.fit(X_train, Xdot_train, deltas=0.001, C=C_curr, norm='L2', segmentation='strict', segments=seg_train)
+                model_curr.fit_opti(X_train, Xdot_train, deltas=0.001, C=C_curr, norm='L2', segmentation='strict', segments=seg_train)
                 '''
                 With no segmentation:
                 C = 5           does not work
@@ -126,7 +126,7 @@ if k_learn:
 
                 In general segmentation seems to work faster here.
                 '''
-                #model.fit(X, X_dot, deltas=0.001, C=1)
+                #model.fit_opti(X, X_dot, deltas=0.001, C=1)
             except:
                 print('C =', C_curr, 'failed.')
                 continue
@@ -141,7 +141,7 @@ if k_learn:
                 MSE_val = MSE_val_curr
                 C = C_curr
         
-        #model.fit(X, X_dot, deltas=0.001, C=C, norm='L2', segmentation='strict', segments=seg_all)
+        #model.fit_opti(X, X_dot, deltas=0.001, C=C, norm='L2', segmentation='strict', segments=seg_all)
 
         if save_pickle:
             file = open('../models/' + exp_title + '.model', 'wb')

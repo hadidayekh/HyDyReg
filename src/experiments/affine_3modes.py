@@ -147,7 +147,7 @@ if k_learn:
         model = HybridRegressor(train_coefs=True, n=3, deg=1, kernels_list=['linear', 'linear', 'linear'], kargs_list=[[0], [0], [0]])
 
         # Fitting the model with its corresponding derivatives
-        model.fit(X, X_dot, norm='L2', deltas=0.001, C=1, segmentation='strict', segments=seg_res)
+        model.fit_opti(X, X_dot, norm='L2', deltas=0.001, C=1, segmentation='strict', segments=seg_res)
 
         if save_pickle:
             file = open('../models/' + exp_title + '.model', 'wb')

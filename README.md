@@ -42,7 +42,7 @@ X, X_dot, seg_res, _ = diff_method_fps(
 model = HybridRegressor(train_coefs=True, deg=poly_degree, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
 
 
-model.fit_first_hypothesis(X, X_dot, seg_res)
+model.fit_first_incremental(X, X_dot, seg_res)
 
 model.classify_modes(classifier)
 

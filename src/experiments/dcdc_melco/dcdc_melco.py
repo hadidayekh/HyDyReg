@@ -114,7 +114,7 @@ alphas = [1000000, 1000000, 100000, 10000, 1000, 100, 10, 1, 0.1, 0.01, 0.001, 0
 # alphas = [0.001, 0.0001, 0.00001, 0]
 
 regressor =  RidgeCV(alphas, alpha_per_target=True)
-model.fit_first_hypothesis(X, Xdot, seg_res, good_RD=good_RD, regressor=regressor, Time=Time, shuffle_segments=True)
+model.fit_first_incremental(X, Xdot, seg_res, good_RD=good_RD, regressor=regressor, Time=Time, shuffle_segments=True)
 for j in range(model.n):
     model.retrain_continuous(j)
 

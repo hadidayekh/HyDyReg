@@ -50,7 +50,7 @@ class HybridRegressor:
 
     # For segmentation, will introduce variable segmentation which can belong to
     # {'squared_diff', 'strict'} or be None
-    def fit(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False):
+    def fit_opti(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False):
         if self.n is None:
             raise Exception("To use the optimization based method, the number of modes n must be provided.")
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
@@ -311,7 +311,7 @@ class HybridRegressor:
 
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
-    def fit_first_hypothesis(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None, shuffle_segments=False):
+    def fit_first_incremental(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None, shuffle_segments=False):
         self.n = 1
 
         if len(segments) > 1:
@@ -363,7 +363,7 @@ class HybridRegressor:
                 X_dot_curr = X_dot[segment_index_pairs[i][0] : segment_index_pairs[i][1]]
                 Time_curr = None if Time is None else Time[segment_index_pairs[i][0] : segment_index_pairs[i][1]]
                 
-                self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor, Time=Time_curr)
+                self.update_continuous(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor, Time=Time_curr)
             
 
             # for i in range(1, len(segments) - 1):
@@ -371,12 +371,12 @@ class HybridRegressor:
             #     X_curr = X[segments[i]:segments[i+1]]
             #     print(X_curr.shape[0], "points")
             #     X_dot_curr = X_dot[segments[i]:segments[i+1]]
-            #     self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
+            #     self.update_continuous(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
             # print("last seg")
             # X_curr = X[segments[-1]:]
             # print(X_curr.shape[0], "points")
             # X_dot_curr = X_dot[segments[-1]:]
-            # self.augment_fit(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
+            # self.update_continuous(X_curr, X_dot_curr, good_RD=good_RD, regressor=regressor)
 
 
     
@@ -398,7 +398,7 @@ class HybridRegressor:
             # print(RDs)
         return min_RD < tol, np.argmin(RDs)
 
-    def augment_fit(self, X, X_dot, good_RD=0.001, regressor=LinearRegression(), Time = None):
+    def update_continuous(self, X, X_dot, good_RD=0.001, regressor=LinearRegression(), Time = None):
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
@@ -958,7 +958,7 @@ class HybridRegressor:
         return X_dot_res
 
     def fit_predict(self, X, X_dot, C=100, deltas=0.01, norm='L2', segments=[], print_on=False, labelfun=None):
-        self.fit(X, X_dot, C=C, deltas=deltas, norm=norm, segments=segments, print_on=print_on)
+        self.fit_opti(X, X_dot, C=C, deltas=deltas, norm=norm, segments=segments, print_on=print_on)
         return self.predict(X, labelfun=labelfun)
 
     def get_modes(self):

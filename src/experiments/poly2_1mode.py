@@ -61,7 +61,7 @@ if k_learn:
     X, X_dot, seg_res, _ = diff_method_fps(t_arr, x_arr, segments=segments)
 
     # Fitting the model with its corresponding derivatives
-    model.fit(X, X_dot, deltas=0.0001, C=100, segmentation='strict', segments=seg_res)
+    model.fit_opti(X, X_dot, deltas=0.0001, C=100, segmentation='strict', segments=seg_res)
     
     # Comparing modes to each other
     modes = model.get_modes()

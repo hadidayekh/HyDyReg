@@ -263,7 +263,7 @@ if k_learn:
     # print(np.linalg.norm(X_dot - X_dot_r))
     
     
-    #model.fit(X, X_dot, deltas=0.1, C=1000, segmentation='strict', segments=seg_res)
+    #model.fit_opti(X, X_dot, deltas=0.1, C=1000, segmentation='strict', segments=seg_res)
     #end_1 = time.time()
     #print("Time taken with ipopt is", end_1 - st, "seconds. Now fitting with SciPy.")
     print("Starting to fit with SciPy.")

@@ -350,7 +350,7 @@ X, X_dot, seg_res, _ = diff_method_fps(
 model = HybridRegressor(train_coefs=True, deg=1, classifier_poly_deg=1, classifier_poly_trans=False)
 
 alphas=[1000,100,10,1,.1,.01]
-model.fit_first_hypothesis(X, X_dot, seg_res, good_RD = 0.001)#, regressor = RidgeCV(alpha_per_target=True, alphas=alphas))
+model.fit_first_incremental(X, X_dot, seg_res, good_RD = 0.001)#, regressor = RidgeCV(alpha_per_target=True, alphas=alphas))
 
 model.classify_modes(LogisticRegression())
 
