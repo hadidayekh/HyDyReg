@@ -460,6 +460,7 @@ class Trajectories:
 
 class SNDS_affine(SNDS):
     def __init__(self,  params, eventlist, labelfun):
+        self.params = params
         n = params.shape[0]
         d = params.shape[1]
         assert d+1 == params.shape[2], "Linear systems' parameters are d+1 per equation."
@@ -488,4 +489,18 @@ class SNDS_affine(SNDS):
                 eqs_per_mode.append(res)
             return eqs_per_mode
         return eq
+    
+    def gen_latex_cont_eq(self):
+        n = self.params.shape[0]
+        D = self.params.shape[1]
+        s = ""
+        for i in range(n):
+            s += f"Mode {i+1}:\n"
+            for d in range(D):
+                s += f"\\xddim{{{d+1}}} = "
+                for d2 in range(D):
+                    s += f"{self.params[i][d][d2]} \\xdim{{{d2+1}}} + "
+                s += f"{self.params[i][d][-1]}\n"
+            s += "\n"
+        return s
         

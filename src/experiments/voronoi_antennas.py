@@ -189,6 +189,19 @@ for rp in ridge_points:
     polytopes[i2] = [np.vstack([A2, -A_p]), np.hstack([b2, -b_p])]
 
     events.append(lambda t, x, A_p=A_p, b_p=b_p: A_p.T @ x - b_p)
+
+
+# Define bounding box constraints, e.g., for a box from [0,0] to [1,1]
+A_box = np.array([
+    [1, 0],   # x >= 0
+    [-1, 0],  # x <= 1
+    [0, 1],   # y >= 0
+    [0, -1],  # y <= 1
+])
+b_box = np.array([1, 0, 1, 0])
+
+for i in range(len(b_box)):
+    events.append(lambda t, x, A_p=A_box[i], b_p=b_box[i]: A_p.T @ x - b_p)
     
 for e in events:
     e.terminal = True
@@ -217,7 +230,7 @@ A_box = np.array([
     [0, 1],   # y >= 0
     [0, -1],  # y <= 1
 ])
-b_box = np.array([1.5, 0.5, 1.5, 0.5])
+b_box = np.array([1, 0, 1, 0])
 
 # Convert each unbounded region to a bounded polytope within the box
 bounded_polytopes = []
@@ -242,7 +255,7 @@ y_new = y[y>=partial]
 
 image_path = 'antenna.png'
 
-star = 3
+star = 0
 p_star = points[star]
 
 
@@ -272,10 +285,21 @@ def labelfun(x):
         if x in p:
             # print(i)
             # sleep(0.1)
-            return i    
+            return i
+    return -1    
 
 
 eqs = []
+n = len(bounded_polytopes)
+A_dy = 10*(np.random.rand(n, 2))
+A_dy = np.zeros((n, 2, 2))
+for i in range(n):
+    A_dy[i] = np.array([[-2, -0.5*i], [0.5*i, -3]])
+# A_dy = np.array([[-2.5, -2], [2, -2.5]])
+B_dy = np.random.rand(n)-0.5
+B_dy = np.array([1,0])
+print(A_dy.shape)
+print(B_dy.shape)
 for i,p in enumerate(bounded_polytopes):
     if i == star:
         def eq(t, x, i = i):
@@ -287,14 +311,17 @@ for i,p in enumerate(bounded_polytopes):
         def eq(t, x, i = i):
             # if i != 1:
             #     print(i)
-            return 0.1*(p_star - points[i]) / np.linalg.norm(p_star - points[i])
+            # return 0.1*(p_star - points[i]) / np.linalg.norm(p_star - points[i])
+            return -A_dy[i] @ (points[i]-x) #+ B_dy #A_dy[i] @ (x-points[i]) #+ B_dy[i]
         
         eqs.append(eq)
 
-sul = SNDS(len(bounded_polytopes), 2, eqs, eventlist=events, labelfun=labelfun)
+eqs.append(lambda t, x : np.array([0,0]))
 
-x0s = [[0.3,0.5], [0.5,0.8], [0.1, 0.9], [0.5,0.5], [0.9,0.1], [0.3,0.1]]
-x0s = np.random.rand(15, 2) 
+sul = SNDS(len(bounded_polytopes)+1, 2, eqs, eventlist=events, labelfun=labelfun)
+
+# x0s = [[0.3,0.5], [0.5,0.8], [0.1, 0.9], [0.5,0.5], [0.9,0.1], [0.3,0.1]]
+x0s = np.random.rand(20, 2) 
 trajs = sul.simulate_trajectory(0.01, 10, x0s)
 
 
@@ -304,6 +331,7 @@ from diff_methods import diff_method_fps
 from opti import HybridRegressor
 from sklearn.linear_model import Ridge, RidgeCV
 
+# f, a = draw_trajectories_2D(trajs, mark_beginning=True, fig=f, axs=a)#, segments=segments)
 
 
 segments = trajs.segment_trajectories(0.001)
@@ -312,8 +340,9 @@ segments = trajs.segment_trajectories(0.001)
 
 X, X_dot, seg_res, _ = diff_method_fps(
     trajs.t_list, trajs.x_list, segments=segments, remove_seg=True)
-
-a.scatter(*X.T,s=2)
+# print(X.shape)
+# exit()
+# plt.scatter(*X.T,s=2)
 # plt.show()
 # exit()
 
@@ -321,7 +350,7 @@ a.scatter(*X.T,s=2)
 model = HybridRegressor(train_coefs=True, deg=1, classifier_poly_deg=1, classifier_poly_trans=False)
 
 alphas=[1000,100,10,1,.1,.01]
-model.fit_first_hypothesis(X, X_dot, seg_res, good_RD = 0.1, regressor = RidgeCV(alpha_per_target=True, alphas=alphas))
+model.fit_first_hypothesis(X, X_dot, seg_res, good_RD = 0.001)#, regressor = RidgeCV(alpha_per_target=True, alphas=alphas))
 
 model.classify_modes(LogisticRegression())
 
