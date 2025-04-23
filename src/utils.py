@@ -692,7 +692,7 @@ def gen_spaceex(model, name = 'HybridRegressorModel'):
 
 
 
-def gen_spaceex_with_tri(model, name = 'HybridRegressorModel'):
+def gen_spaceex_with_tri(model, name = 'HybridRegressorModel', modes_to_keep=None):
     s = '<?xml version="1.0" encoding="UTF-8"?>\n'
     s += '<sspaceex xmlns="http://www-verimag.imag.fr/xml-namespaces/sspaceex" version="0.2" math="SpaceEx">\n'
     s += f'\t<component id="{name}">\n'
@@ -710,6 +710,8 @@ def gen_spaceex_with_tri(model, name = 'HybridRegressorModel'):
     ncoef = W.shape[0]  # THIS IS THE NUMBER OF MODES
     D = W.shape[1] # THIS INCLUDES TRI SIGNAL
     print(W.shape)
+
+    modes_to_keep = list(range(ncoef)) if modes_to_keep is None else modes_to_keep
 
     ind2 = 2*'\t'
     ind3 = 3*'\t'
@@ -749,6 +751,7 @@ def gen_spaceex_with_tri(model, name = 'HybridRegressorModel'):
 
         s += f'{ind3}<flow>'
         amp = False
+        mapped_mode = modes_to_keep[i]
         for j in range(dim_cont):
             if not amp:
                 amp = True
@@ -757,8 +760,8 @@ def gen_spaceex_with_tri(model, name = 'HybridRegressorModel'):
 
             s += f'x{j+1}\' == '
             for k in range(dim_cont):
-                s += f'{omegas[i][j][k]} * x{k+1} + '
-            s += f'{betas[i][j]}'
+                s += f'{omegas[mapped_mode][j][k]} * x{k+1} + '
+            s += f'{betas[mapped_mode][j]}'
 
             # ADD TRIANGULAR SIGNAL FLOW
             if I < ncoef:

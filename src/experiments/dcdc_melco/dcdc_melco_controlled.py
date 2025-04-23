@@ -187,7 +187,7 @@ print(gen_DCDC_full_matlab_hyeq_class(model, name="DCDC_Melco_Controlled_NoShuff
 
 
 ## WRITE SPACEEX XML FILE
-xml_string = gen_spaceex_with_tri(model, name="DCDC_Melco_Controlled_NoShuffle")
+xml_string = gen_spaceex_with_tri(model, name="DCDC_Melco_Controlled_NoShuffle", modes_to_keep=np.sort(top_n_modes))
 with open('experiments/dcdc_melco/SpaceEx_DCDC_Melco_Controlled_NoShuffle.xml', 'w') as f:
     f.write(xml_string)
 
