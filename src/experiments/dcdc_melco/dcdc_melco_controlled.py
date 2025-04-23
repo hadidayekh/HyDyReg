@@ -9,7 +9,7 @@ from diff_methods import diff_method_forward, diff_method_ps
 from opti import HybridRegressor
 import matplotlib.pyplot as plt
 from plotting import plot_with_modes_3D, draw_trajectories_3D, plot_with_modes_2D
-from utils import gen_full_matlab_hyeq_class, relative_diff
+from utils import gen_DCDC_full_matlab_hyeq_class, gen_full_matlab_hyeq_class, relative_diff, gen_spaceex_with_tri
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 import pysindy as ps
@@ -121,7 +121,7 @@ alphas = [1000000, 1000000, 100000, 10000, 1000, 100, 10, 1, 0.1, 0.01, 0.001, 0
 # alphas = [0.001, 0.0001, 0.00001, 0]
 
 regressor =  RidgeCV(alphas, alpha_per_target=True)
-model.fit_first_incremental(X, Xdot, seg_res, good_RD=good_RD, regressor=regressor, Time=Time, shuffle_segments=True)
+model.fit_first_incremental(X, Xdot, seg_res, good_RD=good_RD, regressor=regressor, Time=Time, shuffle_segments=False)
 for j in range(model.n):
     model.retrain_continuous(j)
 
@@ -181,7 +181,13 @@ model.classify_modes(classifier = LogisticRegression(penalty='none'),X = X_with_
 print(model.gen_full_latex_eq(with_classifier_boundaries=True, round_dig=4))
 for i in range(np.max(model.modesfit_)+1):
     print(f"Mode {i+1}: {np.count_nonzero(model.modesfit_ == i)} points.")
-print(gen_full_matlab_hyeq_class(model, name="DCDC_Melco_Controlled"))
+print(gen_DCDC_full_matlab_hyeq_class(model, name="DCDC_Melco_Controlled_NoShuffle"))
+
+
+## WRITE SPACEEX XML FILE
+xml_string = gen_spaceex_with_tri(model, name="DCDC_Melco_Controlled_NoShuffle")
+with open('experiments/dcdc_melco/SpaceEx_DCDC_Melco_Controlled_NoShuffle.xml', 'w') as f:
+    f.write(xml_string)
 
 # exit()
 ## plot mode jumps with time
@@ -304,7 +310,7 @@ print(title)
 
 # draw_trajectories_3D(trajs)
 
-plt.show()
+# plt.show()
 exit()
 
 # print(np.diff(seg_res))
