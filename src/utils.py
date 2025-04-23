@@ -600,9 +600,450 @@ def print_experi_data(DATA, both=False, jin=False):
     return s
 
 
+
+def gen_spaceex(model, name = 'HybridRegressorModel'):
+    s = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    s += '<sspaceex xmlns="http://www-verimag.imag.fr/xml-namespaces/sspaceex" version="0.2" math="SpaceEx">\n'
+    s += f'\t<component id="{name}">\n'
+    assert model.train_coefs
+    assert model.deg == 1, "SpaceEx only supports affine dynamics."
+    assert not model.classifier_poly_trans , "SpaceEx only supports affine dynamics."
+    omegas = model.Omegas_
+    betas = model.betas_
+    print(omegas.shape)
+    print(betas.shape)
+    dim_cont = model.poly.n_features_in_
+
+    W = model.classifier_.coef_
+    B = model.classifier_.intercept_
+    ncoef = W.shape[0]
+    D = W.shape[1]
+    print(W.shape)
+
+    ind2 = 2*'\t'
+    ind3 = 3*'\t'
+    for i in range(dim_cont):
+        s += f'{ind2}<param name="x{i+1}" type="real" local="false" d1="1" d2="1" dynamics="any"/>\n'
+    
+    for i in range(ncoef):
+        s += f'{ind2}<location id="{i+1}" name="mode_{i+1}">\n'
+        
+        s += f'{ind3}<invariant>'
+        amp = False
+        for j in range(ncoef):
+            if j == i:
+                continue
+            if not amp:
+                amp = True
+            else:
+                s += " &amp; "
+            w = W[i] - W[j]
+            b = B[i] - B[j]
+            max_w = np.abs(w[np.argmax(np.abs(w))])
+            w = w / max_w
+            b = b / max_w
+            for d in range(D):
+                s += f'({w[d]})*(x{d+1}) + '
+            s += f'({b}) &gt;= 0'
+        s += '</invariant>\n'
+
+        s += f'{ind3}<flow>'
+        amp = False
+        for j in range(dim_cont):
+            if not amp:
+                amp = True
+            else:
+                s += " &amp; "
+
+            s += f'x{j+1}\' == '
+            for k in range(dim_cont):
+                s += f'{omegas[i][j][k]} * x{k+1} + '
+            s += f'{betas[i][j]}'
+        s += '</flow>\n'
+
+        s += f'{ind2}</location>\n'
+
+    for i in range(ncoef):
+        for j in range(ncoef):
+            if i == j:
+                continue
+            s += f'{ind2}<transition source="{i+1}" target="{j+1}">\n'
+            
+            s += f'{ind3}<label>{i+1}_{j+1}</label>\n'
+            
+            s += f'{ind3}<guard>'
+            w = W[i] - W[j]
+            b = B[i] - B[j]
+            max_w = np.abs(w[np.argmax(np.abs(w))])
+            w = w / max_w
+            b = b / max_w
+            for d in range(D):
+                s += f'({w[d]})*(x{d+1}) + '
+            s += f'({b}) &lt; 0'
+            s += f'</guard>\n'
+            
+            s += f'{ind2}</transition>\n'
+    
+    s += f'\t</component>\n'
+    s += '</sspaceex>\n'
+
+    return s
+
+
+
+
+def gen_spaceex_with_tri(model, name = 'HybridRegressorModel'):
+    s = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    s += '<sspaceex xmlns="http://www-verimag.imag.fr/xml-namespaces/sspaceex" version="0.2" math="SpaceEx">\n'
+    s += f'\t<component id="{name}">\n'
+    assert model.train_coefs
+    assert model.deg == 1, "SpaceEx only supports affine dynamics."
+    assert not model.classifier_poly_trans , "SpaceEx only supports affine dynamics."
+    omegas = model.Omegas_
+    betas = model.betas_
+    print(omegas.shape)
+    print(betas.shape)
+    dim_cont = model.poly.n_features_in_ # THIS IS THE NUMBER OF ENDOGENOUS CONTINUOUS VARIABLES
+
+    W = model.classifier_.coef_
+    B = model.classifier_.intercept_
+    ncoef = W.shape[0]  # THIS IS THE NUMBER OF MODES
+    D = W.shape[1] # THIS INCLUDES TRI SIGNAL
+    print(W.shape)
+
+    ind2 = 2*'\t'
+    ind3 = 3*'\t'
+    for i in range(dim_cont):
+        s += f'{ind2}<param name="x{i+1}" type="real" local="false" d1="1" d2="1" dynamics="any"/>\n'
+    
+    # Add triangular signal component (x{dim_cont+1})
+    s += f'{ind2}<param name="x{dim_cont+1}" type="real" local="false" d1="1" d2="1" dynamics="any"/>\n'
+
+
+    # Adding invariants for each location
+    for I in range(ncoef*2):
+        i = I % ncoef
+
+        s += f'{ind2}<location id="{I+1}" name="mode_{I+1}">\n'
+        
+        s += f'{ind3}<invariant>'
+        amp = False
+        for j in range(ncoef):
+            if j == i:
+                continue
+            if not amp:
+                amp = True
+            else:
+                s += " &amp; "
+            w = W[i] - W[j]
+            b = B[i] - B[j]
+            max_w = np.abs(w[np.argmax(np.abs(w))])
+            w = w / max_w
+            b = b / max_w
+            for d in range(D):
+                s += f'({w[d]})*(x{d+1}) + '
+            s += f'({b}) &gt;= 0'
+
+            s += f" &amp; x{dim_cont+1} &gt;= 0 &amp; x{dim_cont+1} &lt;= 1"
+        s += '</invariant>\n'
+
+        s += f'{ind3}<flow>'
+        amp = False
+        for j in range(dim_cont):
+            if not amp:
+                amp = True
+            else:
+                s += " &amp; "
+
+            s += f'x{j+1}\' == '
+            for k in range(dim_cont):
+                s += f'{omegas[i][j][k]} * x{k+1} + '
+            s += f'{betas[i][j]}'
+
+            # ADD TRIANGULAR SIGNAL FLOW
+            if I < ncoef:
+                s += f' &amp; x{dim_cont+1}\' == 200000'
+            else:
+                s += f' &amp; x{dim_cont+1}\' == -200000'
+        s += '</flow>\n'
+
+        s += f'{ind2}</location>\n'
+
+
+    # REGULAR TRANSITIONS OF DYNAMICS AUTOMATON
+    for tri_mode in range(2):
+        for i in range(ncoef):
+            for j in range(ncoef):
+                if i == j:
+                    continue
+                s += f'{ind2}<transition source="{i+1 + tri_mode*ncoef}" target="{j+1 + tri_mode*ncoef}">\n'
+                
+                s += f'{ind3}<label>{i+1 + tri_mode*ncoef}_{j+1 + tri_mode*ncoef}</label>\n'
+                
+                s += f'{ind3}<guard>'
+                w = W[i] - W[j]
+                b = B[i] - B[j]
+                max_w = np.abs(w[np.argmax(np.abs(w))])
+                w = w / max_w
+                b = b / max_w
+                for d in range(D):
+                    s += f'({w[d]})*(x{d+1}) + '
+                s += f'({b}) &lt; 0'
+                s += f'</guard>\n'
+                
+                s += f'{ind2}</transition>\n'
+    
+    # TRANSITIONS BETWEEN TRI SIGNAL COMPONENTS
+    for i in range(ncoef):
+        # need a transition between {i+1} (increasing) and {i+1+ncoef} (decreasing) when tri >= 1
+        s += f'{ind2}<transition source="{i+1}" target="{i+1 + ncoef}">\n'
+        s += f'{ind3}<label>{i+1}_{i+1 + ncoef}</label>\n'
+        s += f'{ind3}<guard>'
+        s += f'x{dim_cont+1} &gt;= 1'
+        s += f'</guard>\n'
+        s += f'{ind2}</transition>\n'
+
+        # need a transition between {i+1+ncoef} (decreasing) and {i+1} (increasing) when tri <= 0
+        s += f'{ind2}<transition source="{i+1 + ncoef}" target="{i+1}">\n'
+        s += f'{ind3}<label>{i+1 + ncoef}_{i+1}</label>\n'
+        s += f'{ind3}<guard>'
+        s += f'x{dim_cont+1} &lt;= 0'
+        s += f'</guard>\n'
+        s += f'{ind2}</transition>\n'
+
+
+
+    s += f'\t</component>\n'
+    s += '</sspaceex>\n'
+
+    return s
+
+
+
+
+
+def gen_DCDC_matlab_hyeq_jumpMap(classifier, polyfeatures : PolynomialFeatures =None, ind=""):
+    try:
+        W = classifier.coef_
+        B = classifier.intercept_
+        ncoef = W.shape[0]
+        D = W.shape[1]
+
+        if not polyfeatures is None:
+            dim_cont = polyfeatures.n_features_in_
+            fn = [f'x({i+1})' for i in range(dim_cont)]
+            fn = polyfeatures.get_feature_names_out(fn)
+            fn = [s.replace(" ", " * ") for s in fn]
+        else:
+            dim_cont = D-1
+            fn = [f'x({i+1})' for i in range(D)]
+        
+        s = f"{ind}function xplus = jumpMap(this, x)\n"
+        s += f"{ind}\tz = x(1:{dim_cont});\n"
+        s += f"{ind}\tmode = x({dim_cont + 1});\n"
+        s += f"{ind}\tt = x({dim_cont + 2});\n"
+        s += f"{ind}\ttri = this.tri_func(t);\n"
+       
+
+        if ncoef == 1:
+            w = W[0]
+            b = B[0]
+            max_w = np.max(np.abs(w))
+            w = w / max_w
+            b = b / max_w
+            s += f"{ind}\tif "
+            for d in range(D-1):
+                s += f'({w[d]} * {fn[d]}) + '
+            s += f'({w[-1]} * (tri) + '
+            s += f'({b}) >= 0\n'
+            s += f"{ind}\t\txplus = [z; 2; t];\n{ind}\telse\n"
+            s += f"{ind}\t\txplus = [z; 1; t];\n{ind}\tend\n{ind}end"
+            return s
+        else:
+            for i in range(ncoef):
+                s += f"{ind}\tif " if i == 0 else f"{ind}\telseif "
+                amp = False
+                for j in range(ncoef):
+                    if j == i:
+                        continue
+                    if not amp:
+                        amp = True
+                    else:
+                        s += " && "
+                    w = W[i] - W[j]
+                    b = B[i] - B[j]
+                    max_w = np.abs(w[np.argmax(np.abs(w))])
+                    w = w / max_w
+                    b = b / max_w
+                    for d in range(D-1):
+                        s += f'({w[d]})*({fn[d]}) + '
+                    s += f'({w[-1]})*(tri) + '
+                    s += f'({b}) >= 0'
+                s += '\n'
+                s += f'{ind}\t\txplus = [z; {i+1}; t];\n'
+            s += f"{ind}\tend\n{ind}end"
+            return s
+    except:
+        print("Could not get boundary.")
+        return ''
+
+def gen_DCDC_matlab_hyeq_jumpSetIndicator(classifier, polyfeatures : PolynomialFeatures =None, ind=""):
+    W = classifier.coef_
+    B = classifier.intercept_
+    ncoef = W.shape[0]
+    D = W.shape[1]
+
+    if not polyfeatures is None:
+        dim_cont = polyfeatures.n_features_in_
+        fn = [f'x({i+1})' for i in range(dim_cont)]
+        fn = polyfeatures.get_feature_names_out(fn)
+        fn = [s.replace(" ", " * ") for s in fn]
+    else:
+        dim_cont = D-1
+        fn = [f'x({i+1})' for i in range(D)]
+    
+    s = f"{ind}function D = jumpSetIndicator(this, x)\n"
+    s += f"{ind}\tz = x(1:{dim_cont});\n"
+    s += f"{ind}\tmode = x({dim_cont + 1});\n"
+    s += f"{ind}\tt = x({dim_cont + 2});\n"
+    s += f"{ind}\ttri = this.tri_func(t);\n"
+
+    s += f"{ind}\tswitch mode\n"
+    
+    if ncoef == 1:
+        w = W[0]
+        b = B[0]
+        max_w = np.max(np.abs(w))
+        w = w / max_w
+        b = b / max_w
+        s += f"{ind}\t\tcase 1\n"
+        s += f"{ind}\t\t\tD = "
+        bnd = ""
+        for d in range(D-1):
+            bnd += f'({w[d]} * {fn[d]}) + '
+        bnd += f'({w[-1]} * tri) + '
+        bnd += f'({b})'
+        s += bnd + ' >= 0;\n'
+
+        s += f"{ind}\t\tcase 2\n"
+        s += f"{ind}\t\t\tD = "
+        s += bnd + ' < 0;\n'
+        
+        s += f"{ind}\tend\n{ind}end"
+        return s
+    else:
+        for i in range(ncoef):
+            # s += f"{ind}\tif " if i == 0 else f"{ind}\telseif "
+            s += f"{ind}\t\tcase {i+1}\n"
+            s += f"{ind}\t\t\tD = "
+            amp = False
+            for j in range(ncoef):
+                if j == i:
+                    continue
+                if not amp:
+                    amp = True
+                else:
+                    s += " || "
+                w = W[i] - W[j]
+                b = B[i] - B[j]
+                max_w = np.abs(w[np.argmax(np.abs(w))])
+                w = w / max_w
+                b = b / max_w
+                for d in range(D-1):
+                    s += f'({w[d]})*({fn[d]}) + '
+                s += f'({w[-1]})*(tri) + '
+                s += f'({b}) < 0'
+            s += ';\n'
+        s += f"{ind}\tend\n{ind}end"
+        return s
+
+
+def gen_DCDC_matlab_hyeq_flowMap(model, ind=""):
+    assert model.train_coefs
+    omegas = model.Omegas_
+    betas = model.betas_
+    print(omegas)
+    print(betas.shape)
+    
+    polyfeatures = model.poly
+    dim_cont = polyfeatures.n_features_in_
+    fn = [f'x({i+1})' for i in range(dim_cont)]
+    fn = polyfeatures.get_feature_names_out(fn)
+    fn = [s.replace(" ", " * ") for s in fn]
+
+    n_modes = model.n
+
+    s = f"{ind}function xdot = flowMap(this, x)\n"
+    s += f"{ind}\tz = x(1:{dim_cont});\n"
+    s += f"{ind}\tmode = x({dim_cont + 1});\n"
+    s += f"{ind}\tt = x({dim_cont + 2});\n"
+
+    s += f"{ind}\tz_poly = ["
+    for i in range(len(fn)-1):
+        s += fn[i] + "; "
+    s += fn[-1] + "];\n"
+
+    s += f"{ind}\tswitch mode\n"
+    for mode in range(n_modes):
+        s += f"{ind}\t\tcase {mode+1}\n"
+        s += f"{ind}\t\t\txdot = [this.A{mode+1} * z_poly + this.B{mode+1}; 0; 1];\n"
+    s += f"{ind}\tend\n"
+    s += f"{ind}end"
+    return s
+
+def gen_DCDC_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
+    s = "classdef " + name + " < HybridSystem\n"
+    
+    omegas = model.Omegas_
+    betas = model.betas_
+
+    n = omegas.shape[0]
+    D = omegas.shape[1]
+    Q = omegas.shape[2]
+
+    s += "\tproperties\n"
+    for mode in range(n):
+        s += f"\t\tA{mode+1} = ["
+        for d in range(D-1):
+            for q in range(Q-1):
+                s += f"{omegas[mode][d][q]}, "
+            s += f"{omegas[mode][d][Q-1]}; "
+        for q in range(Q-1):
+            s += f"{omegas[mode][D-1][q]}, "
+        s += f"{omegas[mode][D-1][Q-1]}]\n"
+    
+    s += "\n"
+
+    for mode in range(n):
+        s += f"\t\tB{mode+1} = ["
+        for d in range(D-1):
+            s += f"{betas[mode][d]}; "
+        s += f"{betas[mode][D-1]}]\n"
+    
+    s += '''\n\t\tt_hc = 5e-6;\n\t\tabs_slope = 200000;\n\t\ttri_m = 200000*5e-6;\n'''
+
+    s += "\tend\n\n"
+
+    s += "\tmethods\n"
+
+    s += '\t\tfunction tri = tri_func(this, t)\n' + '\t\t\tshifted_time = floor(t/this.t_hc);\n' + '\t\t\tif mod(shifted_time, 2) == 0\n' + '\t\t\t\ttri = this.abs_slope * (t - shifted_time * this.t_hc);\n' + '\t\t\telse\n'+ '\t\t\t\ttri = -this.abs_slope * (t - shifted_time * this.t_hc) + this.tri_m;\n' + '\t\t\tend\n' + '\t\tend\n'
+
+    s += gen_DCDC_matlab_hyeq_flowMap(model, ind = "\t\t") + "\n"
+    s += gen_DCDC_matlab_hyeq_jumpMap(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
+    s += gen_DCDC_matlab_hyeq_jumpSetIndicator(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
+
+    s += "\t\tfunction C = flowSetIndicator(this, x)\n\t\t\tC = 1;\n\t\tend\n\n"
+
+    s += "\tend\n"
+    s += "end"
+
+    return s.expandtabs(4)
+
+
+
+
 def get_piccolo_distance(X, Y, x_order=None, y_order=None, x_maxlags=20, y_maxlags=20):
     '''
-    CURRENTLY ONLY WORKS WITH MULTIVARIATE TIME SERIES AND NOT UNIVARIATE.
     Returns the Piccolo distance between datasets X and Y by fitting a vector autoregressive model (VAR) on each data set and calculating the Euclidean distance between the VAR coefficients.
 
     Parameters
