@@ -166,6 +166,8 @@ X_dot_with_tri = np.r_[model.X_dot_fit_.T, tri_points.reshape((1,-1))].T
 modes_unique, modes_count = np.unique(model.modesfit_, return_counts=True)
 n=3
 top_n_modes = modes_unique[(-modes_count).argsort()[:n]]
+print(top_n_modes)
+# exit()
 
 mode_cond = np.logical_or(model.modesfit_==top_n_modes[0], model.modesfit_==top_n_modes[1])
 for i in range(2, n):
@@ -181,7 +183,7 @@ model.classify_modes(classifier = LogisticRegression(penalty='none'),X = X_with_
 print(model.gen_full_latex_eq(with_classifier_boundaries=True, round_dig=4))
 for i in range(np.max(model.modesfit_)+1):
     print(f"Mode {i+1}: {np.count_nonzero(model.modesfit_ == i)} points.")
-print(gen_DCDC_full_matlab_hyeq_class(model, name="DCDC_Melco_Controlled_NoShuffle"))
+print(gen_DCDC_full_matlab_hyeq_class(model, name="DCDC_Melco_Controlled_NoShuffle", modes_to_keep=np.sort(top_n_modes)))
 
 
 ## WRITE SPACEEX XML FILE

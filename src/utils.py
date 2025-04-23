@@ -958,7 +958,7 @@ def gen_DCDC_matlab_hyeq_jumpSetIndicator(classifier, polyfeatures : PolynomialF
         return s
 
 
-def gen_DCDC_matlab_hyeq_flowMap(model, ind=""):
+def gen_DCDC_matlab_hyeq_flowMap(model, ind="", modes_to_keep=None):
     assert model.train_coefs
     omegas = model.Omegas_
     betas = model.betas_
@@ -971,7 +971,7 @@ def gen_DCDC_matlab_hyeq_flowMap(model, ind=""):
     fn = polyfeatures.get_feature_names_out(fn)
     fn = [s.replace(" ", " * ") for s in fn]
 
-    n_modes = model.n
+    n_modes = model.n if modes_to_keep is None else len(modes_to_keep)
 
     s = f"{ind}function xdot = flowMap(this, x)\n"
     s += f"{ind}\tz = x(1:{dim_cont});\n"
@@ -991,7 +991,21 @@ def gen_DCDC_matlab_hyeq_flowMap(model, ind=""):
     s += f"{ind}end"
     return s
 
-def gen_DCDC_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
+def gen_DCDC_full_matlab_hyeq_class(model, name="HybridRegressorModel", modes_to_keep=None):
+    '''
+    Transforms the DCDC Melco learned model to a HyEq executable Matlab script.
+
+    IMPORTANT:
+    `modes_to_keep` must be given in case outlier modes are deleted in the learning process before finding mode regions.
+    This is to make sure that flow functions are corresponding to the kept modes.
+
+    Example:
+    If a system has 6 learned modes and we only do the mode region finding with modes [3, 5, 4], then
+    the flow functions will be defined for modes 3, 5, and 4 only.
+    Furthermore, these modes will be *renamed* to 1, 2 and 3 respectively.
+    '''
+
+
     s = "classdef " + name + " < HybridSystem\n"
     
     omegas = model.Omegas_
@@ -1001,24 +1015,32 @@ def gen_DCDC_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
     D = omegas.shape[1]
     Q = omegas.shape[2]
 
+
+    # Define modes_to_keep if it is None
+    if modes_to_keep is None:
+        # no renaming and all modes are there
+        modes_to_keep = list(range(n))
+
     s += "\tproperties\n"
-    for mode in range(n):
+    for mode in range(len(modes_to_keep)):
+        mapped_mode = modes_to_keep[mode]
         s += f"\t\tA{mode+1} = ["
         for d in range(D-1):
             for q in range(Q-1):
-                s += f"{omegas[mode][d][q]}, "
-            s += f"{omegas[mode][d][Q-1]}; "
+                s += f"{omegas[mapped_mode][d][q]}, "
+            s += f"{omegas[mapped_mode][d][Q-1]}; "
         for q in range(Q-1):
-            s += f"{omegas[mode][D-1][q]}, "
-        s += f"{omegas[mode][D-1][Q-1]}]\n"
+            s += f"{omegas[mapped_mode][D-1][q]}, "
+        s += f"{omegas[mapped_mode][D-1][Q-1]}]\n"
     
     s += "\n"
 
-    for mode in range(n):
+    for mode in range(len(modes_to_keep)):
+        mapped_mode = modes_to_keep[mode]
         s += f"\t\tB{mode+1} = ["
         for d in range(D-1):
-            s += f"{betas[mode][d]}; "
-        s += f"{betas[mode][D-1]}]\n"
+            s += f"{betas[mapped_mode][d]}; "
+        s += f"{betas[mapped_mode][D-1]}]\n"
     
     s += '''\n\t\tt_hc = 5e-6;\n\t\tabs_slope = 200000;\n\t\ttri_m = 200000*5e-6;\n'''
 
@@ -1028,7 +1050,7 @@ def gen_DCDC_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
 
     s += '\t\tfunction tri = tri_func(this, t)\n' + '\t\t\tshifted_time = floor(t/this.t_hc);\n' + '\t\t\tif mod(shifted_time, 2) == 0\n' + '\t\t\t\ttri = this.abs_slope * (t - shifted_time * this.t_hc);\n' + '\t\t\telse\n'+ '\t\t\t\ttri = -this.abs_slope * (t - shifted_time * this.t_hc) + this.tri_m;\n' + '\t\t\tend\n' + '\t\tend\n'
 
-    s += gen_DCDC_matlab_hyeq_flowMap(model, ind = "\t\t") + "\n"
+    s += gen_DCDC_matlab_hyeq_flowMap(model, ind = "\t\t", modes_to_keep=modes_to_keep) + "\n"
     s += gen_DCDC_matlab_hyeq_jumpMap(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
     s += gen_DCDC_matlab_hyeq_jumpSetIndicator(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
 
