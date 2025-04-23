@@ -173,8 +173,12 @@ else:
 # model.classify_modes(X=model.Xfit_[model.modesfit_ < 4], modes=model.modesfit_[model.modesfit_ < 4])
 
 print(model.gen_full_latex_eq(with_classifier_boundaries=True, round_dig=10))
-print(gen_DCDC_full_matlab_hyeq_class(model, name="DCDC_Melco_Uncontrolled_NoShuffle"))
-print(gen_spaceex_with_tri(model, name="DCDC_Melco_Uncontrolled_NoShuffle"))
+print(gen_DCDC_full_matlab_hyeq_class(model, name="DCDC_Melco_Uncontrolled_NoShuffle", modes_to_keep=np.sort(top_n_modes)))
+
+## WRITE SPACEEX XML FILE
+xml_string = gen_spaceex_with_tri(model, name="DCDC_Melco_Uncontrolled_NoShuffle", modes_to_keep=np.sort(top_n_modes))
+with open('experiments/dcdc_melco/SpaceEx_DCDC_Melco_Uncontrolled_NoShuffle.xml', 'w') as f:
+    f.write(xml_string)
 
 
 ## plot mode jumps with time
