@@ -669,7 +669,7 @@ def gen_spaceex(model, name = 'HybridRegressorModel'):
                 continue
             s += f'{ind2}<transition source="{i+1}" target="{j+1}">\n'
             
-            s += f'{ind3}<label>{i+1}_{j+1}</label>\n'
+            # s += f'{ind3}<label>{i+1}_{j+1}</label>\n'
             
             s += f'{ind3}<guard>'
             w = W[i] - W[j]
@@ -781,7 +781,7 @@ def gen_spaceex_with_tri(model, name = 'HybridRegressorModel', modes_to_keep=Non
                     continue
                 s += f'{ind2}<transition source="{i+1 + tri_mode*ncoef}" target="{j+1 + tri_mode*ncoef}">\n'
                 
-                s += f'{ind3}<label>{i+1 + tri_mode*ncoef}_{j+1 + tri_mode*ncoef}</label>\n'
+                # s += f'{ind3}<label>{i+1 + tri_mode*ncoef}_{j+1 + tri_mode*ncoef}</label>\n'
                 
                 s += f'{ind3}<guard>'
                 w = W[i] - W[j]
@@ -800,7 +800,7 @@ def gen_spaceex_with_tri(model, name = 'HybridRegressorModel', modes_to_keep=Non
     for i in range(ncoef):
         # need a transition between {i+1} (increasing) and {i+1+ncoef} (decreasing) when tri >= 1
         s += f'{ind2}<transition source="{i+1}" target="{i+1 + ncoef}">\n'
-        s += f'{ind3}<label>{i+1}_{i+1 + ncoef}</label>\n'
+        # s += f'{ind3}<label>{i+1}_{i+1 + ncoef}</label>\n'
         s += f'{ind3}<guard>'
         s += f'x{dim_cont+1} &gt;= 1'
         s += f'</guard>\n'
@@ -808,7 +808,7 @@ def gen_spaceex_with_tri(model, name = 'HybridRegressorModel', modes_to_keep=Non
 
         # need a transition between {i+1+ncoef} (decreasing) and {i+1} (increasing) when tri <= 0
         s += f'{ind2}<transition source="{i+1 + ncoef}" target="{i+1}">\n'
-        s += f'{ind3}<label>{i+1 + ncoef}_{i+1}</label>\n'
+        # s += f'{ind3}<label>{i+1 + ncoef}_{i+1}</label>\n'
         s += f'{ind3}<guard>'
         s += f'x{dim_cont+1} &lt;= 0'
         s += f'</guard>\n'
