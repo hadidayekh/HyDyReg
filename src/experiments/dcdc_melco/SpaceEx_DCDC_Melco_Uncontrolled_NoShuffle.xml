@@ -29,75 +29,57 @@
 			<flow>x1' == -25969096.715004936 * x1 + -0.32834263890981674 * x2 + 66.43267847088072 &amp; x3' == -200000 &amp; x2' == -18193.553247608364 * x1 + -99.99002542369999 * x2 + -2.0585128075399552 &amp; x3' == -200000</flow>
 		</location>
 		<transition source="1" target="2">
-			<label>1_2</label>
 			<guard>(0.0004501541343684933)*(x1) + (-9.680905366924738e-06)*(x2) + (-1.0)*(x3) + (0.7167229263567427) &lt; 0</guard>
 		</transition>
 		<transition source="1" target="3">
-			<label>1_3</label>
 			<guard>(1.0)*(x1) + (-0.00037775813148565397)*(x2) + (0.005323027468267239)*(x3) + (0.02013129771504817) &lt; 0</guard>
 		</transition>
 		<transition source="2" target="1">
-			<label>2_1</label>
 			<guard>(-0.0004501541343684933)*(x1) + (9.680905366924738e-06)*(x2) + (1.0)*(x3) + (-0.7167229263567427) &lt; 0</guard>
 		</transition>
 		<transition source="2" target="3">
-			<label>2_3</label>
 			<guard>(1.0)*(x1) + (-0.00037114729701418246)*(x2) + (0.7004077101278162)*(x3) + (-0.4780443373992491) &lt; 0</guard>
 		</transition>
 		<transition source="3" target="1">
-			<label>3_1</label>
 			<guard>(-1.0)*(x1) + (0.00037775813148565397)*(x2) + (-0.005323027468267239)*(x3) + (-0.02013129771504817) &lt; 0</guard>
 		</transition>
 		<transition source="3" target="2">
-			<label>3_2</label>
 			<guard>(-1.0)*(x1) + (0.00037114729701418246)*(x2) + (-0.7004077101278162)*(x3) + (0.4780443373992491) &lt; 0</guard>
 		</transition>
 		<transition source="4" target="5">
-			<label>4_5</label>
 			<guard>(0.0004501541343684933)*(x1) + (-9.680905366924738e-06)*(x2) + (-1.0)*(x3) + (0.7167229263567427) &lt; 0</guard>
 		</transition>
 		<transition source="4" target="6">
-			<label>4_6</label>
 			<guard>(1.0)*(x1) + (-0.00037775813148565397)*(x2) + (0.005323027468267239)*(x3) + (0.02013129771504817) &lt; 0</guard>
 		</transition>
 		<transition source="5" target="4">
-			<label>5_4</label>
 			<guard>(-0.0004501541343684933)*(x1) + (9.680905366924738e-06)*(x2) + (1.0)*(x3) + (-0.7167229263567427) &lt; 0</guard>
 		</transition>
 		<transition source="5" target="6">
-			<label>5_6</label>
 			<guard>(1.0)*(x1) + (-0.00037114729701418246)*(x2) + (0.7004077101278162)*(x3) + (-0.4780443373992491) &lt; 0</guard>
 		</transition>
 		<transition source="6" target="4">
-			<label>6_4</label>
 			<guard>(-1.0)*(x1) + (0.00037775813148565397)*(x2) + (-0.005323027468267239)*(x3) + (-0.02013129771504817) &lt; 0</guard>
 		</transition>
 		<transition source="6" target="5">
-			<label>6_5</label>
 			<guard>(-1.0)*(x1) + (0.00037114729701418246)*(x2) + (-0.7004077101278162)*(x3) + (0.4780443373992491) &lt; 0</guard>
 		</transition>
 		<transition source="1" target="4">
-			<label>1_4</label>
 			<guard>x3 &gt;= 1</guard>
 		</transition>
 		<transition source="4" target="1">
-			<label>4_1</label>
 			<guard>x3 &lt;= 0</guard>
 		</transition>
 		<transition source="2" target="5">
-			<label>2_5</label>
 			<guard>x3 &gt;= 1</guard>
 		</transition>
 		<transition source="5" target="2">
-			<label>5_2</label>
 			<guard>x3 &lt;= 0</guard>
 		</transition>
 		<transition source="3" target="6">
-			<label>3_6</label>
 			<guard>x3 &gt;= 1</guard>
 		</transition>
 		<transition source="6" target="3">
-			<label>6_3</label>
 			<guard>x3 &lt;= 0</guard>
 		</transition>
 	</component>
