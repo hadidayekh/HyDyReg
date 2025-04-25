@@ -21,14 +21,34 @@ class UnstableTrajException(Exception):
     pass
 class SNDS:
     '''
-    A switched nonlinear dynamical system.
+    A state-dependant Switched Nonlinear Dynamical System.
     
-    n = number of modes
-    d = dimension of the continuous state vector
-    eqs = list of n lists of d differential equations, one per mode and dimension of the continuous state vector
-    eventlist = list of events to track when simulating trajectory, this is usually the conditions of crossing from one mode to another
-    labeltest = a function that returns the mode in which state x is in, from {0,...,n-1}
+    Attributes
+    ----------
+    n : int
+        The number of modes.
+    d : int
+        The dimension of the continuous state vector
+    eqs : List[List[Callable]]
+        List of `n` lists of `d` differential equations, one per mode and dimension of the continuous state vector.
+    eventlist : List[Callable]
+        List of events to track when simulating trajectory, this is usually the conditions of crossing from one mode to another.
+    labelfun : Callable
+        A function that returns the mode in which state x is in, from {0,...,n-1}
+
+    
+    Methods
+    -------
+    simulate_trajectory(step, T, x0s, t0=0, stop_at_sliding_motion=False, compare_with_traj=None, compare_tol=0.5, max_step_factor=10)
+        Simulate trajectory given initial conditions.
+
+    generate_points_between_segments(trajectories, segments, seg_tol, timestep='default')
+        Given trajectories as well as change points indicating segments, generate points between consecutive segments of each trajectory.
+
+    get_derivatives(trajectories)
+        Given trajectories of the SNDS, return the corresponding exact derivatives of each point (using equations and labelfun of the SDNS).
     '''
+
     def __init__(self, n, d, eqs, eventlist, labelfun):
         assert (n == len(eqs))
         self.number_of_modes = n
@@ -214,10 +234,32 @@ class SNDS:
 
 class Trajectories:
     '''
-    A list of trajectories.
+    A collection of trajectories.
 
-    t_list = list of t point arrays
-    x_list = list of x point arrays, each x point is of d dimensions
+    Attributes
+    ----------
+    t_list : List[ndarray]
+        List of arrays of time points.
+    x_list : List[ndarray]
+        List of arrays of x points (continuous state points), each x point has dimension d.
+    num_trajectories : int
+        The number of trajectories.
+    segmented : Bool
+        Indicated whether the trajectories are segmented or not.
+    d : int
+        Dimension of the continuous state vector.
+
+
+    Methods
+    -------
+    segment_trajectories(tol)
+        Segments each trajectory at points where the difference between the three-point forward and three-point backward derivatives is greater than a certain tolerance. Does not support variable time steps.
+    segment_trajectories_two_points(tol)
+        Segments each trajectory at points where the difference between the two-point forward and two-point backward derivatives is greater than a certain tolerance. Supports variable time steps.
+    append_trajs(trajs):
+        Appends a collection of trajectories.
+    return_unsegmented()
+        Return the unsegmented version of trajectories including the missing points that are dropped due to segmentation.
     '''
     def __init__(self, t_list, x_list):
         self.t_list = t_list
@@ -459,6 +501,22 @@ class Trajectories:
 
 
 class SNDS_affine(SNDS):
+    '''
+    A state-dependant Switched Nonlinear Dynamical System with affine dynamics.
+    
+    Attributes
+    ----------
+    params : ndarray of shape `(n, d, d+1)`
+        Affine parameters describing the system dynamics such that
+        f_j(x)[0] = params[j][0][0] * x[0] + params[j][0][1] * x[1] + ... + params[j][0][d-1] * x[d-1] + params[j][0][d]
+        .
+        .
+        f_j(x)[d] = params[j][d][0] * x[0] + params[j][d][1] * x[1] + ... + params[j][d][d-1] * x[d-1] + params[j][d][d]
+    eventlist : List[Callable]
+        List of events to track when simulating trajectory, this is usually the conditions of crossing from one mode to another.
+    labelfun : Callable
+        A function that returns the mode in which state x is in, from {0,...,n-1}
+    '''
     def __init__(self,  params, eventlist, labelfun):
         self.params = params
         n = params.shape[0]
