@@ -32,6 +32,81 @@ x_dot.T is DxN
 """
 
 class HybridRegressor:
+    '''
+    Main learning class supporting both learning algorithms.
+
+    NOTE: OPTIMIZATION-BASED LEARNING WITH KERNEL METHODS IS NO LONGER SUPPORTED. BASE CODE IS KEPT IN CASE FUTURE COLLABORATORS WOULD LIKE TO REBUILD IT.
+
+    Attributes
+    ----------
+    train_coefs : bool, default=True
+        When True, implements the optimization-based learning by finding coefficients of target functions directly rather than kernel methods.
+        When False, uses kernel methods for the optimization-based learning <- NO LONGER SUPPORTED, see note above.
+        Has no effect when using the incremental learning approach.
+
+    n : int, default=None
+        The number of modes in the system-under-learning.
+        Required for the optimization-based approach.
+        Has no effect for the incremental learning approach.
+
+    deg : int, default=1
+        The maximum polynomial degree of the continuous dynamics.
+
+    classifier_poly_deg : int, default=1
+        The maximum polynomial degree of the mode region boundaries.
+
+    kernels_list : List['linear', 'polynomial', 'rbf', func], default=None
+        NO LONGER SUPPORTED, see note above.
+        The list of kernels to use for each mode in the optimization-based methods.
+
+    kargs_list : List[List], default=None
+        NO LONGER SUPPORTED, see note above.
+        The list of arguments for each of the kernels in kernels_list.
+
+
+    Methods
+    -------
+    fit_opti(X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False)
+        Fit using the optimization-based method.
+
+    fit_first_incremental(X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None, shuffle_segments=False)
+        Fit first hypothesis using the incremental learning method.
+
+    update_continuous(X, X_dot, good_RD=0.001, regressor=LinearRegression(), Time = None)
+        Incremental method: update continuous dynamics of the hypothesis with new data.
+
+    classify_modes(classifier=LogisticRegression(), X=None, modes=None, X_dot=None, partial_fit=False)
+        Run the classification algorithm based on the passed data and modes, or based on the fitted modes of the training data if X=None and modes=None.
+
+    improve_classification(X, X_dot, classifier=None, partial_fit=False)
+        Improve the result of the classifier by guessing the modes of new data X, Xdot where mode(x) is guessed as arg min |f_j(x) - xdot|.
+        Runs `classify_mode` with the augmented data.
+
+    compare_with_dynamics(X, Xdot, tol=0.01)
+        Check whether data of a segment (X, Xdot) is already captured by a mode.
+
+    get_points_of_mode(j)
+        Returns points of mode j.
+
+    reassign_modes()
+        Reassign modes of training data based on the functions that fit each point best.
+
+    retrain_continuous(j, regressor=None)
+        Refit the continuous dynamics of mode `j` with data of mode `j`.
+
+    predict(X, labelfun=None)
+        Compute the predicted derivatives of data in `X`.
+        Modes are deduced by labelfun in priority, or the learner's classifier if labelfun=None.
+
+    get_modes(self)
+        Returns the modes of the fitted data in the optimization-based approach.
+
+    to_SNDS(labelfun=None, eventlist=None)
+        Transforms the learned model into an executable SNDS.
+
+    gen_full_latex_eq(with_classifier_boundaries=True, round_dig=3)
+        Generate full LaTeX equations of the learned model.
+    '''
     def __init__(self, train_coefs=True, n=None, deg=1, classifier_poly_deg=1, kernels_list=None, kargs_list=None):
         self.train_coefs = train_coefs
         self.n = n
