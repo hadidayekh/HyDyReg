@@ -517,8 +517,8 @@ def gen_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
     s += "\tmethods\n"
 
     s += gen_matlab_hyeq_flowMap(model, ind = "\t\t") + "\n"
-    s += gen_matlab_hyeq_jumpMap(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
-    s += gen_matlab_hyeq_jumpSetIndicator(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
+    s += gen_matlab_hyeq_jumpMap(model.classifier_, model.classifier_poly_ if model.classifier_poly_deg > 1 else None, ind = "\t\t") + "\n"
+    s += gen_matlab_hyeq_jumpSetIndicator(model.classifier_, model.classifier_poly_ if model.classifier_poly_deg > 1 else None, ind = "\t\t") + "\n"
 
     s += "\t\tfunction C = flowSetIndicator(this, x)\n\t\t\tC = 1;\n\t\tend\n\n"
 
@@ -607,7 +607,7 @@ def gen_spaceex(model, name = 'HybridRegressorModel'):
     s += f'\t<component id="{name}">\n'
     assert model.train_coefs
     assert model.deg == 1, "SpaceEx only supports affine dynamics."
-    assert not model.classifier_poly_trans , "SpaceEx only supports affine dynamics."
+    assert not model.classifier_poly_deg > 1 , "SpaceEx only supports affine dynamics."
     omegas = model.Omegas_
     betas = model.betas_
     print(omegas.shape)
@@ -698,7 +698,7 @@ def gen_spaceex_with_tri(model, name = 'HybridRegressorModel'):
     s += f'\t<component id="{name}">\n'
     assert model.train_coefs
     assert model.deg == 1, "SpaceEx only supports affine dynamics."
-    assert not model.classifier_poly_trans , "SpaceEx only supports affine dynamics."
+    assert not model.classifier_poly_deg > 1 , "SpaceEx only supports affine dynamics."
     omegas = model.Omegas_
     betas = model.betas_
     print(omegas.shape)
@@ -1029,8 +1029,8 @@ def gen_DCDC_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
     s += '\t\tfunction tri = tri_func(this, t)\n' + '\t\t\tshifted_time = floor(t/this.t_hc);\n' + '\t\t\tif mod(shifted_time, 2) == 0\n' + '\t\t\t\ttri = this.abs_slope * (t - shifted_time * this.t_hc);\n' + '\t\t\telse\n'+ '\t\t\t\ttri = -this.abs_slope * (t - shifted_time * this.t_hc) + this.tri_m;\n' + '\t\t\tend\n' + '\t\tend\n'
 
     s += gen_DCDC_matlab_hyeq_flowMap(model, ind = "\t\t") + "\n"
-    s += gen_DCDC_matlab_hyeq_jumpMap(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
-    s += gen_DCDC_matlab_hyeq_jumpSetIndicator(model.classifier_, model.classifier_poly_ if model.classifier_poly_trans else None, ind = "\t\t") + "\n"
+    s += gen_DCDC_matlab_hyeq_jumpMap(model.classifier_, model.classifier_poly_ if model.classifier_poly_deg > 1 else None, ind = "\t\t") + "\n"
+    s += gen_DCDC_matlab_hyeq_jumpSetIndicator(model.classifier_, model.classifier_poly_ if model.classifier_poly_deg > 1 else None, ind = "\t\t") + "\n"
 
     s += "\t\tfunction C = flowSetIndicator(this, x)\n\t\t\tC = 1;\n\t\tend\n\n"
 

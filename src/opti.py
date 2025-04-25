@@ -32,13 +32,11 @@ x_dot.T is DxN
 """
 
 class HybridRegressor:
-    def __init__(self, train_coefs=True, n=None, deg=1, classifier_poly_trans=False, classifier_poly_deg=None, kernels_list=None, kargs_list=None):
+    def __init__(self, train_coefs=True, n=None, deg=1, classifier_poly_deg=1, kernels_list=None, kargs_list=None):
         self.train_coefs = train_coefs
         self.n = n
         self.deg = deg
-        self.classifier_poly_trans = classifier_poly_trans
-        if classifier_poly_trans:
-            assert not classifier_poly_deg is None
+
         self.classifier_poly_deg = classifier_poly_deg
         if not train_coefs and (kernels_list is None or kargs_list is None):
             raise Exception("When train_coefs is False, kernels_list and kargs_list must be provided.")
@@ -818,7 +816,7 @@ class HybridRegressor:
         
         num_modes = len(np.unique(modes))
 
-        do_poly_transform = self.classifier_poly_trans
+        do_poly_transform = self.classifier_poly_deg > 1
         if do_poly_transform:
             classifier_deg = self.classifier_poly_deg
             classifier_poly = PolynomialFeatures(degree=classifier_deg, include_bias=False)
@@ -1069,7 +1067,7 @@ class HybridRegressor:
             eq_string += f'\\end{{cases}}\n\\]\n'
 
         if with_classifier_boundaries:
-            eq_string += f'\n\n{get_latex_classifier_boundaries(self.classifier_, self.classifier_poly_ if self.classifier_poly_trans else None)}'
+            eq_string += f'\n\n{get_latex_classifier_boundaries(self.classifier_, self.classifier_poly_ if self.classifier_poly_deg > 1 else None)}'
         return eq_string
 
     @staticmethod

@@ -39,7 +39,7 @@ segments = trajs_train_sul.segment_trajectories(seg_tol)
 X, X_dot, seg_res, _ = diff_method_fps(
     trajs_train_sul.t_list, trajs_train_sul.x_list, segments=segments, remove_seg=True)
     
-model = HybridRegressor(train_coefs=True, deg=poly_degree, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
+model = HybridRegressor(train_coefs=True, deg=poly_degree, classifier_poly_deg=classifier_poly_deg)
 
 
 model.fit_first_incremental(X, X_dot, seg_res)

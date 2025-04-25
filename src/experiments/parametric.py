@@ -175,7 +175,7 @@ for nmodes in nmodes_list:
     else:
         
 
-        sul, learned_SNDS, trajectories, traj_test_sul, data_avg, data_max, data_both  = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes=nmodes, poly_degree=1, random_test_set=True, classifier_poly_trans=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=True, classifier = c, C_space = [0, 0.001, 0.01], write_on=True, deltas=0.0001, MSE_break_tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=100, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False, improve_cont=improve_continuous, fit_active_only=not optimization_based, N_cexs=10, max_step_factor=2, gen_fine_time_step_factor=10 if nmodes >= 10 else 20)
+        sul, learned_SNDS, trajectories, traj_test_sul, data_avg, data_max, data_both  = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes=nmodes, poly_degree=1, random_test_set=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=True, classifier = c, C_space = [0, 0.001, 0.01], write_on=True, deltas=0.0001, MSE_break_tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=100, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False, improve_cont=improve_continuous, fit_active_only=not optimization_based, N_cexs=10, max_step_factor=2, gen_fine_time_step_factor=10 if nmodes >= 10 else 20)
 
         if compare_with_inferDynamic:
             if nmodes == 2 or nmodes == 3:
