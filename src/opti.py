@@ -687,6 +687,31 @@ class HybridRegressor:
             
 
     def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None, X_dot=None, partial_fit=False):
+        '''
+        Run a classifier to find mode regions.
+
+        Attributes
+        ----------
+        classifier : ?, default=LogisticRegression()
+            The classifier model to be used. Default is logistic regression.
+
+        X : ndarray (N x D), default=None
+            A matrix of training data points [x1, x2, ..., xN].
+            When provided, the classification happens using this data. Otherwise, classification happens on previous training data using in fitting continuous dynamics.
+        
+        modes : ndarray (N), default=None
+            An array of modes of each training data point.
+            When provided, the classification happens using this data. Otherwise, classification happens on previous training data using in fitting continuous dynamics.
+        
+        X_dot : ndarray (N x D), default=None
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+            Required when X is provided
+
+        partial_fit : Bool, default=False
+            Indicates whether to use `partial_fit` when running the classifier, otherwise runs `fit` (default).
+            Could be useful for incremental classifiers.
+        '''
+
         self.check_if_fitted()
         if X is None:
             if hasattr(self, 'X_classify_'):
@@ -758,6 +783,25 @@ class HybridRegressor:
         self.betas_[j] = regressor.intercept_
     
     def improve_classification(self, X, X_dot, classifier=None, partial_fit=False):
+        '''
+        Improve mode region finding by finding modes of given NEW data, augmenting it to previous classification data, and re-running the classification algorithm.
+
+        Attributes
+        ----------
+        X : ndarray (N x D), default=None
+            A matrix of NEW training data points [x1, x2, ..., xN].
+       
+        X_dot : ndarray (N x D), default=None
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+        
+        classifier : ?, default=None
+            The classifier model to be used. Default is None, which indicates using the same classifier as in the previous run of `classify_modes`.
+        
+        partial_fit : Bool, default=False
+            Indicates whether to use `partial_fit` when running the classifier, otherwise runs `fit` (default).
+            Could be useful for incremental classifiers.
+        '''
+
         self.check_if_fitted()
         if X.size == 0:
             return
