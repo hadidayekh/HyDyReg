@@ -159,6 +159,7 @@ class HybridRegressor:
         segments : ndarray of N ints, default=[]
             The segment MAPPING of each data point to its segment.
             segments[i] indicates the segment identifier of point X[i].
+            This is DIFFERENT from `segments` in `fit_first_opti` which is a LIST OF CHANGE POINT INDICES.
 
         print_on : Bool, default=False
             The verbosity parameter of the Casadi optimizer.
@@ -428,6 +429,40 @@ class HybridRegressor:
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
     def fit_first_incremental(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None, shuffle_segments=False):
+        '''
+        Fit the Hybrid Regressor model using the *incremental* approach.
+
+        Attributes
+        ----------
+        X : ndarray (N x D)
+            A matrix of training data points [x1, x2, ..., xN].
+        
+        X_dot : ndarray (N x D)
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+
+        segments : list of ints
+            A list of INDICES of the beginning of each segment in `X`.
+            This means that `X[segments[i]:segments[i+1]]` are points that belong to the same segment.
+            This is DIFFERENT from `segments` in `fit_opti` which is a MAPPING.
+
+        good_RD : float, default=0.001
+            This tol_RD in the theoretical documentation.
+            Used as a tolerance for the average relative difference to indicate whether a mode captures the dynamics of a sequence of data points.
+
+        regressor : ?, default=LinearRegression()
+            The regressor model to be used. Default is linear regression (no regularization).
+            Regularization is recommended for passive learning. This can be achieved by passing RidgeCV() for example.
+
+        Time : ndarray (N), default=None
+            The time data associated to each data point in X.
+            Not required for the learning algorirthm itself, but is necessary if time information needs to be kept later on.
+            This is used in ESNDS learning for DCDC Melco (where time information is necessary for the mode region finding).
+
+        shuffle_segments : Bool, default=False
+            Indicates whether to fit segments in order or shuffle them first.
+            Note: When True, results are no longer guaranteed to be reproducible.
+        '''
+
         self.n = 1
 
         if len(segments) > 1:
