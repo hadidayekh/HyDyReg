@@ -48,3 +48,10 @@ model.classify_modes(classifier)
 
 print(model.gen_full_latex_eq())
 ```
+
+
+# Generating Docs
+To generate docs:
+```
+PYTHONPATH=src PDOC_IMPORTS=disable python3.9 -m pdoc src --output-dir docs
+```
