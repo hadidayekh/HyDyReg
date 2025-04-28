@@ -24,7 +24,7 @@ K_j = kernel matrix j = K_j(X, X)
 alpha_j is a Nx1 vector -> Alpha is the matrix
 beta_j is a scalar -> beta is the vector
 delta_j is a scalar, it's the error -> beta is the vector
-chi_j is a Nx1 vector -> Chi is the matrix
+xi_j is a Nx1 vector -> Xi is the matrix
 
 x_dot is a NxD matrix
 x_dot.T is DxN
@@ -174,19 +174,19 @@ class HybridRegressor:
         else:
             Alphas = np.ndarray((n, D), dtype=object)
         betas = np.ndarray((n, D), dtype=object)
-        Chis = np.ndarray((n,), dtype=object)
+        Xis = np.ndarray((n,), dtype=object)
 
         if norm == 'L1':
             As = np.ndarray((n, D), dtype=object)
         
         for j in range(n):
             if segmentation == 'strict':
-                chi_size_per_mode = S
+                xi_size_per_mode = S
             else:
-                chi_size_per_mode = N
+                xi_size_per_mode = N
             
-            Chis[j] = opti.variable(chi_size_per_mode)
-            opti.set_initial(Chis[j], np.random.rand(chi_size_per_mode))
+            Xis[j] = opti.variable(xi_size_per_mode)
+            opti.set_initial(Xis[j], np.random.rand(xi_size_per_mode))
 
             for d in range(D):
                 if tc:
@@ -211,17 +211,17 @@ class HybridRegressor:
         opti.set_value(C_param, C)
 
         # First part of the optimization objective function:
-        # the sum of products of Chis
-        # This forces one Chi per data point to be ~0, which dictates the mode
+        # the sum of products of Xis
+        # This forces one Xi per data point to be ~0, which dictates the mode
 
-        sum_products_chis = 0
-        for i in range(chi_size_per_mode):
+        sum_products_xis = 0
+        for i in range(xi_size_per_mode):
             temp = 1
             for j in range(n):
-                temp *= Chis[j][i]
-            sum_products_chis += temp
+                temp *= Xis[j][i]
+            sum_products_xis += temp
 
-        #sum_products_chis *= C_param
+        #sum_products_xis *= C_param
 
         # Second part of the optimization objective function:
         # The sum of norms of alphas/Omegas
@@ -235,7 +235,7 @@ class HybridRegressor:
             for j in range(n):
                 for d in range(D):
                     sum_norms_a += (As[j][d].T @ eye)
-            to_minimize = sum_norms_a + sum_products_chis
+            to_minimize = sum_norms_a + sum_products_xis
         elif norm == 'L2':
             sum_norms = 0
             for j in range(n):
@@ -244,65 +244,65 @@ class HybridRegressor:
                         sum_norms += (Omegas[j][d].T @ Omegas[j][d])
                     else:
                         sum_norms += (Alphas[j][d].T @ Alphas[j][d])
-            to_minimize = C_param*sum_norms + sum_products_chis
+            to_minimize = C_param*sum_norms + sum_products_xis
         else:
             raise Exception("The norm parameter has to be 'L1' or 'L2'.")
         
 
         if segmentation == 'squared_diff':
-            sum_diff_chis = 0
+            sum_diff_xis = 0
             for r in range(S):
                 seg_indices = np.where(segments==r)
                 for i in range(seg_indices.shape[0] - 1):
                     for j in range(n):
-                        sum_diff_chis += (Chis[j][seg_indices[i]] - Chis[j][seg_indices[i+1]])**2
+                        sum_diff_xis += (Xis[j][seg_indices[i]] - Xis[j][seg_indices[i+1]])**2
             # for r in range(len(segments)-1):
             #     for i in range(segments[r], segments[r+1] - 1):
             #         for j in range(n):
-            #             sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
+            #             sum_diff_xis += (Xis[j][i] - Xis[j][i+1])**2
             # for i in range(segments[-1], N-1):
             #     for j in range(n):
-            #         sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
+            #         sum_diff_xis += (Xis[j][i] - Xis[j][i+1])**2
             
-            to_minimize += C*sum_diff_chis
+            to_minimize += C*sum_diff_xis
 
         # Setting the objective function
         opti.minimize(to_minimize)
 
         # CONSTRAINTS
 
-        # all chis must be positive
+        # all xis must be positive
         for j in range(n):
-            opti.subject_to(Chis[j] >= 0)
+            opti.subject_to(Xis[j] >= 0)
         
         x_dotT = X_dot.T    # d by N
         eye = np.ones(N)
         for d in range(D):
             for j in range(n):
                 if segmentation == 'strict':
-                    # # Here we need to transform each Chi[j], which is currently an S by 1 matrix into an N by 1 matrix
-                    # # We do this by constructing a transformation matrix that assigns the correct chi according to which segment the point is in
+                    # # Here we need to transform each Xi[j], which is currently an S by 1 matrix into an N by 1 matrix
+                    # # We do this by constructing a transformation matrix that assigns the correct xi according to which segment the point is in
                     # trans_mat = np.zeros((N, S))
                     # for i in range(N):
                     #     seg_index = which_segment(i, segments)
                     #     trans_mat[i][seg_index] = 1
-                    # Chis[j] = casadi.vec(trans_mat @ Chis[j])
+                    # Xis[j] = casadi.vec(trans_mat @ Xis[j])
                     for i in range(N):
                         seg_index = segments[i]
                         if not tc:
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Xis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Xis[j][seg_index])
                         else:
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] <=  deltas[j] + Xis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] >= -deltas[j] - Xis[j][seg_index])
                 else:
-                    # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
+                    # the difference between prediction and the ground truth is bounded in [-delta-xi, delta+xi]
                     if not tc:
-                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
-                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Xis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Xis[j])
                     else:
-                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
-                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Xis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Xis[j])
                 if norm=='L1':
                     if not tc:
                         # As are bounded by [-alpha, +alpha]
@@ -320,7 +320,7 @@ class HybridRegressor:
         # Printing the results if print is on
         if print_on:
             for j in range(n):
-                print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
+                print("Xi_" + str(j) + ": " + str(sol.value(Xis[j])))
             for j in range(n):
                 for d in range(D):
                     if not tc:
@@ -335,10 +335,10 @@ class HybridRegressor:
         else:
             Omegas_sol = np.ndarray((n, D, Q))
         betas_sol  = np.ndarray((n, D))
-        Chis_sol   = np.ndarray((n, chi_size_per_mode))
+        Xis_sol   = np.ndarray((n, xi_size_per_mode))
 
         for j in range(n):
-                Chis_sol[j] = sol.value(Chis[j])
+                Xis_sol[j] = sol.value(Xis[j])
         for j in range(n):
             for d in range(D):
                 if not tc:
@@ -348,16 +348,16 @@ class HybridRegressor:
                 betas_sol[j][d]  = sol.value(betas[j][d])
         
         if segmentation == 'strict':
-            self.Chis_segments_ = Chis_sol
-            final_Chis = np.ndarray((n, N))
+            self.Xis_segments_ = Xis_sol
+            final_Xis = np.ndarray((n, N))
             for j in range(n):
                 for i in range(N):
                     seg_index = segments[i]
-                    final_Chis[j][i] = Chis_sol[j][seg_index]
+                    final_Xis[j][i] = Xis_sol[j][seg_index]
 
-            self.Chis_ = final_Chis
+            self.Xis_ = final_Xis
         else: 
-            self.Chis_ = Chis_sol
+            self.Xis_ = Xis_sol
 
         if apply_LR and tc:
             modes = self.get_modes()
@@ -379,7 +379,7 @@ class HybridRegressor:
         else:
             self.Omegas_ = Omegas_sol
         self.betas_ = betas_sol
-        # self.Chis_ = Chis_sol
+        # self.Xis_ = Xis_sol
         self.Xfit_ = X
         self.Xfit_trans_ = X_trans
         self.X_dot_fit_ = X_dot
@@ -625,7 +625,7 @@ class HybridRegressor:
         Omegas = np.ndarray((n, D, Q), dtype=float)
         Alphas = np.ndarray((n, D), dtype=object)
         betas = np.ndarray((n, D), dtype=object)
-        Chis = np.ndarray((n,), dtype=object)
+        Xis = np.ndarray((n,), dtype=object)
         
         LR_Omegas = np.ndarray((S, D, Q), dtype=float)
         for r in range(S-2):
@@ -650,10 +650,10 @@ class HybridRegressor:
         LR_Omegas[r] = LR.coef_
 
         for j in range(n):
-            chi_size_per_mode = S
+            xi_size_per_mode = S
             
-            Chis[j] = opti.variable(chi_size_per_mode)
-            opti.set_initial(Chis[j], np.random.rand(chi_size_per_mode))
+            Xis[j] = opti.variable(xi_size_per_mode)
+            opti.set_initial(Xis[j], np.random.rand(xi_size_per_mode))
 
             for d in range(D):
                 if tc:
@@ -663,23 +663,23 @@ class HybridRegressor:
                 betas[j][d] = opti.variable()
                 opti.set_initial(betas[j][d], np.random.rand())
                 #betas[j][d] = 0
-        print(chi_size_per_mode)
+        print(xi_size_per_mode)
 
         C_param = opti.parameter()
         opti.set_value(C_param, C)
 
         # First part of the optimization objective function:
-        # the sum of products of Chis
-        # This forces one Chi per data point to be ~0, which dictates the mode
+        # the sum of products of Xis
+        # This forces one Xi per data point to be ~0, which dictates the mode
 
-        sum_products_chis = 0
-        for i in range(chi_size_per_mode):
+        sum_products_xis = 0
+        for i in range(xi_size_per_mode):
             temp = 1
             for j in range(n):
-                temp *= Chis[j][i]
-            sum_products_chis += temp
+                temp *= Xis[j][i]
+            sum_products_xis += temp
 
-        sum_products_chis *= C_param
+        sum_products_xis *= C_param
 
         # Second part of the optimization objective function:
         # The sum of norms of alphas/Omegas
@@ -689,36 +689,36 @@ class HybridRegressor:
         for j in range(n):
             for d in range(D):
                 sum_norms_alphas += (Alphas[j][d].T @ eye)
-        to_minimize = sum_norms_alphas + sum_products_chis
+        to_minimize = sum_norms_alphas + sum_products_xis
 
         # Setting the objective function
         opti.minimize(to_minimize)
 
         # CONSTRAINTS
 
-        # all chis must be positive
+        # all xis must be positive
         for j in range(n):
-            opti.subject_to(Chis[j] >= 0)
+            opti.subject_to(Xis[j] >= 0)
         
         x_dotT = X_dot.T    # d by N
         eye = np.ones(N)
         for d in range(D):
             for j in range(n):
-                # # Here we need to transform each Chi[j], which is currently an S by 1 matrix into an N by 1 matrix
-                # # We do this by constructing a transformation matrix that assigns the correct chi according to which segment the point is in
+                # # Here we need to transform each Xi[j], which is currently an S by 1 matrix into an N by 1 matrix
+                # # We do this by constructing a transformation matrix that assigns the correct xi according to which segment the point is in
                 # trans_mat = np.zeros((N, S))
                 # for i in range(N):
                 #     seg_index = which_segment(i, segments)
                 #     trans_mat[i][seg_index] = 1
-                # Chis[j] = casadi.vec(trans_mat @ Chis[j])
+                # Xis[j] = casadi.vec(trans_mat @ Xis[j])
                 lin_comb_lr = 0
                 for r in range(S):
                     lin_comb_lr += Alphas[j][d][r] * LR_Omegas[r][d]
                 for i in range(N):
                     seg_index = segments[i]
                     
-                    opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, lin_comb_lr) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
-                    opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, lin_comb_lr) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                    opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, lin_comb_lr) - betas[j][d] <=  deltas[j] + Xis[j][seg_index])
+                    opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, lin_comb_lr) - betas[j][d] >= -deltas[j] - Xis[j][seg_index])
 
         
         opti.solver('ipopt', dict(), dict(max_iter = 3000))
@@ -729,7 +729,7 @@ class HybridRegressor:
         # Printing the results if print is on
         if print_on:
             for j in range(n):
-                print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
+                print("Xi_" + str(j) + ": " + str(sol.value(Xis[j])))
             for j in range(n):
                 for d in range(D):
                     if not tc:
@@ -741,10 +741,10 @@ class HybridRegressor:
         # Saving the results in proper arrays
         Omegas_sol = np.ndarray((n, D, Q))
         betas_sol  = np.ndarray((n, D))
-        Chis_sol   = np.ndarray((n, chi_size_per_mode))
+        Xis_sol   = np.ndarray((n, xi_size_per_mode))
 
         for j in range(n):
-                Chis_sol[j] = sol.value(Chis[j])
+                Xis_sol[j] = sol.value(Xis[j])
         for j in range(n):
             for d in range(D):
                 lin_comb_lr = 0
@@ -753,19 +753,19 @@ class HybridRegressor:
                 Omegas_sol[j][d] = lin_comb_lr
                 betas_sol[j][d]  = sol.value(betas[j][d])
         
-        self.Chis_segments_ = Chis_sol
-        final_Chis = np.ndarray((n, N))
+        self.Xis_segments_ = Xis_sol
+        final_Xis = np.ndarray((n, N))
         for j in range(n):
             for i in range(N):
                 seg_index = segments[i]
-                final_Chis[j][i] = Chis_sol[j][seg_index]
+                final_Xis[j][i] = Xis_sol[j][seg_index]
 
-        self.Chis_ = final_Chis
+        self.Xis_ = final_Xis
        
         #self.sol_ = sol
         self.Omegas_ = Omegas_sol
         self.betas_ = betas_sol
-        # self.Chis_ = Chis_sol
+        # self.Xis_ = Xis_sol
         self.Xfit_ = X
         self.Xfit_trans_ = X_trans
 
@@ -933,7 +933,7 @@ class HybridRegressor:
 
     def get_modes(self):
         self.check_if_fitted()
-        return np.argmin(self.Chis_, axis=0)
+        return np.argmin(self.Xis_, axis=0)
     
     def to_SNDS(self, labelfun=None, eventlist=None):
         self.check_if_fitted()
