@@ -20,37 +20,37 @@ from utils import *
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning) # setting ignore as a parameter and further adding category
  
+if __name__ == "__main__":
+    compare_with_inferDynamic = False
+    if compare_with_inferDynamic:
+        try:
+            f = open("pathtoinferdynamic.txt", 'r')
+            path_to_InferDynamic = f.read()
+            sys.path.insert(0, path_to_InferDynamic)
+            from infer_multi_ch import infer_model, test_model
+        except:
+            print("Cannot open path to infer dynamic file.")
+            compare_with_inferDynamic = False
 
-compare_with_inferDynamic = False
-if compare_with_inferDynamic:
-    try:
-        f = open("pathtoinferdynamic.txt", 'r')
-        path_to_InferDynamic = f.read()
-        sys.path.insert(0, path_to_InferDynamic)
-        from infer_multi_ch import infer_model, test_model
-    except:
-        print("Cannot open path to infer dynamic file.")
-        compare_with_inferDynamic = False
 
+    exp_title = "parametric"
+    save_plots = True
+    seg_tol = 0.1
+    optimization_based = False
+    improve_continuous = True
 
-exp_title = "parametric"
-save_plots = True
-seg_tol = 0.1
-optimization_based = False
-improve_continuous = True
-
-if len(sys.argv) < 2:
-    if optimization_based:
-        nmodes_list = [2,3,4,5]
+    if len(sys.argv) < 2:
+        if optimization_based:
+            nmodes_list = [2,3,4,5]
+        else:
+            nmodes_list = [2,3,4,5, 10, 20]
     else:
-        nmodes_list = [2,3,4,5, 10, 20]
-else:
-    nmodes_list = [int(sys.argv[1])]
+        nmodes_list = [int(sys.argv[1])]
 
-if len(sys.argv) > 2 and sys.argv[2] == 'f':
-    learn = False
-else:
-    learn = True
+    if len(sys.argv) > 2 and sys.argv[2] == 'f':
+        learn = False
+    else:
+        learn = True
 
 
 def parametric(nmodes, radius=1.0):
@@ -103,142 +103,143 @@ def parametric(nmodes, radius=1.0):
     sul = SNDS_affine(params, eventlist, labelfun)
     return sul
 
-##### SIMULATING TRAJECTORIES #####
-# Setting initial conditions and simulation paramters
+if __name__ == "__main__":
+    ##### SIMULATING TRAJECTORIES #####
+    # Setting initial conditions and simulation paramters
 
-DATA_avg = []
-DATA_max = []
-DATA_both = []
-for nmodes in nmodes_list:
-    np.random.seed(1)
+    DATA_avg = []
+    DATA_max = []
+    DATA_both = []
+    for nmodes in nmodes_list:
+        np.random.seed(1)
 
-    radius = 1.0
-    radii = radius/nmodes
-    sul = parametric(nmodes, radius)
+        radius = 1.0
+        radii = radius/nmodes
+        sul = parametric(nmodes, radius)
 
-    x0s = np.array([[-1.0, -1], [1,-1], [-1,1]])
-    # x0s *= 1.5/sqrt(2)/nmodes
-    # x0s = np.random.random((15, 2))*2 - 1
+        x0s = np.array([[-1.0, -1], [1,-1], [-1,1]])
+        # x0s *= 1.5/sqrt(2)/nmodes
+        # x0s = np.random.random((15, 2))*2 - 1
 
-    x0s_test = np.random.random((5, 2))*4 - 2
+        x0s_test = np.random.random((5, 2))*4 - 2
 
-    if not optimization_based:
-        time_step = 0.001
-        time_range = 1
-        time_step_test = 0.001
-        time_range_test = 1
-    else:
-        time_step = 0.01
-        time_range = 1
-        time_step_test = 0.01
-        time_range_test = 1
+        if not optimization_based:
+            time_step = 0.001
+            time_range = 1
+            time_step_test = 0.001
+            time_range_test = 1
+        else:
+            time_step = 0.01
+            time_range = 1
+            time_step_test = 0.01
+            time_range_test = 1
 
-    eq_query_bounds = np.array([[-1.0,1.0], [-1.0,1.0]])
+        eq_query_bounds = np.array([[-1.0,1.0], [-1.0,1.0]])
 
-    c = LogisticRegression(penalty='none', multi_class='multinomial', max_iter=100000)
-    # c = SVC(C=1e10, kernel='poly', degree=2, gamma=1)
+        c = LogisticRegression(penalty='none', multi_class='multinomial', max_iter=100000)
+        # c = SVC(C=1e10, kernel='poly', degree=2, gamma=1)
 
-    if not learn:
-        # Simulating trajectories
-        trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
-        segments = trajectories.segment_trajectories(0.1)
+        if not learn:
+            # Simulating trajectories
+            trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
+            segments = trajectories.segment_trajectories(0.1)
 
-        # Plotting results
-        plot_title = exp_title + 'trajs=' + str(len(x0s)) + ' ts=' + str(time_step) + ' T=' + str(time_range)
+            # Plotting results
+            plot_title = exp_title + 'trajs=' + str(len(x0s)) + ' ts=' + str(time_step) + ' T=' + str(time_range)
 
-        fig1, ax1 = plotting.draw_trajectories_2D(trajectories, mark_beginning=True, segments=segments)
+            fig1, ax1 = plotting.draw_trajectories_2D(trajectories, mark_beginning=True, segments=segments)
 
-        f1, a1 = plt.subplots()
-        # c = ['r', 'b', 'g', 'c', 'm']
-        c = [plt.cm.Set1(i) for i in range(20)]
-        done = [False] * nmodes
-        for tr in trajectories.x_list:
-            for i in range(len(tr)):
-                x = tr[i]
-                l = sul.labelfun(x)
-                a1.scatter(x[0], x[1], s=2, color=c[l], label=f"Mode {l+1}" if not done[l] else None)
-                done[l] = True
+            f1, a1 = plt.subplots()
+            # c = ['r', 'b', 'g', 'c', 'm']
+            c = [plt.cm.Set1(i) for i in range(20)]
+            done = [False] * nmodes
+            for tr in trajectories.x_list:
+                for i in range(len(tr)):
+                    x = tr[i]
+                    l = sul.labelfun(x)
+                    a1.scatter(x[0], x[1], s=2, color=c[l], label=f"Mode {l+1}" if not done[l] else None)
+                    done[l] = True
 
 
-        x0 = np.linspace(-radius,radius,100)
-        x1 = np.linspace(-radius,radius,100)
-        xx, yy = np.meshgrid(x0,x1)
+            x0 = np.linspace(-radius,radius,100)
+            x1 = np.linspace(-radius,radius,100)
+            xx, yy = np.meshgrid(x0,x1)
 
-        for j in range(1, nmodes):
-            zz = xx**2 + yy**2 - (radii*j)**2
-            a1.contour(xx, yy, zz, levels=[0], colors=['k'], linewidths=0.5)
+            for j in range(1, nmodes):
+                zz = xx**2 + yy**2 - (radii*j)**2
+                a1.contour(xx, yy, zz, levels=[0], colors=['k'], linewidths=0.5)
 
-        a1.legend()
-        a1.set_xlabel('$x^{(1)}$')
-        a1.set_ylabel('$x^{(2)}$')
+            a1.legend()
+            a1.set_xlabel('$x^{(1)}$')
+            a1.set_ylabel('$x^{(2)}$')
 
-    else:
-        
+        else:
+            
 
-        sul, learned_SNDS, trajectories, traj_test_sul, data_avg, data_max, data_both  = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes=nmodes, poly_degree=1, random_test_set=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=True, classifier = c, C_space = [0, 0.001, 0.01], write_on=True, deltas=0.0001, MSE_break_tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=100, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False, improve_cont=improve_continuous, fit_active_only=not optimization_based, N_cexs=10, max_step_factor=2, gen_fine_time_step_factor=10 if nmodes >= 10 else 20)
+            sul, learned_SNDS, trajectories, traj_test_sul, data_avg, data_max, data_both  = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes=nmodes, poly_degree=1, random_test_set=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=True, classifier = c, C_space = [0, 0.001, 0.01], write_on=True, deltas=0.0001, MSE_break_tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=100, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False, improve_cont=improve_continuous, fit_active_only=not optimization_based, N_cexs=10, max_step_factor=2, gen_fine_time_step_factor=10 if nmodes >= 10 else 20)
 
-        if compare_with_inferDynamic:
-            if nmodes == 2 or nmodes == 3:
+            if compare_with_inferDynamic:
+                if nmodes == 2 or nmodes == 3:
 
-                methods = ['tolmerge', 'piecelinear']
+                    methods = ['tolmerge', 'piecelinear']
 
-                for method in methods:
-                    mergeps = [0.01]
-                    if nmodes == 2:
-                        for mergeep in mergeps:
-                            start = time.time()
-                            P, G, boundary = infer_model(
-                                        trajectories.t_list, trajectories.x_list, stepsize=time_step, maxorder=1, boundary_order=2,
-                                        num_mode=nmodes, modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False)
-                            infer_time = time.time() - start
-                            modelist = sul.eqs
-                            event = sul.eventlist[0]
-                            res = test_model(P, G, boundary, nmodes, traj_test_sul.x_list, sul.eqs, sul.eventlist[0], 1, 2)
-                            data.append(res)
-                            data.append(infer_time)
-                    else:
-                        for mergeep in mergeps:
-                            start = time.time()
-                            P, G, boundary = infer_model(
-                                        trajectories.t_list, trajectories.x_list, stepsize=time_step, maxorder=1, boundary_order=2,
-                                        num_mode=nmodes, modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False, labeltest=sul.labelfun)
-                            infer_time = time.time() - start
-                            res = test_model(P, G, boundary, nmodes, traj_test_sul.x_list, sul.eqs, sul.eventlist, 1, 2, labeltest=sul.labelfun)
-                            data.append(res)
-                            data.append(infer_time)
+                    for method in methods:
+                        mergeps = [0.01]
+                        if nmodes == 2:
+                            for mergeep in mergeps:
+                                start = time.time()
+                                P, G, boundary = infer_model(
+                                            trajectories.t_list, trajectories.x_list, stepsize=time_step, maxorder=1, boundary_order=2,
+                                            num_mode=nmodes, modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False)
+                                infer_time = time.time() - start
+                                modelist = sul.eqs
+                                event = sul.eventlist[0]
+                                res = test_model(P, G, boundary, nmodes, traj_test_sul.x_list, sul.eqs, sul.eventlist[0], 1, 2)
+                                data.append(res)
+                                data.append(infer_time)
+                        else:
+                            for mergeep in mergeps:
+                                start = time.time()
+                                P, G, boundary = infer_model(
+                                            trajectories.t_list, trajectories.x_list, stepsize=time_step, maxorder=1, boundary_order=2,
+                                            num_mode=nmodes, modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False, labeltest=sul.labelfun)
+                                infer_time = time.time() - start
+                                res = test_model(P, G, boundary, nmodes, traj_test_sul.x_list, sul.eqs, sul.eventlist, 1, 2, labeltest=sul.labelfun)
+                                data.append(res)
+                                data.append(infer_time)
+                else:
+                    data_avg.extend([-1,-1,-1,-1])
+                    data_max.extend([-1,-1,-1,-1])
+                    data_both.extend([-1,-1,-1,-1])
             else:
                 data_avg.extend([-1,-1,-1,-1])
                 data_max.extend([-1,-1,-1,-1])
                 data_both.extend([-1,-1,-1,-1])
-        else:
-            data_avg.extend([-1,-1,-1,-1])
-            data_max.extend([-1,-1,-1,-1])
-            data_both.extend([-1,-1,-1,-1])
-            
-        DATA_avg.append(data_avg)
-        DATA_max.append(data_max)
-        DATA_both.append(data_both)# print_experi_data(DATA)
+                
+            DATA_avg.append(data_avg)
+            DATA_max.append(data_max)
+            DATA_both.append(data_both)# print_experi_data(DATA)
 
-if learn:
-    print("avg")
-    s_avg = print_experi_data(DATA_avg)
-    print("max")
-    s_max = print_experi_data(DATA_max)
-    print("both")
-    s_both = print_experi_data(DATA_both, both=True)
-    pickle_name = 'opti_parametric_data.pkl' if optimization_based else 'incr_parametric_data.pkl'
-    file_name = 'opti_parametric_data.txt' if optimization_based else 'incr_parametric_data.txt'
-    with open(pickle_name, 'wb') as f1:
-        pickle.dump([DATA_avg, DATA_max, DATA_both], f1)
+    if learn:
+        print("avg")
+        s_avg = print_experi_data(DATA_avg)
+        print("max")
+        s_max = print_experi_data(DATA_max)
+        print("both")
+        s_both = print_experi_data(DATA_both, both=True)
+        pickle_name = 'opti_parametric_data.pkl' if optimization_based else 'incr_parametric_data.pkl'
+        file_name = 'opti_parametric_data.txt' if optimization_based else 'incr_parametric_data.txt'
+        with open(pickle_name, 'wb') as f1:
+            pickle.dump([DATA_avg, DATA_max, DATA_both], f1)
 
-    with open(file_name, 'w') as f2:
-        f2.write("avg\n")
-        f2.write(s_avg + "\n")
+        with open(file_name, 'w') as f2:
+            f2.write("avg\n")
+            f2.write(s_avg + "\n")
 
-        f2.write("max\n")
-        f2.write(s_max + "\n")
+            f2.write("max\n")
+            f2.write(s_max + "\n")
 
-        f2.write("both\n")
-        f2.write(s_both + "\n")
+            f2.write("both\n")
+            f2.write(s_both + "\n")
 
-# plt.show()
+    # plt.show()
