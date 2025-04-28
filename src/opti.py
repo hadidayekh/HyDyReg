@@ -550,6 +550,34 @@ class HybridRegressor:
         return min_RD < tol, np.argmin(RDs)
 
     def update_continuous(self, X, X_dot, good_RD=0.001, regressor=LinearRegression(), Time = None):
+        '''
+        Update the learned continuous dynamics and mode information with NEW data of ONE SEGMENT.
+        This function is called repeatedly on data of different segments in the incremental learning approach.
+        Theoretically can be used to update the dynamics found using the optimization based appraoch, but this is not tested.
+
+        Attributes
+        ----------
+        X : ndarray (N x D)
+            A matrix of NEW training data points [x1, x2, ..., xN] belonging in ONE SEGMENT.
+        
+        X_dot : ndarray (N x D)
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+
+        good_RD : float, default=0.001
+            This tol_RD in the theoretical documentation.
+            Used as a tolerance for the average relative difference to indicate whether a mode captures the dynamics of a sequence of data points.
+
+        regressor : ?, default=LinearRegression()
+            The regressor model to be used. Default is linear regression (no regularization).
+            Regularization is recommended for passive learning. This can be achieved by passing RidgeCV() for example.
+
+        Time : ndarray (N), default=None
+            The time data associated to each data point in X.
+            Not required for the learning algorirthm itself, but is necessary if time information needs to be kept later on.
+            This is used in ESNDS learning for DCDC Melco (where time information is necessary for the mode region finding).
+        '''
+
+
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
