@@ -17,17 +17,18 @@ from sklearn.svm import SVC
 # setting ignore as a parameter and further adding category
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-compare_with_inferDynamic = True
-if compare_with_inferDynamic:
-    try:
-        f = open("pathtoinferdynamic.txt", 'r')
-        path_to_InferDynamic = f.read()
-        sys.path.insert(0, path_to_InferDynamic)
-        from infer_multi_ch import infer_model, test_model
-    except:
-        print("Cannot open path to infer dynamic file.")
-        compare_with_inferDynamic = False
-# def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none')):
+if __name__ == "__main__":
+    compare_with_inferDynamic = True
+    if compare_with_inferDynamic:
+        try:
+            f = open("pathtoinferdynamic.txt", 'r')
+            path_to_InferDynamic = f.read()
+            sys.path.insert(0, path_to_InferDynamic)
+            from infer_multi_ch import infer_model, test_model
+        except:
+            print("Cannot open path to infer dynamic file.")
+            compare_with_inferDynamic = False
+    # def learn_system(exp_name, sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier = LogisticRegression(penalty='none')):
 
 '''
 exp name
@@ -443,139 +444,139 @@ exp_infos = {
     }
 }
 
-
-optimization_based = False
-improve_continuous = True
-
-
-DATA_avg = []
-DATA_max = []
-DATA_both = []
-
-exps = [list(exp_infos.keys())[0]]
-exps = list(exp_infos.keys())
-# exps = ['ham']
-for exp_title in exps:
-    # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
-    np.random.seed(0)
-    exp = exp_infos[exp_title]
-    # try:
-    sul, learned_SNDS, trajectories, traj_test_sul, data_avg, data_max, data_both = learn_system(exp_name=exp_title,
-                                                                        sul=exp['sul'],
-                                                                        time_step=exp['time_step'],
-                                                                        time_range=exp['time_range'],
-                                                                        x0s=exp['x0s'],
-                                                                        time_step_test=exp['time_step_test'],
-                                                                        time_range_test=exp['time_range_test'],
-                                                                        x0s_test=exp['x0s_test'],
-                                                                        random_test_set=exp['random_test_set'],
-                                                                        nmodes=exp['nmodes'],
-                                                                        poly_degree=exp['poly_degree'],
-                                                                        seg_tol=exp['seg_tol'],
-                                                                        classifier=exp['classifier'],
-                                                                        classifier_poly_deg=exp[
-                                                                            'classifier_poly_deg'],
-                                                                        do_eq_query=True,
-                                                                        eq_query_bounds=exp['eq_query_bounds'],
-                                                                        eq_query_ntrajs=exp['eq_query_ntrajs'],
-                                                                        eq_query_tol=exp['eq_query_tol'],
-                                                                        sampling_method='random',
-                                                                        C_space=[
-                                                                            0, 0.001, 0.01, 0.1, 1],
-                                                                        write_on=True,
-                                                                        deltas=0.001,
-                                                                        break_at_low_MSE=False,
-                                                                        apply_LR=False,
-                                                                        with_plots=True,
-                                                                        plot_xt=False,
-                                                                        print_on=True,
-                                                                        stop_at_sliding_motion=False,
-                                                                        fit_active_only=not optimization_based,
-                                                                        improve_cont=improve_continuous,
-                                                                        N_cexs=5)
-
-    print("Test derivatives RD:", data_avg[-1])
-
-    if compare_with_inferDynamic:
-        if exp['nmodes'] == 2 or exp['nmodes'] == 3:
-
-            methods = ['tolmerge', 'piecelinear']
-
-            for method in methods:
-                print()
-                print(method)
-                mergeps = [0.01]
-                if exp['nmodes'] == 2:
-                    for mergeep in mergeps:
-                        start = time.time()
-                        P, G, boundary = infer_model(
-                            trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp[
-                                'poly_degree'], boundary_order=exp['classifier_poly_deg'],
-                            num_mode=exp['nmodes'], modelist=exp['sul'].eqs, event=exp['sul'].eventlist[0], ep=0.01, mergeep=mergeep, method=method, verbose=False)
-                        infer_time = time.time() - start
-                        modelist = exp['sul'].eqs
-                        event = exp['sul'].eventlist[0]
-                        res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
-                                         exp['sul'].eventlist[0], exp['poly_degree'], exp['classifier_poly_deg'])
-                        print(res)
-                        data_avg.append(res)
-                        data_avg.append(infer_time)
-
-                        data_max.append(res)
-                        data_max.append(infer_time)
-
-                        data_both.append(res)
-                        data_both.append(infer_time)
-                else:
-                    for mergeep in mergeps:
-                        start = time.time()
-                        P, G, boundary = infer_model(
-                            trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp[
-                                'poly_degree'], boundary_order=exp['classifier_poly_deg'],
-                            num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep=mergeep, method=method, verbose=False, labeltest=exp['sul'].labelfun)
-                        infer_time = time.time() - start
-                        res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
-                                         exp['sul'].eventlist, exp['poly_degree'], exp['classifier_poly_deg'], labeltest=exp['sul'].labelfun)
-                        print(res)
-                        data_avg.append(res)
-                        data_avg.append(infer_time)
-
-                        data_max.append(res)
-                        data_max.append(infer_time)
-
-                        data_both.append(res)
-                        data_both.append(infer_time)
-    else:
-        data_avg.extend([-1,-1,-1,-1])
-        data_max.extend([-1,-1,-1,-1])
-        data_both.extend([-1,-1,-1,-1])
-    # except Exception as e:
-    #     print(e)
-    #     print("Experiment " + exp_title + " failed.")
-    DATA_avg.append(data_avg)
-    DATA_max.append(data_max)
-    DATA_both.append(data_both)
-
-print("avg")
-s_avg = print_experi_data(DATA_avg)
-print("max")
-s_max = print_experi_data(DATA_max)
-print("both")
-s_both = print_experi_data(DATA_both, both=True)
+if __name__ == "__main__":
+    optimization_based = False
+    improve_continuous = True
 
 
-pickle_name = 'opti_other_experi_data.pkl' if optimization_based else 'incr_other_experi_data.pkl'
-file_name = 'opti_other_experi_data.txt' if optimization_based else 'incr_other_experi_data.txt'
-with open(pickle_name, 'wb') as f1:
-    pickle.dump([DATA_avg, DATA_max, DATA_both], f1)
+    DATA_avg = []
+    DATA_max = []
+    DATA_both = []
 
-with open(file_name, 'w') as f2:
-    f2.write("avg\n")
-    f2.write(s_avg + "\n")
+    exps = [list(exp_infos.keys())[0]]
+    exps = list(exp_infos.keys())
+    # exps = ['ham']
+    for exp_title in exps:
+        # for exp_title in ['poly2_4d']:#['bio_sys', 'ham']:
+        np.random.seed(0)
+        exp = exp_infos[exp_title]
+        # try:
+        sul, learned_SNDS, trajectories, traj_test_sul, data_avg, data_max, data_both = learn_system(exp_name=exp_title,
+                                                                            sul=exp['sul'],
+                                                                            time_step=exp['time_step'],
+                                                                            time_range=exp['time_range'],
+                                                                            x0s=exp['x0s'],
+                                                                            time_step_test=exp['time_step_test'],
+                                                                            time_range_test=exp['time_range_test'],
+                                                                            x0s_test=exp['x0s_test'],
+                                                                            random_test_set=exp['random_test_set'],
+                                                                            nmodes=exp['nmodes'],
+                                                                            poly_degree=exp['poly_degree'],
+                                                                            seg_tol=exp['seg_tol'],
+                                                                            classifier=exp['classifier'],
+                                                                            classifier_poly_deg=exp[
+                                                                                'classifier_poly_deg'],
+                                                                            do_eq_query=True,
+                                                                            eq_query_bounds=exp['eq_query_bounds'],
+                                                                            eq_query_ntrajs=exp['eq_query_ntrajs'],
+                                                                            eq_query_tol=exp['eq_query_tol'],
+                                                                            sampling_method='random',
+                                                                            C_space=[
+                                                                                0, 0.001, 0.01, 0.1, 1],
+                                                                            write_on=True,
+                                                                            deltas=0.001,
+                                                                            break_at_low_MSE=False,
+                                                                            apply_LR=False,
+                                                                            with_plots=True,
+                                                                            plot_xt=False,
+                                                                            print_on=True,
+                                                                            stop_at_sliding_motion=False,
+                                                                            fit_active_only=not optimization_based,
+                                                                            improve_cont=improve_continuous,
+                                                                            N_cexs=5)
 
-    f2.write("max\n")
-    f2.write(s_max + "\n")
+        print("Test derivatives RD:", data_avg[-1])
 
-    f2.write("both\n")
-    f2.write(s_both + "\n")
-# plt.show()
+        if compare_with_inferDynamic:
+            if exp['nmodes'] == 2 or exp['nmodes'] == 3:
+
+                methods = ['tolmerge', 'piecelinear']
+
+                for method in methods:
+                    print()
+                    print(method)
+                    mergeps = [0.01]
+                    if exp['nmodes'] == 2:
+                        for mergeep in mergeps:
+                            start = time.time()
+                            P, G, boundary = infer_model(
+                                trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp[
+                                    'poly_degree'], boundary_order=exp['classifier_poly_deg'],
+                                num_mode=exp['nmodes'], modelist=exp['sul'].eqs, event=exp['sul'].eventlist[0], ep=0.01, mergeep=mergeep, method=method, verbose=False)
+                            infer_time = time.time() - start
+                            modelist = exp['sul'].eqs
+                            event = exp['sul'].eventlist[0]
+                            res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
+                                            exp['sul'].eventlist[0], exp['poly_degree'], exp['classifier_poly_deg'])
+                            print(res)
+                            data_avg.append(res)
+                            data_avg.append(infer_time)
+
+                            data_max.append(res)
+                            data_max.append(infer_time)
+
+                            data_both.append(res)
+                            data_both.append(infer_time)
+                    else:
+                        for mergeep in mergeps:
+                            start = time.time()
+                            P, G, boundary = infer_model(
+                                trajectories.t_list, trajectories.x_list, stepsize=exp['time_step'], maxorder=exp[
+                                    'poly_degree'], boundary_order=exp['classifier_poly_deg'],
+                                num_mode=exp['nmodes'], modelist=None, event=None, ep=0.01, mergeep=mergeep, method=method, verbose=False, labeltest=exp['sul'].labelfun)
+                            infer_time = time.time() - start
+                            res = test_model(P, G, boundary, exp['nmodes'], traj_test_sul.x_list, exp['sul'].eqs,
+                                            exp['sul'].eventlist, exp['poly_degree'], exp['classifier_poly_deg'], labeltest=exp['sul'].labelfun)
+                            print(res)
+                            data_avg.append(res)
+                            data_avg.append(infer_time)
+
+                            data_max.append(res)
+                            data_max.append(infer_time)
+
+                            data_both.append(res)
+                            data_both.append(infer_time)
+        else:
+            data_avg.extend([-1,-1,-1,-1])
+            data_max.extend([-1,-1,-1,-1])
+            data_both.extend([-1,-1,-1,-1])
+        # except Exception as e:
+        #     print(e)
+        #     print("Experiment " + exp_title + " failed.")
+        DATA_avg.append(data_avg)
+        DATA_max.append(data_max)
+        DATA_both.append(data_both)
+
+    print("avg")
+    s_avg = print_experi_data(DATA_avg)
+    print("max")
+    s_max = print_experi_data(DATA_max)
+    print("both")
+    s_both = print_experi_data(DATA_both, both=True)
+
+
+    pickle_name = 'opti_other_experi_data.pkl' if optimization_based else 'incr_other_experi_data.pkl'
+    file_name = 'opti_other_experi_data.txt' if optimization_based else 'incr_other_experi_data.txt'
+    with open(pickle_name, 'wb') as f1:
+        pickle.dump([DATA_avg, DATA_max, DATA_both], f1)
+
+    with open(file_name, 'w') as f2:
+        f2.write("avg\n")
+        f2.write(s_avg + "\n")
+
+        f2.write("max\n")
+        f2.write(s_max + "\n")
+
+        f2.write("both\n")
+        f2.write(s_both + "\n")
+    # plt.show()
