@@ -27,12 +27,16 @@ class SNDS:
     ----------
     n : int
         The number of modes.
+    
     d : int
         The dimension of the continuous state vector
+    
     eqs : List[List[Callable]]
         List of `n` lists of `d` differential equations, one per mode and dimension of the continuous state vector.
+    
     eventlist : List[Callable]
         List of events to track when simulating trajectory, this is usually the conditions of crossing from one mode to another.
+    
     labelfun : Callable
         A function that returns the mode in which state x is in, from {0,...,n-1}
 
@@ -299,12 +303,16 @@ class Trajectories:
     ----------
     t_list : List[ndarray]
         List of arrays of time points.
+    
     x_list : List[ndarray]
         List of arrays of x points (continuous state points), each x point has dimension d.
+    
     num_trajectories : int
         The number of trajectories.
+    
     segmented : Bool
         Indicated whether the trajectories are segmented or not.
+    
     d : int
         Dimension of the continuous state vector.
 
@@ -313,10 +321,13 @@ class Trajectories:
     -------
     segment_trajectories(tol)
         Segments each trajectory at points where the difference between the three-point forward and three-point backward derivatives is greater than a certain tolerance. Does not support variable time steps.
+    
     segment_trajectories_two_points(tol)
         Segments each trajectory at points where the difference between the two-point forward and two-point backward derivatives is greater than a certain tolerance. Supports variable time steps.
+    
     append_trajs(trajs):
         Appends a collection of trajectories.
+    
     return_unsegmented()
         Return the unsegmented version of trajectories including the missing points that are dropped due to segmentation.
     '''
