@@ -127,11 +127,52 @@ class HybridRegressor:
 
     # For segmentation, will introduce variable segmentation which can belong to
     # {'squared_diff', 'strict'} or be None
-    def fit_opti(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False):
+    def fit_opti(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation='strict', segments=[], print_on=False, apply_LR=False):
+        '''
+        Fit the Hybrid Regressor model using the *optimization based* approach.
+
+        Attributes
+        ----------
+        X : ndarray (N x D)
+            A matrix of training data points [x1, x2, ..., xN].
+        
+        X_dot : ndarray (N x D)
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+        
+        C : float, default=100
+            The hyperparameter C controlling the strength of regularization in the optimization objective function.
+
+        detlas : list of `n` floats or float, default=0.01
+            A list of absolute insensitivity errors for each mode.
+            When one value is given, the same value applies to all modes.
+
+        norm : 'L1' or 'L2', default='L2'
+            The norm used for regularization.
+            Note: 'L1' norm is not supported (may or may not work).
+
+        segmentation : None or 'strict' or 'squared_diff', default='strict'
+            The type of integration of segmentation information.
+            None means no segmentation information is integrated.
+            'strict' means segmentation will be strictly integrated, and Xi variables per mode per point will be replaced by Xi variables per mode per segment. This is the method illustrated in the thesis.
+            'squared_diff' means segmentation will be added by adding the squared difference of Xi variables of points belonging to the same segment to the minimization problem. This is not supported by expriments.
+
+        segments : ndarray of N ints, default=[]
+            The segment MAPPING of each data point to its segment.
+            segments[i] indicates the segment identifier of point X[i].
+
+        print_on : Bool, default=False
+            The verbosity parameter of the Casadi optimizer.
+
+        apply_LR : Bool, default=False
+            Indicates whether to apply linear/polynomial regression on data after finding their modes.
+            This replaces the continuous dynamics found by the optimizer.
+        '''
+
+
         if self.n is None:
             raise ValueError("To use the optimization based method, the number of modes n must be provided.")
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
-            raise ValueError("The parameter segmentation must be one of {'none', 'squared_diff', 'strict'}")
+            raise ValueError("The parameter segmentation must be one of {None, 'squared_diff', 'strict'}")
         if not segmentation is None and len(segments) == 0:
             raise ValueError("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
 
