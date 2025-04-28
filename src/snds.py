@@ -58,6 +58,38 @@ class SNDS:
         self.eventlist = eventlist
 
     def simulate_trajectory(self, step, T, x0s, t0=0, stop_at_sliding_motion=False, compare_with_traj=None, compare_tol=0.5, max_step_factor=10):
+        '''
+        Simulates trajectories of the SNDS.
+
+        Parameters
+        ----------
+
+        `step` : `float`
+            Time step.
+
+        `T` : `float`
+            Time range.
+
+        `x0s` : list of `ndarray (D)`
+            List of initial data points.
+
+        `t0` : `float`, default=`0`
+            Starting time.
+
+        `stop_at_sliding_motion` : `bool`, default=`False`
+            Stops the simulation and raises a `SlidingMotionException`in case sliding motion is thought to be encountered.
+
+        `compare_with_traj` : `Trajectories`, default=`None`
+            NO LONGER SUPPORTED.
+            Compares with given trajectory. (?)
+
+        `compare_tol` : `float`, default=`0.5`
+            NO LONGER SUPPORTED.
+            Comparison tolerance.
+
+        `max_step_factor` : `float`, default=`10`
+            Inidcates the factor by which to divide `step` to get the simulation maximum time step. The simulation maximum time step is hence `step/max_step_factor`.
+        '''
         # Inspired by https://github.com/Leslieaj/InferDynamic/
         compare = not compare_with_traj is None
         if compare:
@@ -176,6 +208,30 @@ class SNDS:
         return trajs
 
     def generate_points_between_segments(self, trajectories, segments, seg_tol, timestep='default'):
+        '''
+        Simulates the SNDS to generate points between consecutive segments with fine time steps, derivates the generated points and returns them with their derivatives.
+
+        Parameters
+        ----------
+        `trajectories` : `Trajectories`
+            The concerned trajectories in which points will be generated.
+
+        `segments` : `list` of `list` of `int`
+            A list of lists indicating change point indices of each trajectory.
+
+        `seg_tol` : `float`
+            The segmentation tolerance used to re-segment the finely generated points between consecutive segments.
+
+        `timestep` : `float` or `'default'`, default=`default`
+            The simulation time step.
+            Defaults to the simulation time step of `trajectories` divided by 20.
+
+
+        Returns
+        -------
+        `final_X, final_Xdot` : Points generated between consecutive segments as well as their estimated derivatives.
+        *Note*: This is bad design as the function does the derivative estimation too.
+        '''
         t_list = trajectories.t_list
         x_list = trajectories.x_list
         final_X, final_X_dot = np.array([]), np.array([])
@@ -222,6 +278,9 @@ class SNDS:
         return final_X, final_X_dot
 
     def get_derivatives(self, trajectories):
+        '''
+        Given trajectories of the SNDS, return the corresponding exact derivatives of each point (using equations and labelfun of the SDNS).
+        '''
         x_list = trajectories.x_list
         X_dot = np.ndarray((0,self.dim))
         for xpoints in x_list:
@@ -272,12 +331,28 @@ class Trajectories:
             self.d = None
         
     def return_unsegmented(self):
+        '''
+        Returns an instance of `Trajectories` with the unsegmented trajectories (thus without data loss).
+        If the trajectories was not segmented, it returns a deep copy of `self`.
+        '''
         if self.segmented:
             return Trajectories(self.og_t_list, self.og_x_list)
         else:
             return deepcopy(self)
     
     def append_trajs(self, trajs : Self):
+        '''
+        Appends trajectories to `self`.
+
+        Parameters
+        ----------
+        `trajs` : `Trajectories`
+            Trajectories to be appended.
+
+        Returns
+        -------
+            `None`
+        '''
         assert self.d == trajs.d or self.d is None or trajs.d is None
         self.t_list.extend(trajs.t_list)
         self.x_list.extend(trajs.x_list)
@@ -332,7 +407,7 @@ class Trajectories:
     def segment_trajectories(self, tol):
         '''
         - segments trajectories when the difference between fwd and bwd derivatives is greater than tol
-        - truncates trajectories by removing 5 points around each suspected changepoint (including it)
+        - truncates trajectories by removing 5 points around each suspected changepoint (including it) / this data is removed from the trajectory
         - returns Segments, a list of segment indices per trajectory
           Segments = [segments_1, ..., segments_k] where k is the number of trajectories
           segments_i contains the indices of *changepoints* in the *now truncated* trajectory i
