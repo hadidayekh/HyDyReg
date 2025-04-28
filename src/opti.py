@@ -108,6 +108,11 @@ class HybridRegressor:
         Generate full LaTeX equations of the learned model.
     '''
     def __init__(self, train_coefs=True, n=None, deg=1, classifier_poly_deg=1, kernels_list=None, kargs_list=None):
+        if not train_coefs:
+            raise ValueError("Kernel-based methods is currently not supported. Base code is untouched to allow future collaborators to build on it. Please set train_coefs to True.")
+        if train_coefs and not (kernels_list is None and kargs_list is None):
+            warnings.warn("Kernel information is provided but will not be used (train_coefs = True).")
+
         self.train_coefs = train_coefs
         self.n = n
         self.deg = deg
