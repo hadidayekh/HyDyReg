@@ -130,13 +130,11 @@ class HybridRegressor:
     # {'squared_diff', 'strict'} or be None
     def fit_opti(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False):
         if self.n is None:
-            raise Exception("To use the optimization based method, the number of modes n must be provided.")
+            raise ValueError("To use the optimization based method, the number of modes n must be provided.")
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
-            raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
+            raise ValueError("The parameter segmentation must be one of {'none', 'squared_diff', 'strict'}")
         if not segmentation is None and len(segments) == 0:
-            raise Exception("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
-        for s in segments:
-            assert s < X.shape[0], "At least one index in segments is out of range."
+            raise ValueError("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
 
         tc = self.train_coefs
         n = self.n
