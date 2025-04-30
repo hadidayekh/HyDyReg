@@ -592,14 +592,18 @@ class SNDS_affine(SNDS):
     
     Attributes
     ----------
+    
     params : ndarray of shape `(n, d, d+1)`
         Affine parameters describing the system dynamics such that
+        
         f_j(x)[0] = params[j][0][0] * x[0] + params[j][0][1] * x[1] + ... + params[j][0][d-1] * x[d-1] + params[j][0][d]
         .
         .
         f_j(x)[d] = params[j][d][0] * x[0] + params[j][d][1] * x[1] + ... + params[j][d][d-1] * x[d-1] + params[j][d][d]
+    
     eventlist : List[Callable]
         List of events to track when simulating trajectory, this is usually the conditions of crossing from one mode to another.
+    
     labelfun : Callable
         A function that returns the mode in which state x is in, from {0,...,n-1}
     '''
