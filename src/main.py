@@ -20,7 +20,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, break_at_low_MSE=True, MSE_break_tol=1e-5, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50, max_step_factor=10, gen_fine_time_step_factor=20):
+def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_deg=1, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, break_at_low_MSE=True, MSE_break_tol=1e-5, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50, max_step_factor=10, gen_fine_time_step_factor=20):
     '''
     Wrapper function to simulate a SNDS and learn it using HybridRegressor, passively or actively.
 
@@ -46,8 +46,6 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         poly_degree: the maximum polynomial degree of the continuous dynamics.
 
         random_test_set: when True, uses a randomly generated set of test trajectories instead of relying on provided initial conditions.
-
-        classifier_poly_trans: when True, applies PolynomialFeatures on data before running the classifier to find mode regions. Used for nonlinear boundaries.
 
         classifier_poly_deg: the maximum polynomial degree of the mode region boundaries.
 
@@ -201,7 +199,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
 
     # Define the model
     model_curr = HybridRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list,
-                                kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
+                                kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg)
 
     if not fit_active_only:
 
@@ -349,7 +347,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     # plot_Xfit(model)
     # plt.show()
     # exit()
-    # if classifier_poly_trans:
+    # if classifier_poly_deg > 1:
     #     print_classifier_boundaries(model.classifier_, model.classifier_poly_)
     # else:
     #     print_classifier_boundaries(model.classifier_)
@@ -359,7 +357,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     # print(model.gen_full_latex_eq())
 
     if print_on:
-        if classifier_poly_trans:
+        if classifier_poly_deg > 1:
             print_classifier_boundaries(model.classifier_, model.classifier_poly_)
         else:
             print_classifier_boundaries(model.classifier_)
@@ -453,14 +451,14 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
                 X_classify, X_dot_classify, classifier)
             # f, a = plot_Xfit(model)
             # plt.show()
-            if classifier_poly_trans:
+            if classifier_poly_deg > 1:
                 print_classifier_boundaries(
                     model.classifier_, model.classifier_poly_)
             else:
                 print_classifier_boundaries(model.classifier_)
 
             print("IS EVERYTHING WELL CLASSIFIED ?")
-            if classifier_poly_trans:
+            if classifier_poly_deg > 1:
                 X_class_trans = model.classifier_poly_.fit_transform(
                     model.X_classify_)
                 print(not (model.classifier_.predict(
@@ -547,7 +545,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
 
 
     print("IS EVERYTHING WELL CLASSIFIED ?")
-    if classifier_poly_trans:
+    if classifier_poly_deg > 1:
         X_class_trans = model.classifier_poly_.fit_transform(model.X_classify_)
         print(not (model.classifier_.predict(
             X_class_trans) - model.modes_classify_).any())
