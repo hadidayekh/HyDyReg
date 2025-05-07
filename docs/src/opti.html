@@ -293,7 +293,7 @@
 </span><span id="L-159"><a href="#L-159"><span class="linenos"> 159</span></a><span class="sd">        segments : ndarray of N ints, default=[]</span>
 </span><span id="L-160"><a href="#L-160"><span class="linenos"> 160</span></a><span class="sd">            The segment MAPPING of each data point to its segment.</span>
 </span><span id="L-161"><a href="#L-161"><span class="linenos"> 161</span></a><span class="sd">            segments[i] indicates the segment identifier of point X[i].</span>
-</span><span id="L-162"><a href="#L-162"><span class="linenos"> 162</span></a><span class="sd">            This is DIFFERENT from `segments` in `fit_first_opti` which is a LIST OF CHANGE POINT INDICES.</span>
+</span><span id="L-162"><a href="#L-162"><span class="linenos"> 162</span></a><span class="sd">            This is DIFFERENT from `segments` in `fit_first_incremental` which is a LIST OF CHANGE POINT INDICES.</span>
 </span><span id="L-163"><a href="#L-163"><span class="linenos"> 163</span></a>
 </span><span id="L-164"><a href="#L-164"><span class="linenos"> 164</span></a><span class="sd">        print_on : Bool, default=False</span>
 </span><span id="L-165"><a href="#L-165"><span class="linenos"> 165</span></a><span class="sd">            The verbosity parameter of the Casadi optimizer.</span>
@@ -1333,7 +1333,7 @@ x_dot.T is DxN</p>
 </span><span id="HybridRegressor-160"><a href="#HybridRegressor-160"><span class="linenos"> 160</span></a><span class="sd">        segments : ndarray of N ints, default=[]</span>
 </span><span id="HybridRegressor-161"><a href="#HybridRegressor-161"><span class="linenos"> 161</span></a><span class="sd">            The segment MAPPING of each data point to its segment.</span>
 </span><span id="HybridRegressor-162"><a href="#HybridRegressor-162"><span class="linenos"> 162</span></a><span class="sd">            segments[i] indicates the segment identifier of point X[i].</span>
-</span><span id="HybridRegressor-163"><a href="#HybridRegressor-163"><span class="linenos"> 163</span></a><span class="sd">            This is DIFFERENT from `segments` in `fit_first_opti` which is a LIST OF CHANGE POINT INDICES.</span>
+</span><span id="HybridRegressor-163"><a href="#HybridRegressor-163"><span class="linenos"> 163</span></a><span class="sd">            This is DIFFERENT from `segments` in `fit_first_incremental` which is a LIST OF CHANGE POINT INDICES.</span>
 </span><span id="HybridRegressor-164"><a href="#HybridRegressor-164"><span class="linenos"> 164</span></a>
 </span><span id="HybridRegressor-165"><a href="#HybridRegressor-165"><span class="linenos"> 165</span></a><span class="sd">        print_on : Bool, default=False</span>
 </span><span id="HybridRegressor-166"><a href="#HybridRegressor-166"><span class="linenos"> 166</span></a><span class="sd">            The verbosity parameter of the Casadi optimizer.</span>
@@ -2404,7 +2404,7 @@ x_dot.T is DxN</p>
 </span><span id="HybridRegressor.fit_opti-160"><a href="#HybridRegressor.fit_opti-160"><span class="linenos">160</span></a><span class="sd">        segments : ndarray of N ints, default=[]</span>
 </span><span id="HybridRegressor.fit_opti-161"><a href="#HybridRegressor.fit_opti-161"><span class="linenos">161</span></a><span class="sd">            The segment MAPPING of each data point to its segment.</span>
 </span><span id="HybridRegressor.fit_opti-162"><a href="#HybridRegressor.fit_opti-162"><span class="linenos">162</span></a><span class="sd">            segments[i] indicates the segment identifier of point X[i].</span>
-</span><span id="HybridRegressor.fit_opti-163"><a href="#HybridRegressor.fit_opti-163"><span class="linenos">163</span></a><span class="sd">            This is DIFFERENT from `segments` in `fit_first_opti` which is a LIST OF CHANGE POINT INDICES.</span>
+</span><span id="HybridRegressor.fit_opti-163"><a href="#HybridRegressor.fit_opti-163"><span class="linenos">163</span></a><span class="sd">            This is DIFFERENT from `segments` in `fit_first_incremental` which is a LIST OF CHANGE POINT INDICES.</span>
 </span><span id="HybridRegressor.fit_opti-164"><a href="#HybridRegressor.fit_opti-164"><span class="linenos">164</span></a>
 </span><span id="HybridRegressor.fit_opti-165"><a href="#HybridRegressor.fit_opti-165"><span class="linenos">165</span></a><span class="sd">        print_on : Bool, default=False</span>
 </span><span id="HybridRegressor.fit_opti-166"><a href="#HybridRegressor.fit_opti-166"><span class="linenos">166</span></a><span class="sd">            The verbosity parameter of the Casadi optimizer.</span>
@@ -2705,7 +2705,7 @@ x_dot.T is DxN</p>
 <p>segments : ndarray of N ints, default=[]
     The segment MAPPING of each data point to its segment.
     segments[i] indicates the segment identifier of point X[i].
-    This is DIFFERENT from <code>segments</code> in <code>fit_first_opti</code> which is a LIST OF CHANGE POINT INDICES.</p>
+    This is DIFFERENT from <code>segments</code> in <code><a href="#HybridRegressor.fit_first_incremental">fit_first_incremental</a></code> which is a LIST OF CHANGE POINT INDICES.</p>
 
 <p>print_on : Bool, default=False
     The verbosity parameter of the Casadi optimizer.</p>

@@ -159,7 +159,7 @@ class HybridRegressor:
         segments : ndarray of N ints, default=[]
             The segment MAPPING of each data point to its segment.
             segments[i] indicates the segment identifier of point X[i].
-            This is DIFFERENT from `segments` in `fit_first_opti` which is a LIST OF CHANGE POINT INDICES.
+            This is DIFFERENT from `segments` in `fit_first_incremental` which is a LIST OF CHANGE POINT INDICES.
 
         print_on : Bool, default=False
             The verbosity parameter of the Casadi optimizer.

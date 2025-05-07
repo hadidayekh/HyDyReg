@@ -36,6 +36,8 @@ class SNDS:
     
     eventlist : List[Callable]
         List of events to track when simulating trajectory, this is usually the conditions of crossing from one mode to another.
+        This is usually a list of the boundary evaluations B_ij(x) that define the boundaries between modes i and j.
+        The evaluation is tracked and the simulation could switch when the sign changes so that the boundary crossing point (if done) is searched (zero-crossing value).
     
     labelfun : Callable
         A function that returns the mode in which state x is in, from {0,...,n-1}
