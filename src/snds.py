@@ -13,7 +13,8 @@ from typing_extensions import Self
 from diff_methods import diff_method_fps
 from utils import relative_diff, relative_diff_by_component
 from copy import deepcopy
-
+import tempfile
+import tarfile
 class SlidingMotionException(Exception):
     pass
 
@@ -586,6 +587,90 @@ class Trajectories:
                 index.append('x' + str(d))
             df = pd.DataFrame(data, index=index)
             df.to_csv(dir_name+'/'+dir_name+'_'+str(i)+'.csv', sep=sep)
+    
+    @classmethod
+    def from_path(cls, path):
+        """
+        Create a Trajectories object by loading CSV files from a directory or a tar archive.
+
+        Each CSV file is assumed to represent a single trajectory, where:
+        - The first column is time (1D, shape: [N])
+        - The remaining columns are state variables (2D, shape: [N, D])
+
+        Parameters
+        ----------
+        path : str
+            Path to either a directory containing CSV files, or a `.tar` archive.
+
+        Returns
+        -------
+        Trajectories
+            A new Trajectories object with one entry per CSV file.
+            `t_list[i]` is a 1D numpy array of time values.
+            `x_list[i]` is a 2D numpy array of shape (N, D) for state values.
+
+        Raises
+        ------
+        ValueError
+            If a CSV file contains fewer than 2 columns.
+        IOError
+            If the path is invalid or extraction fails.
+        """
+        def load_csvs_from_dir(directory):
+            t_list = []
+            x_list = []
+            for filename in sorted(os.listdir(directory)):
+                if filename.endswith(".csv"):
+                    filepath = os.path.join(directory, filename)
+                    data = np.loadtxt(filepath, delimiter=",")
+                    if data.ndim == 1 or data.shape[1] < 2:
+                        raise ValueError(f"Invalid CSV format in {filename}: must have at least two columns")
+                    t = data[:, 0]
+                    x = data[:, 1:]
+                    t_list.append(t)
+                    x_list.append(x)
+            return t_list, x_list
+
+        if os.path.isdir(path):
+            t_list, x_list = load_csvs_from_dir(path)
+            return cls(t_list, x_list)
+
+        elif os.path.isfile(path) and path.endswith(".tar"):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                with tarfile.open(path, 'r') as tar:
+                    tar.extractall(path=tmpdir)
+                t_list, x_list = load_csvs_from_dir(tmpdir)
+                return cls(t_list, x_list)
+
+        else:
+            raise IOError(f"Invalid input path: must be a directory or .tar file — got: {path}")
+
+    def to_tarfile(self, tar_path, prefix="traj"):
+        """
+        Save this Trajectories object as a .tar archive of CSV files.
+
+        Parameters
+        ----------
+        tar_path : str
+            Path to the output .tar file.
+        prefix : str, optional
+            Prefix for the CSV filenames inside the archive (default is 'traj').
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for i, (t, x) in enumerate(zip(self.t_list, self.x_list)):
+                assert t.ndim == 1 and x.ndim == 2, f"Invalid shapes at index {i}: t={t.shape}, x={x.shape}"
+                assert len(t) == x.shape[0], f"Mismatched time/state lengths at index {i}"
+                data = np.column_stack((t, x))
+                filename = f"{prefix}_{i}.csv"
+                filepath = os.path.join(tmpdir, filename)
+                np.savetxt(filepath, data, delimiter=",")
+
+            with tarfile.open(tar_path, "w") as tar:
+                for filename in sorted(os.listdir(tmpdir)):
+                    fullpath = os.path.join(tmpdir, filename)
+                    tar.add(fullpath, arcname=filename)
+
+
 
 
 class SNDS_affine(SNDS):
