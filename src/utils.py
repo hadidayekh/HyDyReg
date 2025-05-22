@@ -635,7 +635,7 @@ def gen_spaceex(model, name = 'HybridRegressorModel'):
 
 
 
-def gen_spaceex_with_tri(model, name = 'HybridRegressorModel', modes_to_keep=None):
+def gen_spaceex_with_tri(model, name = 'HybridRegressorModel', modes_to_keep=None, invariants_as_guards=True):
     s = '<?xml version="1.0" encoding="UTF-8"?>\n'
     s += '<sspaceex xmlns="http://www-verimag.imag.fr/xml-namespaces/sspaceex" version="0.2" math="SpaceEx">\n'
     s += f'\t<component id="{name}">\n'
@@ -727,14 +727,36 @@ def gen_spaceex_with_tri(model, name = 'HybridRegressorModel', modes_to_keep=Non
                 # s += f'{ind3}<label>{i+1 + tri_mode*ncoef}_{j+1 + tri_mode*ncoef}</label>\n'
                 
                 s += f'{ind3}<guard>'
-                w = W[i] - W[j]
-                b = B[i] - B[j]
-                max_w = np.abs(w[np.argmax(np.abs(w))])
-                w = w / max_w
-                b = b / max_w
-                for d in range(D):
-                    s += f'({w[d]})*(x{d+1}) + '
-                s += f'({b}) &lt; 0'
+
+                # The following commented code is when the guard is only the boundary between i and j,
+                # currently we do the invariant of j
+                if not invariants_as_guards:
+                    w = W[i] - W[j]
+                    b = B[i] - B[j]
+                    max_w = np.abs(w[np.argmax(np.abs(w))])
+                    w = w / max_w
+                    b = b / max_w
+                    for d in range(D):
+                        s += f'({w[d]})*(x{d+1}) + '
+                    s += f'({b}) &lt; 0'
+                else:
+                    amp = False
+                    for k in range(ncoef):
+                        if k == j:
+                            continue
+                        if not amp:
+                            amp = True
+                        else:
+                            s += " &amp; "
+                        w = W[j] - W[k]
+                        b = B[j] - B[k]
+                        max_w = np.abs(w[np.argmax(np.abs(w))])
+                        w = w / max_w
+                        b = b / max_w
+                        for d in range(D):
+                            s += f'({w[d]})*(x{d+1}) + '
+                        s += f'({b}) &gt;= 0'
+
                 s += f'</guard>\n'
                 
                 s += f'{ind2}</transition>\n'
