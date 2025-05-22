@@ -19,34 +19,34 @@ from utils import *
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning) # setting ignore as a parameter and further adding category
  
+if __name__ == "__main__":
+    compare_with_inferDynamic = False
+    if compare_with_inferDynamic:
+        try:
+            f = open("pathtoinferdynamic.txt", 'r')
+            path_to_InferDynamic = f.read()
+            sys.path.insert(0, path_to_InferDynamic)
+            from infer_multi_ch import infer_model, test_model
+        except:
+            print("Cannot open path to infer dynamic file.")
+            compare_with_inferDynamic = False
 
-compare_with_inferDynamic = False
-if compare_with_inferDynamic:
-    try:
-        f = open("pathtoinferdynamic.txt", 'r')
-        path_to_InferDynamic = f.read()
-        sys.path.insert(0, path_to_InferDynamic)
-        from infer_multi_ch import infer_model, test_model
-    except:
-        print("Cannot open path to infer dynamic file.")
-        compare_with_inferDynamic = False
 
+    exp_title = "parametric"
+    save_plots = False
+    seg_tol = 0.1
 
-exp_title = "parametric"
-save_plots = False
-seg_tol = 0.1
+    np.random.seed(1)
 
-np.random.seed(1)
+    if len(sys.argv) < 2:
+        nmodes_list = [2,3,4,5]
+    else:
+        nmodes_list = [int(sys.argv[1])]
 
-if len(sys.argv) < 2:
-    nmodes_list = [2,3,4,5]
-else:
-    nmodes_list = [int(sys.argv[1])]
-
-if len(sys.argv) > 2 and sys.argv[2] == 'f':
-    learn = False
-else:
-    learn = True
+    if len(sys.argv) > 2 and sys.argv[2] == 'f':
+        learn = False
+    else:
+        learn = True
 
 
 def parametric(nmodes, radius=1.0):
@@ -102,98 +102,98 @@ def parametric(nmodes, radius=1.0):
 
 ##### SIMULATING TRAJECTORIES #####
 # Setting initial conditions and simulation paramters
+if __name__ == "__main__":
+    DATA = []
+    for nmodes in nmodes_list:
+        radius = 1.0
+        radii = radius/nmodes
+        sul = parametric(nmodes, radius)
 
-DATA = []
-for nmodes in nmodes_list:
-    radius = 1.0
-    radii = radius/nmodes
-    sul = parametric(nmodes, radius)
+        x0s = np.array([[-1.0, -1], [1,-1], [-1,1]])
+        # x0s *= 1.5/sqrt(2)/nmodes
+        x0s = np.random.random((17, 3))*2 - 1
+        x0s_test = np.random.random((5, 2))*4 - 2
 
-    x0s = np.array([[-1.0, -1], [1,-1], [-1,1]])
-    # x0s *= 1.5/sqrt(2)/nmodes
-    x0s = np.random.random((17, 3))*2 - 1
-    x0s_test = np.random.random((5, 2))*4 - 2
+        time_step = 0.001
+        time_range = 2
+        time_step_test = 0.001
+        time_range_test = 1
 
-    time_step = 0.001
-    time_range = 2
-    time_step_test = 0.001
-    time_range_test = 1
+        eq_query_bounds = np.array([[-1.0,1.0], [-1.0,1.0], [-1.0,1.0]])
 
-    eq_query_bounds = np.array([[-1.0,1.0], [-1.0,1.0], [-1.0,1.0]])
+        c = LogisticRegression(penalty='none', multi_class='multinomial', max_iter=100000)
+        # c = SVC(C=1e10, kernel='poly', degree=2, gamma=1)
 
-    c = LogisticRegression(penalty='none', multi_class='multinomial', max_iter=100000)
-    # c = SVC(C=1e10, kernel='poly', degree=2, gamma=1)
+        if not learn:
+            # Simulating trajectories
+            trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
+            segments = trajectories.segment_trajectories(0.1)
 
-    if not learn:
-        # Simulating trajectories
-        trajectories = sul.simulate_trajectory(time_step, time_range, x0s)
-        segments = trajectories.segment_trajectories(0.1)
+            # Plotting results
+            plot_title = exp_title + 'trajs=' + str(len(x0s)) + ' ts=' + str(time_step) + ' T=' + str(time_range)
 
-        # Plotting results
-        plot_title = exp_title + 'trajs=' + str(len(x0s)) + ' ts=' + str(time_step) + ' T=' + str(time_range)
+            fig1, ax1 = plotting.draw_trajectories_3D(trajectories, mark_beginning=True, segments=segments)
 
-        fig1, ax1 = plotting.draw_trajectories_3D(trajectories, mark_beginning=True, segments=segments)
-
-        # f1, a1 = plt.subplots()
-        # # c = ['r', 'b', 'g', 'c', 'm']
-        # c = [plt.cm.Set1(i) for i in range(20)]
-        # done = [False] * nmodes
-        # for tr in trajectories.x_list:
-        #     for i in range(len(tr)):
-        #         x = tr[i]
-        #         l = sul.labelfun(x)
-        #         a1.scatter(x[0], x[1], s=2, color=c[l], label=f"Mode {l+1}" if not done[l] else None)
-        #         done[l] = True
+            # f1, a1 = plt.subplots()
+            # # c = ['r', 'b', 'g', 'c', 'm']
+            # c = [plt.cm.Set1(i) for i in range(20)]
+            # done = [False] * nmodes
+            # for tr in trajectories.x_list:
+            #     for i in range(len(tr)):
+            #         x = tr[i]
+            #         l = sul.labelfun(x)
+            #         a1.scatter(x[0], x[1], s=2, color=c[l], label=f"Mode {l+1}" if not done[l] else None)
+            #         done[l] = True
 
 
-        # x0 = np.linspace(-radius,radius,100)
-        # x1 = np.linspace(-radius,radius,100)
-        # xx, yy = np.meshgrid(x0,x1)
+            # x0 = np.linspace(-radius,radius,100)
+            # x1 = np.linspace(-radius,radius,100)
+            # xx, yy = np.meshgrid(x0,x1)
 
-        # for j in range(1, nmodes):
-        #     zz = xx**2 + yy**2 - (radii*j)**2
-        #     a1.contour(xx, yy, zz, levels=[0], colors=['k'], linewidths=0.5)
+            # for j in range(1, nmodes):
+            #     zz = xx**2 + yy**2 - (radii*j)**2
+            #     a1.contour(xx, yy, zz, levels=[0], colors=['k'], linewidths=0.5)
 
-        # a1.legend()
-        # a1.set_xlabel('$x^{(1)}$')
-        # a1.set_ylabel('$x^{(2)}$')
+            # a1.legend()
+            # a1.set_xlabel('$x^{(1)}$')
+            # a1.set_ylabel('$x^{(2)}$')
 
-    else:
-        sul, learned_SNDS, trajectories, traj_test_sul, data = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes=2, poly_degree=1, random_test_set=True, classifier_poly_trans=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=False, classifier = c, C_space = [0, 0.001, 0.01, 0.1, 1], write_on=True, deltas=0.001, tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False, improve_cont=True)
+        else:
+            sul, learned_SNDS, trajectories, traj_test_sul, data = learn_system(exp_title + "-" + str(nmodes), sul, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes=2, poly_degree=1, random_test_set=True, classifier_poly_deg=2, seg_tol=0.1, diff_method=diff_method_fps, train_coefs=True, with_plots=True, print_on=False, classifier = c, C_space = [0, 0.001, 0.01, 0.1, 1], write_on=True, deltas=0.001, tol=1e-5, do_eq_query=True, eq_query_bounds=eq_query_bounds, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', break_at_low_MSE=False, plot_xt=False, improve_cont=True)
 
-        if compare_with_inferDynamic:
-            if nmodes == 2 or nmodes == 3:
+            if compare_with_inferDynamic:
+                if nmodes == 2 or nmodes == 3:
 
-                methods = ['tolmerge', 'piecelinear']
+                    methods = ['tolmerge', 'piecelinear']
 
-                for method in methods:
-                    mergeps = [0.01]
-                    if nmodes == 2:
-                        for mergeep in mergeps:
-                            start = time.time()
-                            P, G, boundary = infer_model(
-                                        trajectories.t_list, trajectories.x_list, stepsize=time_step, maxorder=1, boundary_order=2,
-                                        num_mode=nmodes, modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False)
-                            infer_time = time.time() - start
-                            modelist = sul.eqs
-                            event = sul.eventlist[0]
-                            res = test_model(P, G, boundary, nmodes, traj_test_sul.x_list, sul.eqs, sul.eventlist[0], 1, 2)
-                            data.append(res)
-                            data.append(infer_time)
-                    else:
-                        for mergeep in mergeps:
-                            start = time.time()
-                            P, G, boundary = infer_model(
-                                        trajectories.t_list, trajectories.x_list, stepsize=time_step, maxorder=1, boundary_order=2,
-                                        num_mode=nmodes, modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False, labeltest=sul.labelfun)
-                            infer_time = time.time() - start
-                            res = test_model(P, G, boundary, nmodes, traj_test_sul.x_list, sul.eqs, sul.eventlist, 1, 2, labeltest=sul.labelfun)
-                            data.append(res)
-                            data.append(infer_time)
-            else:
-                data.extend([-1,-1,-1,-1])
-            
-            DATA.append(data)
-# print_experi_data(DATA)
+                    for method in methods:
+                        mergeps = [0.01]
+                        if nmodes == 2:
+                            for mergeep in mergeps:
+                                start = time.time()
+                                P, G, boundary = infer_model(
+                                            trajectories.t_list, trajectories.x_list, stepsize=time_step, maxorder=1, boundary_order=2,
+                                            num_mode=nmodes, modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False)
+                                infer_time = time.time() - start
+                                modelist = sul.eqs
+                                event = sul.eventlist[0]
+                                res = test_model(P, G, boundary, nmodes, traj_test_sul.x_list, sul.eqs, sul.eventlist[0], 1, 2)
+                                data.append(res)
+                                data.append(infer_time)
+                        else:
+                            for mergeep in mergeps:
+                                start = time.time()
+                                P, G, boundary = infer_model(
+                                            trajectories.t_list, trajectories.x_list, stepsize=time_step, maxorder=1, boundary_order=2,
+                                            num_mode=nmodes, modelist=None, event=None, ep=0.01, mergeep = mergeep, method=method, verbose=False, labeltest=sul.labelfun)
+                                infer_time = time.time() - start
+                                res = test_model(P, G, boundary, nmodes, traj_test_sul.x_list, sul.eqs, sul.eventlist, 1, 2, labeltest=sul.labelfun)
+                                data.append(res)
+                                data.append(infer_time)
+                else:
+                    data.extend([-1,-1,-1,-1])
+                
+                DATA.append(data)
+    # print_experi_data(DATA)
 
-plt.show()
+    plt.show()

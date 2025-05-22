@@ -20,7 +20,7 @@ def get_modes(Chis_sol):
     return np.argmin(Chis_sol, axis=0)
 
 
-def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_trans=False, classifier_poly_deg=None, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, break_at_low_MSE=True, MSE_break_tol=1e-5, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50, max_step_factor=10, gen_fine_time_step_factor=20):
+def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test, time_range_test, x0s_test, nmodes, poly_degree, random_test_set=False, classifier_poly_deg=1, seg_tol=0.01, diff_method=diff_method_fps, train_coefs=True, kernels_list=None, kargs_list=None, with_plots=True, print_on=True, classifier=LogisticRegression(penalty='none'), C_space=[0.01, 0.1, 0.5, 1, 2, 5, 10], write_on=False, deltas=0.001, break_at_low_MSE=True, MSE_break_tol=1e-5, apply_LR=False, do_eq_query=False, eq_query_bounds=None, eq_query_ntrajs=50, eq_query_tol=0.1, sampling_method='random', plot_xt=False, improve_cont=False, fit_active_only=False, stop_at_sliding_motion=True, N_cexs=50, max_step_factor=10, gen_fine_time_step_factor=20):
     '''
     Wrapper function to simulate a SNDS and learn it using HybridRegressor, passively or actively.
 
@@ -46,8 +46,6 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         poly_degree: the maximum polynomial degree of the continuous dynamics.
 
         random_test_set: when True, uses a randomly generated set of test trajectories instead of relying on provided initial conditions.
-
-        classifier_poly_trans: when True, applies PolynomialFeatures on data before running the classifier to find mode regions. Used for nonlinear boundaries.
 
         classifier_poly_deg: the maximum polynomial degree of the mode region boundaries.
 
@@ -191,19 +189,31 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     # plt.show()
     # exit()
     # Extracting the derivatives and updated segment indices
+
+    # X : matrix of all data points, X_dot : corresponding derivatives
+    # seg_res : updated segments (list of changepoints in X, X_dot)
+    # _ : this is time, but we do not use it, which is why _ is written
     X, X_dot, seg_res, _ = diff_method(
         trajs_train_sul.t_list, trajs_train_sul.x_list, segments=segments, remove_seg=True)
 
-    # Finding segment of each point (seg_all is equivalent to sigma in the papers : seg_all[point] = segment index)
+    # Finding segment of each point (seg_all is equivalent to sigma in the papers : seg_all[i] = segment index of point X[i])
+    # X.shape[0] = number of points
+    # seg_all is useful only for the optimization-based approach
     seg_all = which_segment_all(X.shape[0], seg_res)
 
     print("Starting " + exp_name + "\n")
 
     # Define the model
+    # This is base code including kernel support (no longer supported NOR used)
+    # What is important is:
+    # HybridRegressor (n = number of modes if using opti approach else not needed,
+    #                  deg = polynomial degree of continuous dynamics,
+    #                  classifier_poly_deg = polynomial degree of mode boundaries)
     model_curr = HybridRegressor(train_coefs=train_coefs, n=nmodes, deg=poly_degree, kernels_list=kernels_list,
-                                kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg, classifier_poly_trans=classifier_poly_trans)
+                                kargs_list=kargs_list, classifier_poly_deg=classifier_poly_deg)
 
-    if not fit_active_only:
+    opti_approach = not fit_active_only
+    if opti_approach:
 
         ###########################################################
         #               OPTIMIZATION-BASED APPROACH               #
@@ -349,7 +359,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     # plot_Xfit(model)
     # plt.show()
     # exit()
-    # if classifier_poly_trans:
+    # if classifier_poly_deg > 1:
     #     print_classifier_boundaries(model.classifier_, model.classifier_poly_)
     # else:
     #     print_classifier_boundaries(model.classifier_)
@@ -359,7 +369,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
     # print(model.gen_full_latex_eq())
 
     if print_on:
-        if classifier_poly_trans:
+        if classifier_poly_deg > 1:
             print_classifier_boundaries(model.classifier_, model.classifier_poly_)
         else:
             print_classifier_boundaries(model.classifier_)
@@ -416,6 +426,10 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
                 print("Checking to improve continuous dynamics...")
                 D = X.shape[1]
                 # f, a = plt.subplots()
+
+                # For each segment of the counterexamples data, get the points of this segment (X_seg, X_seg_dot)
+                # To be replaced by a function
+                # X_curr = X_seg, X_dot_curr = X_seg_dot
                 for i in range(len(seg_res_eq) - 1):
 
                     X_curr = X[seg_res_eq[i]:seg_res_eq[i+1]]
@@ -453,14 +467,14 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
                 X_classify, X_dot_classify, classifier)
             # f, a = plot_Xfit(model)
             # plt.show()
-            if classifier_poly_trans:
+            if classifier_poly_deg > 1:
                 print_classifier_boundaries(
                     model.classifier_, model.classifier_poly_)
             else:
                 print_classifier_boundaries(model.classifier_)
 
             print("IS EVERYTHING WELL CLASSIFIED ?")
-            if classifier_poly_trans:
+            if classifier_poly_deg > 1:
                 X_class_trans = model.classifier_poly_.fit_transform(
                     model.X_classify_)
                 print(not (model.classifier_.predict(
@@ -547,7 +561,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
 
 
     print("IS EVERYTHING WELL CLASSIFIED ?")
-    if classifier_poly_trans:
+    if classifier_poly_deg > 1:
         X_class_trans = model.classifier_poly_.fit_transform(model.X_classify_)
         print(not (model.classifier_.predict(
             X_class_trans) - model.modes_classify_).any())
@@ -574,6 +588,68 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
 
 
 def equivalence_query_by_traj(sul: SNDS, learned_snds: SNDS, n_trajs, bounds, time_step, time_range, tol_eq=0.1, sampling_method='random', sobol_skip=0, stop_at_sliding_motion=False, N_cexs=1, max_step_factor=10):
+    '''
+    Equivalence query approaximation check.
+    Simulates multiple trajectories of the SUL and the learned SNDS and compares them up to a certain tolerance to deduce counterexamples.
+
+    Parameters
+    ----------
+
+    `sul` : `SNDS`
+        The system-under-learning.
+
+    `learned_snds` : `SNDS`
+        The learned switched nonlinear dynamical system to evaluate.
+
+    `n_trajs` : `int`
+        The number of trajectories to simulate and compare in an equivalence query check.
+
+    `bounds` : `ndarray` `(d, 2)`
+        The lower and upper bounds of each dimension of the state vector.
+        Initial conditions are generated within thsese bounds.
+
+    `time_step` : `float`
+        The simulation time step of trajectories.
+
+    `time_range` : `float`
+        The simulation time range of trajectories.
+
+    `tol_eq` : `float`, default=`0.1`
+        The tolerance for the average relative difference between points of a pair of trajectories to decide whether this pair is a counterexample.
+
+    `sampling_method` : default=`'random'`, other methods deprecated.
+
+    `sobol_skip` : default=`0`, deprecated.
+
+    `stop_at_sliding_motion` : `bool`, default=`False`
+        Indicates whether the simulation of the learned SNDS is terminated when sliding motion is suspected.
+        In that case, the SUL trajectory is returned as a counterexample (provided the assumption that the SUL exhibits no sliding motion).
+
+    `N_cexs` : `int`, default=`1`
+        The maximal number of counterexamples.
+        The equivalence query would return at the first `N_cexs` counterexamples rather than continue simulating `n_trajs` trajectories.
+    
+    `max_step_factor` : `int`, default=`10`
+        For simulation purposes, indicates the maximum time step of the simulator, such that the simulator maximum time step is `time_step / max_step_factor`.
+    `
+
+    Returns
+    -------
+    `eq_query` : bool
+        The result of equivalence.
+    
+    `cexs_sul` : `Trajectories`
+        The SUL part of counterexample pairs of trajectories.
+    
+    `conforming_trajs_sul` : `Trajectories`
+        The SUL part of the conforming (thus non-counterexample) pairs of trajectories.
+
+    `cexs_learned` : `Trajectories`
+        The learned SNDS part of counterexample pairs of trajectories.
+
+    `conforming_trajs_learned` : `Trajectories`
+        The learned SNDS part of the conforming (thus non-counterexample) pairs of trajectories.
+    '''
     cexs_sul = Trajectories([], [])
     cexs_sul.d = sul.dim
     conforming_trajs_sul = Trajectories([], [])

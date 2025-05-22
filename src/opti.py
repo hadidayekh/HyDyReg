@@ -7,7 +7,6 @@ import numpy as np
 import kernels
 from snds import SNDS, SNDS_affine
 from utils import *
-from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import PolynomialFeatures
@@ -25,20 +24,98 @@ K_j = kernel matrix j = K_j(X, X)
 alpha_j is a Nx1 vector -> Alpha is the matrix
 beta_j is a scalar -> beta is the vector
 delta_j is a scalar, it's the error -> beta is the vector
-chi_j is a Nx1 vector -> Chi is the matrix
+xi_j is a Nx1 vector -> Xi is the matrix
 
 x_dot is a NxD matrix
 x_dot.T is DxN
 """
 
 class HybridRegressor:
-    def __init__(self, train_coefs=True, n=None, deg=1, classifier_poly_trans=False, classifier_poly_deg=None, kernels_list=None, kargs_list=None):
+    '''
+    Main learning class supporting both learning algorithms.
+
+    NOTE: OPTIMIZATION-BASED LEARNING WITH KERNEL METHODS IS NO LONGER SUPPORTED. BASE CODE IS KEPT IN CASE FUTURE COLLABORATORS WOULD LIKE TO REBUILD IT.
+
+    Attributes
+    ----------
+    train_coefs : bool, default=True
+        When True, implements the optimization-based learning by finding coefficients of target functions directly rather than kernel methods.
+        When False, uses kernel methods for the optimization-based learning <- NO LONGER SUPPORTED, see note above.
+        Has no effect when using the incremental learning approach.
+
+    n : int, default=None
+        The number of modes in the system-under-learning.
+        Required for the optimization-based approach.
+        Has no effect for the incremental learning approach.
+
+    deg : int, default=1
+        The maximum polynomial degree of the continuous dynamics.
+
+    classifier_poly_deg : int, default=1
+        The maximum polynomial degree of the mode region boundaries.
+
+    kernels_list : List['linear', 'polynomial', 'rbf', func], default=None
+        NO LONGER SUPPORTED, see note above.
+        The list of kernels to use for each mode in the optimization-based methods.
+
+    kargs_list : List[List], default=None
+        NO LONGER SUPPORTED, see note above.
+        The list of arguments for each of the kernels in kernels_list.
+
+
+    Methods
+    -------
+    fit_opti(X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False)
+        Fit using the optimization-based method.
+
+    fit_first_incremental(X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None, shuffle_segments=False)
+        Fit first hypothesis using the incremental learning method.
+
+    update_continuous(X, X_dot, good_RD=0.001, regressor=LinearRegression(), Time = None)
+        Incremental method: update continuous dynamics of the hypothesis with new data.
+
+    classify_modes(classifier=LogisticRegression(), X=None, modes=None, X_dot=None, partial_fit=False)
+        Run the classification algorithm based on the passed data and modes, or based on the fitted modes of the training data if X=None and modes=None.
+
+    improve_classification(X, X_dot, classifier=None, partial_fit=False)
+        Improve the result of the classifier by guessing the modes of new data X, Xdot where mode(x) is guessed as arg min |f_j(x) - xdot|.
+        Runs `classify_mode` with the augmented data.
+
+    compare_with_dynamics(X, Xdot, tol=0.01)
+        Check whether data of a segment (X, Xdot) is already captured by a mode.
+
+    get_points_of_mode(j)
+        Returns points of mode j.
+
+    reassign_modes()
+        Reassign modes of training data based on the functions that fit each point best.
+
+    retrain_continuous(j, regressor=None)
+        Refit the continuous dynamics of mode `j` with data of mode `j`.
+
+    predict(X, labelfun=None)
+        Compute the predicted derivatives of data in `X`.
+        Modes are deduced by labelfun in priority, or the learner's classifier if labelfun=None.
+
+    get_modes(self)
+        Returns the modes of the fitted data in the optimization-based approach.
+
+    to_SNDS(labelfun=None, eventlist=None)
+        Transforms the learned model into an executable SNDS.
+
+    gen_full_latex_eq(with_classifier_boundaries=True, round_dig=3)
+        Generate full LaTeX equations of the learned model.
+    '''
+    def __init__(self, train_coefs=True, n=None, deg=1, classifier_poly_deg=1, kernels_list=None, kargs_list=None):
+        if not train_coefs:
+            raise ValueError("Kernel-based methods is currently not supported. Base code is untouched to allow future collaborators to build on it. Please set train_coefs to True.")
+        if train_coefs and not (kernels_list is None and kargs_list is None):
+            warnings.warn("Kernel information is provided but will not be used (train_coefs = True).")
+
         self.train_coefs = train_coefs
         self.n = n
         self.deg = deg
-        self.classifier_poly_trans = classifier_poly_trans
-        if classifier_poly_trans:
-            assert not classifier_poly_deg is None
+
         self.classifier_poly_deg = classifier_poly_deg
         if not train_coefs and (kernels_list is None or kargs_list is None):
             raise Exception("When train_coefs is False, kernels_list and kargs_list must be provided.")
@@ -50,15 +127,55 @@ class HybridRegressor:
 
     # For segmentation, will introduce variable segmentation which can belong to
     # {'squared_diff', 'strict'} or be None
-    def fit_opti(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False, apply_LR=False):
+    def fit_opti(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation='strict', segments=[], print_on=False, apply_LR=False):
+        '''
+        Fit the Hybrid Regressor model using the *optimization based* approach.
+
+        Attributes
+        ----------
+        X : ndarray (N x D)
+            A matrix of training data points [x1, x2, ..., xN].
+        
+        X_dot : ndarray (N x D)
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+        
+        C : float, default=100
+            The hyperparameter C controlling the strength of regularization in the optimization objective function.
+
+        detlas : list of `n` floats or float, default=0.01
+            A list of absolute insensitivity errors for each mode.
+            When one value is given, the same value applies to all modes.
+
+        norm : 'L1' or 'L2', default='L2'
+            The norm used for regularization.
+            Note: 'L1' norm is not supported (may or may not work).
+
+        segmentation : None or 'strict' or 'squared_diff', default='strict'
+            The type of integration of segmentation information.
+            None means no segmentation information is integrated.
+            'strict' means segmentation will be strictly integrated, and Xi variables per mode per point will be replaced by Xi variables per mode per segment. This is the method illustrated in the thesis.
+            'squared_diff' means segmentation will be added by adding the squared difference of Xi variables of points belonging to the same segment to the minimization problem. This is not supported by expriments.
+
+        segments : ndarray of N ints, default=[]
+            The segment MAPPING of each data point to its segment.
+            segments[i] indicates the segment identifier of point X[i].
+            This is DIFFERENT from `segments` in `fit_first_incremental` which is a LIST OF CHANGE POINT INDICES.
+
+        print_on : Bool, default=False
+            The verbosity parameter of the Casadi optimizer.
+
+        apply_LR : Bool, default=False
+            Indicates whether to apply linear/polynomial regression on data after finding their modes.
+            This replaces the continuous dynamics found by the optimizer.
+        '''
+
+
         if self.n is None:
-            raise Exception("To use the optimization based method, the number of modes n must be provided.")
+            raise ValueError("To use the optimization based method, the number of modes n must be provided.")
         if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
-            raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
+            raise ValueError("The parameter segmentation must be one of {None, 'squared_diff', 'strict'}")
         if not segmentation is None and len(segments) == 0:
-            raise Exception("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
-        for s in segments:
-            assert s < X.shape[0], "At least one index in segments is out of range."
+            raise ValueError("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
 
         tc = self.train_coefs
         n = self.n
@@ -99,19 +216,19 @@ class HybridRegressor:
         else:
             Alphas = np.ndarray((n, D), dtype=object)
         betas = np.ndarray((n, D), dtype=object)
-        Chis = np.ndarray((n,), dtype=object)
+        Xis = np.ndarray((n,), dtype=object)
 
         if norm == 'L1':
             As = np.ndarray((n, D), dtype=object)
         
         for j in range(n):
             if segmentation == 'strict':
-                chi_size_per_mode = S
+                xi_size_per_mode = S
             else:
-                chi_size_per_mode = N
+                xi_size_per_mode = N
             
-            Chis[j] = opti.variable(chi_size_per_mode)
-            opti.set_initial(Chis[j], np.random.rand(chi_size_per_mode))
+            Xis[j] = opti.variable(xi_size_per_mode)
+            opti.set_initial(Xis[j], np.random.rand(xi_size_per_mode))
 
             for d in range(D):
                 if tc:
@@ -136,17 +253,17 @@ class HybridRegressor:
         opti.set_value(C_param, C)
 
         # First part of the optimization objective function:
-        # the sum of products of Chis
-        # This forces one Chi per data point to be ~0, which dictates the mode
+        # the sum of products of Xis
+        # This forces one Xi per data point to be ~0, which dictates the mode
 
-        sum_products_chis = 0
-        for i in range(chi_size_per_mode):
+        sum_products_xis = 0
+        for i in range(xi_size_per_mode):
             temp = 1
             for j in range(n):
-                temp *= Chis[j][i]
-            sum_products_chis += temp
+                temp *= Xis[j][i]
+            sum_products_xis += temp
 
-        #sum_products_chis *= C_param
+        #sum_products_xis *= C_param
 
         # Second part of the optimization objective function:
         # The sum of norms of alphas/Omegas
@@ -160,7 +277,7 @@ class HybridRegressor:
             for j in range(n):
                 for d in range(D):
                     sum_norms_a += (As[j][d].T @ eye)
-            to_minimize = sum_norms_a + sum_products_chis
+            to_minimize = sum_norms_a + sum_products_xis
         elif norm == 'L2':
             sum_norms = 0
             for j in range(n):
@@ -169,65 +286,65 @@ class HybridRegressor:
                         sum_norms += (Omegas[j][d].T @ Omegas[j][d])
                     else:
                         sum_norms += (Alphas[j][d].T @ Alphas[j][d])
-            to_minimize = C_param*sum_norms + sum_products_chis
+            to_minimize = C_param*sum_norms + sum_products_xis
         else:
             raise Exception("The norm parameter has to be 'L1' or 'L2'.")
         
 
         if segmentation == 'squared_diff':
-            sum_diff_chis = 0
+            sum_diff_xis = 0
             for r in range(S):
                 seg_indices = np.where(segments==r)
                 for i in range(seg_indices.shape[0] - 1):
                     for j in range(n):
-                        sum_diff_chis += (Chis[j][seg_indices[i]] - Chis[j][seg_indices[i+1]])**2
+                        sum_diff_xis += (Xis[j][seg_indices[i]] - Xis[j][seg_indices[i+1]])**2
             # for r in range(len(segments)-1):
             #     for i in range(segments[r], segments[r+1] - 1):
             #         for j in range(n):
-            #             sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
+            #             sum_diff_xis += (Xis[j][i] - Xis[j][i+1])**2
             # for i in range(segments[-1], N-1):
             #     for j in range(n):
-            #         sum_diff_chis += (Chis[j][i] - Chis[j][i+1])**2
+            #         sum_diff_xis += (Xis[j][i] - Xis[j][i+1])**2
             
-            to_minimize += C*sum_diff_chis
+            to_minimize += C*sum_diff_xis
 
         # Setting the objective function
         opti.minimize(to_minimize)
 
         # CONSTRAINTS
 
-        # all chis must be positive
+        # all xis must be positive
         for j in range(n):
-            opti.subject_to(Chis[j] >= 0)
+            opti.subject_to(Xis[j] >= 0)
         
         x_dotT = X_dot.T    # d by N
         eye = np.ones(N)
         for d in range(D):
             for j in range(n):
                 if segmentation == 'strict':
-                    # # Here we need to transform each Chi[j], which is currently an S by 1 matrix into an N by 1 matrix
-                    # # We do this by constructing a transformation matrix that assigns the correct chi according to which segment the point is in
+                    # # Here we need to transform each Xi[j], which is currently an S by 1 matrix into an N by 1 matrix
+                    # # We do this by constructing a transformation matrix that assigns the correct xi according to which segment the point is in
                     # trans_mat = np.zeros((N, S))
                     # for i in range(N):
                     #     seg_index = which_segment(i, segments)
                     #     trans_mat[i][seg_index] = 1
-                    # Chis[j] = casadi.vec(trans_mat @ Chis[j])
+                    # Xis[j] = casadi.vec(trans_mat @ Xis[j])
                     for i in range(N):
                         seg_index = segments[i]
                         if not tc:
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] <=  deltas[j] + Xis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(kernel_mat_list[j][i].T, Alphas[j][d]) - betas[j][d] >= -deltas[j] - Xis[j][seg_index])
                         else:
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
-                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] <=  deltas[j] + Xis[j][seg_index])
+                            opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, Omegas[j][d]) - betas[j][d] >= -deltas[j] - Xis[j][seg_index])
                 else:
-                    # the difference between prediction and the ground truth is bounded in [-delta-chi, delta+chi]
+                    # the difference between prediction and the ground truth is bounded in [-delta-xi, delta+xi]
                     if not tc:
-                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
-                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Xis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(kernel_mat_list[j] @ Alphas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Xis[j])
                     else:
-                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Chis[j])
-                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Chis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye <=  deltas[j]*eye + Xis[j])
+                        opti.subject_to(x_dotT[d] - casadi.vec(X_trans @ Omegas[j][d]) - betas[j][d]*eye >= -deltas[j]*eye - Xis[j])
                 if norm=='L1':
                     if not tc:
                         # As are bounded by [-alpha, +alpha]
@@ -245,7 +362,7 @@ class HybridRegressor:
         # Printing the results if print is on
         if print_on:
             for j in range(n):
-                print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
+                print("Xi_" + str(j) + ": " + str(sol.value(Xis[j])))
             for j in range(n):
                 for d in range(D):
                     if not tc:
@@ -260,10 +377,10 @@ class HybridRegressor:
         else:
             Omegas_sol = np.ndarray((n, D, Q))
         betas_sol  = np.ndarray((n, D))
-        Chis_sol   = np.ndarray((n, chi_size_per_mode))
+        Xis_sol   = np.ndarray((n, xi_size_per_mode))
 
         for j in range(n):
-                Chis_sol[j] = sol.value(Chis[j])
+                Xis_sol[j] = sol.value(Xis[j])
         for j in range(n):
             for d in range(D):
                 if not tc:
@@ -273,16 +390,16 @@ class HybridRegressor:
                 betas_sol[j][d]  = sol.value(betas[j][d])
         
         if segmentation == 'strict':
-            self.Chis_segments_ = Chis_sol
-            final_Chis = np.ndarray((n, N))
+            self.Xis_segments_ = Xis_sol
+            final_Xis = np.ndarray((n, N))
             for j in range(n):
                 for i in range(N):
                     seg_index = segments[i]
-                    final_Chis[j][i] = Chis_sol[j][seg_index]
+                    final_Xis[j][i] = Xis_sol[j][seg_index]
 
-            self.Chis_ = final_Chis
+            self.Xis_ = final_Xis
         else: 
-            self.Chis_ = Chis_sol
+            self.Xis_ = Xis_sol
 
         if apply_LR and tc:
             modes = self.get_modes()
@@ -304,7 +421,7 @@ class HybridRegressor:
         else:
             self.Omegas_ = Omegas_sol
         self.betas_ = betas_sol
-        # self.Chis_ = Chis_sol
+        # self.Xis_ = Xis_sol
         self.Xfit_ = X
         self.Xfit_trans_ = X_trans
         self.X_dot_fit_ = X_dot
@@ -312,6 +429,40 @@ class HybridRegressor:
         self.modesfit_ = self.get_modes() # here we store the modes of each data point used for fitting
 
     def fit_first_incremental(self, X, X_dot, segments, good_RD=0.001, regressor=LinearRegression(), Time=None, shuffle_segments=False):
+        '''
+        Fit the Hybrid Regressor model using the *incremental* approach.
+
+        Attributes
+        ----------
+        X : ndarray (N x D)
+            A matrix of training data points [x1, x2, ..., xN].
+        
+        X_dot : ndarray (N x D)
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+
+        segments : list of ints
+            A list of INDICES of the beginning of each segment in `X`.
+            This means that `X[segments[i]:segments[i+1]]` are points that belong to the same segment.
+            This is DIFFERENT from `segments` in `fit_opti` which is a MAPPING.
+
+        good_RD : float, default=0.001
+            This tol_RD in the theoretical documentation.
+            Used as a tolerance for the average relative difference to indicate whether a mode captures the dynamics of a sequence of data points.
+
+        regressor : ?, default=LinearRegression()
+            The regressor model to be used. Default is linear regression (no regularization).
+            Regularization is recommended for passive learning. This can be achieved by passing RidgeCV() for example.
+
+        Time : ndarray (N), default=None
+            The time data associated to each data point in X.
+            Not required for the learning algorirthm itself, but is necessary if time information needs to be kept later on.
+            This is used in ESNDS learning for DCDC Melco (where time information is necessary for the mode region finding).
+
+        shuffle_segments : Bool, default=False
+            Indicates whether to fit segments in order or shuffle them first.
+            Note: When True, results are no longer guaranteed to be reproducible.
+        '''
+
         self.n = 1
 
         if len(segments) > 1:
@@ -399,6 +550,34 @@ class HybridRegressor:
         return min_RD < tol, np.argmin(RDs)
 
     def update_continuous(self, X, X_dot, good_RD=0.001, regressor=LinearRegression(), Time = None):
+        '''
+        Update the learned continuous dynamics and mode information with NEW data of ONE SEGMENT.
+        This function is called repeatedly on data of different segments in the incremental learning approach.
+        Theoretically can be used to update the dynamics found using the optimization based appraoch, but this is not tested.
+
+        Attributes
+        ----------
+        X : ndarray (N x D)
+            A matrix of NEW training data points [x1, x2, ..., xN] belonging in ONE SEGMENT.
+        
+        X_dot : ndarray (N x D)
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+
+        good_RD : float, default=0.001
+            This tol_RD in the theoretical documentation.
+            Used as a tolerance for the average relative difference to indicate whether a mode captures the dynamics of a sequence of data points.
+
+        regressor : ?, default=LinearRegression()
+            The regressor model to be used. Default is linear regression (no regularization).
+            Regularization is recommended for passive learning. This can be achieved by passing RidgeCV() for example.
+
+        Time : ndarray (N), default=None
+            The time data associated to each data point in X.
+            Not required for the learning algorirthm itself, but is necessary if time information needs to be kept later on.
+            This is used in ESNDS learning for DCDC Melco (where time information is necessary for the mode region finding).
+        '''
+
+
         if not self.train_coefs:
             raise NotImplementedError
         # X and X dot belong to one segment
@@ -507,300 +686,32 @@ class HybridRegressor:
             self.retrain_continuous(j)
             
 
-    def fit_LR(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
-        if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
-            raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
-        if not segmentation is None and len(segments) == 0:
-            raise Exception("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
-        for s in segments:
-            assert s < X.shape[0], "At least one index in segments is out of range."
-        if segmentation == 'squared_diff':
-            raise NotImplementedError
-        tc = self.train_coefs
-        if not tc:
-            raise NotImplementedError
-        
-        n = self.n
-        deg = self.deg
-        
-        if tc and deg > 1:
-            poly = PolynomialFeatures(degree=deg, include_bias=False)
-            X_trans = poly.fit_transform(X)
-            self.poly = poly
-        else:
-            X_trans = X
-
-        # deltas could be a scalar or defined per mode
-        if (np.isscalar(deltas)):
-            temp = np.ones(n)
-            deltas = deltas*temp
-        else:
-            assert(len(deltas) == n)
-
-        N = X_dot.shape[0]  # nb of points
-        D = X_dot.shape[1]  # dimension of each vector
-        Q = X_trans.shape[1]
-        S = max(segments) + 1   # Number of segments
-        
-
-        
-        opti = casadi.Opti()
-
-        # variable declaration arrays
-        Omegas = np.ndarray((n, D, Q), dtype=float)
-        Alphas = np.ndarray((n, D), dtype=object)
-        betas = np.ndarray((n, D), dtype=object)
-        Chis = np.ndarray((n,), dtype=object)
-        
-        LR_Omegas = np.ndarray((S, D, Q), dtype=float)
-        for r in range(S-2):
-            seg_index = np.where(segments == r)[0][0]
-            next_seg_index = np.where(segments == r+1)[0][0]
-            X_trans_seg = X_trans[seg_index:next_seg_index]
-            X_dot_seg = X_dot[seg_index:next_seg_index]
-            LR = LinearRegression()
-            LR.fit(X_trans_seg, X_dot_seg)
-            x_dot_pred = LR.predict(X_trans_seg)
-            print(mean_squared_error(x_dot_pred, X_dot_seg))
-            print(LR.coef_, LR.intercept_)
-            if r == 0:
-                x_dot_pred = X_trans_seg @ LR.coef_[0] + LR.intercept_[0]
-                print(x_dot_pred - X_dot_seg.T[0])
-            LR_Omegas[r] = LR.coef_
-        r = S-1
-        X_trans_seg = X_trans[np.where(segments == r)[0][0]:]
-        X_dot_seg = X_dot[np.where(segments == r)[0][0]:]
-        LR = LinearRegression()
-        LR.fit(X_trans_seg, X_dot_seg)
-        LR_Omegas[r] = LR.coef_
-
-        for j in range(n):
-            chi_size_per_mode = S
-            
-            Chis[j] = opti.variable(chi_size_per_mode)
-            opti.set_initial(Chis[j], np.random.rand(chi_size_per_mode))
-
-            for d in range(D):
-                if tc:
-                    Alphas[j][d] = opti.variable(S)
-                    opti.set_initial(Alphas[j][d], np.random.rand(S))
-
-                betas[j][d] = opti.variable()
-                opti.set_initial(betas[j][d], np.random.rand())
-                #betas[j][d] = 0
-        print(chi_size_per_mode)
-
-        C_param = opti.parameter()
-        opti.set_value(C_param, C)
-
-        # First part of the optimization objective function:
-        # the sum of products of Chis
-        # This forces one Chi per data point to be ~0, which dictates the mode
-
-        sum_products_chis = 0
-        for i in range(chi_size_per_mode):
-            temp = 1
-            for j in range(n):
-                temp *= Chis[j][i]
-            sum_products_chis += temp
-
-        sum_products_chis *= C_param
-
-        # Second part of the optimization objective function:
-        # The sum of norms of alphas/Omegas
-        # Here we use the L1 norm
-        eye = np.ones(S)
-        sum_norms_alphas = 0
-        for j in range(n):
-            for d in range(D):
-                sum_norms_alphas += (Alphas[j][d].T @ eye)
-        to_minimize = sum_norms_alphas + sum_products_chis
-
-        # Setting the objective function
-        opti.minimize(to_minimize)
-
-        # CONSTRAINTS
-
-        # all chis must be positive
-        for j in range(n):
-            opti.subject_to(Chis[j] >= 0)
-        
-        x_dotT = X_dot.T    # d by N
-        eye = np.ones(N)
-        for d in range(D):
-            for j in range(n):
-                # # Here we need to transform each Chi[j], which is currently an S by 1 matrix into an N by 1 matrix
-                # # We do this by constructing a transformation matrix that assigns the correct chi according to which segment the point is in
-                # trans_mat = np.zeros((N, S))
-                # for i in range(N):
-                #     seg_index = which_segment(i, segments)
-                #     trans_mat[i][seg_index] = 1
-                # Chis[j] = casadi.vec(trans_mat @ Chis[j])
-                lin_comb_lr = 0
-                for r in range(S):
-                    lin_comb_lr += Alphas[j][d][r] * LR_Omegas[r][d]
-                for i in range(N):
-                    seg_index = segments[i]
-                    
-                    opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, lin_comb_lr) - betas[j][d] <=  deltas[j] + Chis[j][seg_index])
-                    opti.subject_to(x_dotT[d][i] - casadi.dot(X_trans[i].T, lin_comb_lr) - betas[j][d] >= -deltas[j] - Chis[j][seg_index])
-
-        
-        opti.solver('ipopt', dict(), dict(max_iter = 3000))
-        
-        # Initiate the optimization
-        sol = opti.solve()
-
-        # Printing the results if print is on
-        if print_on:
-            for j in range(n):
-                print("Chi_" + str(j) + ": " + str(sol.value(Chis[j])))
-            for j in range(n):
-                for d in range(D):
-                    if not tc:
-                        print("Alpha_" + str(j) + "_" + str(d) + ": " + str(sol.value(Alphas[j][d])))
-                    else:
-                        print("Omega_" + str(j) + "_" + str(d) + ": " + str(sol.value(Omegas[j][d])))
-                    print( "Beta_" + str(j) + "_" + str(d) + ": " + str(sol.value(betas[j][d])))
-
-        # Saving the results in proper arrays
-        Omegas_sol = np.ndarray((n, D, Q))
-        betas_sol  = np.ndarray((n, D))
-        Chis_sol   = np.ndarray((n, chi_size_per_mode))
-
-        for j in range(n):
-                Chis_sol[j] = sol.value(Chis[j])
-        for j in range(n):
-            for d in range(D):
-                lin_comb_lr = 0
-                for r in range(S):
-                    lin_comb_lr += sol.value(Alphas[j][d][r]) * LR_Omegas[r][d]
-                Omegas_sol[j][d] = lin_comb_lr
-                betas_sol[j][d]  = sol.value(betas[j][d])
-        
-        self.Chis_segments_ = Chis_sol
-        final_Chis = np.ndarray((n, N))
-        for j in range(n):
-            for i in range(N):
-                seg_index = segments[i]
-                final_Chis[j][i] = Chis_sol[j][seg_index]
-
-        self.Chis_ = final_Chis
-       
-        #self.sol_ = sol
-        self.Omegas_ = Omegas_sol
-        self.betas_ = betas_sol
-        # self.Chis_ = Chis_sol
-        self.Xfit_ = X
-        self.Xfit_trans_ = X_trans
-
-    
-    def fit_scipy(self, X, X_dot, C=100, deltas=0.01, norm='L2', segmentation=None, segments=[], print_on=False):
-        if not segmentation is None and segmentation not in ['squared_diff', 'strict']:
-            raise Exception("The parameter segmentation must be one of {'none', 'squared_diff', 'log_diff', 'quotient_diff', 'strict'}")
-        if not segmentation is None and len(segments) == 0:
-            raise Exception("The parameter segments must be provided or non-empty when a segmentation integration method is selected.")
-        for s in segments:
-            assert s < X.shape[0], "At least one index in segments is out of range."
-
-        tc = self.train_coefs
-        n = self.n
-        deg = self.deg
-        if not tc:
-            kernel_mat_list = []
-            for j in range(n):
-                if isinstance(self.kernels_list[j], str):
-                    kernel = kernel_dic[self.kernels_list[j]]
-                else:
-                    kernel = self.kernels_list[j]
-                
-                kernel_mat_list.append(kernel(X, X, self.kargs_list[j]))
-
-        if tc and deg > 1:
-            poly = PolynomialFeatures(degree=deg, include_bias=False)
-            X_trans = poly.fit_transform(X)
-            self.poly = poly
-        else:
-            X_trans = X
-        kernel_mat_list = []
-        
-        # deltas could be a scalar or defined per mode
-        if (np.isscalar(deltas)):
-            temp = np.ones(n)
-            deltas = deltas*temp
-        else:
-            assert(len(deltas) == n)
-
-        N = X_dot.shape[0]  # nb of points
-        D = X_dot.shape[1]  # dimension of each vector
-        Q = X_trans.shape[1]
-        S = len(segments)   # Number of segments
-
-
-        # Defining the set of constraints
-        cons = []
-
-        # All chis must be positive
-        if tc:
-            cons.append({'type': 'ineq', 'fun': lambda x : x[D*n*(Q+1):]})
-        else:
-            cons.append({'type': 'ineq', 'fun': lambda x : x[D*n*(N+1):]})
-        # Remaining constraints
-        for j in range(n):
-            for d in range(D):
-                if segmentation != 'strict':
-                    if not tc:
-                        cons_j_d = HybridRegressor.scipy_opti_cons(j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j])
-                    else:
-                        cons_j_d = HybridRegressor.scipy_opti_cons_tc(j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j])
-                    cons.append({'type': 'ineq', 'fun': cons_j_d[0]})
-                    cons.append({'type': 'ineq', 'fun': cons_j_d[1]})
-                else:
-                    for i in range(N):
-                        if not tc:
-                            cons_i_j_d = HybridRegressor.scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dot.T[d], kernel_mat_list[j], deltas[j], segments)
-                        else:
-                            cons_i_j_d = HybridRegressor.scipy_opti_cons_strict_seg_tc(i, j, d, N, n, D, Q, X_dot.T[d], X_trans, deltas[j], segments)
-                        cons.append({'type': 'ineq', 'fun': cons_i_j_d[0]})
-                        cons.append({'type': 'ineq', 'fun': cons_i_j_d[1]})
-
-        chi_size_per_mode = N if segmentation != 'strict' else S
-
-        if not tc:
-            x0 = np.random.rand(n * (D * (N + 1) + chi_size_per_mode))
-        else:
-            x0 = np.random.rand(n * (D * (Q + 1) + chi_size_per_mode))
-
-        if not tc:
-            res = minimize(lambda x : HybridRegressor.scipy_opti_fun(x, N, n, D, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
-        else:
-            res = minimize(lambda x : HybridRegressor.scipy_opti_fun_tc(x, N, n, D, Q, C, segmentation, segments), x0, method='SLSQP', constraints=cons, options={'disp':True})
-
-        res_x = res.x
-
-        if not tc:
-            Chis = res_x[D*n*(N+1):].reshape(n, chi_size_per_mode)
-        else:
-            Chis = res_x[D*n*(Q+1):].reshape(n, chi_size_per_mode)
-
-        if segmentation != 'strict':
-            final_Chis = Chis
-        else:
-            final_Chis = np.ndarray((n, N))
-            for j in range(n):
-                for i in range(N):
-                    final_Chis[j][i] = Chis[j][which_segment(i, segments)]
-        if not tc:
-            self.Alphas_ = res_x[:D*n*N].reshape(n, D, N)
-            self.betas_  = res_x[D*n*N:D*n*(N+1)].reshape(n, D)
-        else:
-            self.Omegas_ = res_x[:D*n*Q].reshape(n, D, Q)
-            self.betas_  = res_x[D*n*Q:D*n*(Q+1)].reshape(n, D)
-        self.Chis_   = final_Chis
-        self.Xfit_   = X
-        self.Xfit_trans_ = X_trans
-
     def classify_modes(self, classifier=LogisticRegression(), X=None, modes=None, X_dot=None, partial_fit=False):
+        '''
+        Run a classifier to find mode regions.
+
+        Attributes
+        ----------
+        classifier : ?, default=LogisticRegression()
+            The classifier model to be used. Default is logistic regression.
+
+        X : ndarray (N x D), default=None
+            A matrix of training data points [x1, x2, ..., xN].
+            When provided, the classification happens using this data. Otherwise, classification happens on previous training data using in fitting continuous dynamics.
+        
+        modes : ndarray (N), default=None
+            An array of modes of each training data point.
+            When provided, the classification happens using this data. Otherwise, classification happens on previous training data using in fitting continuous dynamics.
+        
+        X_dot : ndarray (N x D), default=None
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+            Required when X is provided
+
+        partial_fit : Bool, default=False
+            Indicates whether to use `partial_fit` when running the classifier, otherwise runs `fit` (default).
+            Could be useful for incremental classifiers.
+        '''
+
         self.check_if_fitted()
         if X is None:
             if hasattr(self, 'X_classify_'):
@@ -818,7 +729,7 @@ class HybridRegressor:
         
         num_modes = len(np.unique(modes))
 
-        do_poly_transform = self.classifier_poly_trans
+        do_poly_transform = self.classifier_poly_deg > 1
         if do_poly_transform:
             classifier_deg = self.classifier_poly_deg
             classifier_poly = PolynomialFeatures(degree=classifier_deg, include_bias=False)
@@ -872,6 +783,25 @@ class HybridRegressor:
         self.betas_[j] = regressor.intercept_
     
     def improve_classification(self, X, X_dot, classifier=None, partial_fit=False):
+        '''
+        Improve mode region finding by finding modes of given NEW data, augmenting it to previous classification data, and re-running the classification algorithm.
+
+        Attributes
+        ----------
+        X : ndarray (N x D), default=None
+            A matrix of NEW training data points [x1, x2, ..., xN].
+       
+        X_dot : ndarray (N x D), default=None
+            A matrix of corresponding estimated derivatives of training data points [x1dot, x2dot, ..., xNdot]
+        
+        classifier : ?, default=None
+            The classifier model to be used. Default is None, which indicates using the same classifier as in the previous run of `classify_modes`.
+        
+        partial_fit : Bool, default=False
+            Indicates whether to use `partial_fit` when running the classifier, otherwise runs `fit` (default).
+            Could be useful for incremental classifiers.
+        '''
+
         self.check_if_fitted()
         if X.size == 0:
             return
@@ -963,7 +893,7 @@ class HybridRegressor:
 
     def get_modes(self):
         self.check_if_fitted()
-        return np.argmin(self.Chis_, axis=0)
+        return np.argmin(self.Xis_, axis=0)
     
     def to_SNDS(self, labelfun=None, eventlist=None):
         self.check_if_fitted()
@@ -1069,171 +999,10 @@ class HybridRegressor:
             eq_string += f'\\end{{cases}}\n\\]\n'
 
         if with_classifier_boundaries:
-            eq_string += f'\n\n{get_latex_classifier_boundaries(self.classifier_, self.classifier_poly_ if self.classifier_poly_trans else None)}'
+            eq_string += f'\n\n{get_latex_classifier_boundaries(self.classifier_, self.classifier_poly_ if self.classifier_poly_deg > 1 else None)}'
         return eq_string
 
-    @staticmethod
-    def scipy_opti_fun(opti_x, N, n, D, C, segmentation, segments):
-        # Here the optimization decision variable opti_x is of length
-        # D.N.n + D.n + N.n
-        # denoting respectively the lengths of alphas, betas and chis
-
-        # First calculate the norms of alphas (L2 for now)
-        sum_norms_alpha = 0
-        for j in range(n):
-            for d in range(D):
-                alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
-                sum_norms_alpha += np.linalg.norm(alphas_j_d)
-
-        # Second calculate the sum of products of chis
-        sum_products_chi = 0
-        for i in range(N):
-            prod_i = 1
-            for j in range(n):
-                if segmentation != 'strict':
-                    chi_i_j = opti_x[D*n*(N+1) + N*j + i]
-                else:
-                    chi_i_j = opti_x[D*n*(N+1) + len(segments)*j + which_segment(i, segments)]
-                prod_i *= chi_i_j
-            sum_products_chi += prod_i
-
-        to_minimize = sum_norms_alpha + C * sum_products_chi
-
-        if segmentation == 'squared_diff':
-            sum_diff_chis = 0
-            for r in range(len(segments) - 1):
-                for i in range(segments[r], segments[r+1] - 1):
-                    for j in range(n):
-                        sum_diff_chis += (opti_x[D*n*(N+1) + N*j + i] - opti_x[D*n*(N+1) + N*j + (i+1)])**2
-            for i in range(segments[-1], N-1):
-                for j in range(n):
-                    sum_diff_chis += (opti_x[D*n*(N+1) + N*j + i] - opti_x[D*n*(N+1) + N*j + (i+1)])**2
-            to_minimize += (C) * sum_diff_chis
-
-
-        return to_minimize
-
-    @staticmethod
-    def scipy_opti_fun_tc(opti_x, N, n, D, Q, C, segmentation, segments):
-        # Here the optimization decision variable opti_x is of length
-        # D.N.n + D.n + N.n
-        # denoting respectively the lengths of alphas, betas and chis
-
-        # First calculate the norms of alphas (L2 for now)
-        sum_norms_omega = 0
-        for j in range(n):
-            for d in range(D):
-                omegas_j_d = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
-                sum_norms_omega += np.linalg.norm(omegas_j_d)
-
-        # Second calculate the sum of products of chis
-        sum_products_chi = 0
-        for i in range(N):
-            prod_i = 1
-            for j in range(n):
-                if segmentation != 'strict':
-                    chi_i_j = opti_x[D*n*(Q+1) + N*j + i]
-                else:
-                    chi_i_j = opti_x[D*n*(Q+1) + len(segments)*j + which_segment(i, segments)]
-                prod_i *= chi_i_j
-            sum_products_chi += prod_i
-
-        to_minimize = sum_norms_omega + C * sum_products_chi
-
-        if segmentation == 'squared_diff':
-            sum_diff_chis = 0
-            for r in range(len(segments) - 1):
-                for i in range(segments[r], segments[r+1] - 1):
-                    for j in range(n):
-                        sum_diff_chis += (opti_x[D*n*(Q+1) + N*j + i] - opti_x[D*n*(Q+1) + N*j + (i+1)])**2
-            for i in range(segments[-1], N-1):
-                for j in range(n):
-                    sum_diff_chis += (opti_x[D*n*(Q+1) + N*j + i] - opti_x[D*n*(Q+1) + N*j + (i+1)])**2
-            to_minimize += (C/100) * sum_diff_chis
-
-
-        return to_minimize
     
-    @staticmethod
-    def scipy_opti_cons(j, d, N, n, D, X_dotT_d, K_j, delta_j):
-        
-        eye = np.ones(N)
-
-        def constraint_1(opti_x):
-            alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
-            beta_j_d = opti_x[D*N*n + D*j + d]
-            chi_j = opti_x[D*n*(N+1) + N*j : D*n*(N+1) + N*(j+1)]
-
-            return -X_dotT_d + K_j @ alphas_j_d + beta_j_d*eye + delta_j*eye + chi_j
-
-        def constraint_2(opti_x):
-            alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
-            beta_j_d = opti_x[D*N*n + D*j + d]
-            chi_j = opti_x[D*n*(N+1) + N*j : D*n*(N+1) + N*(j+1)]
-
-            return X_dotT_d - K_j @ alphas_j_d - beta_j_d*eye + delta_j*eye + chi_j
-
-        return [constraint_1, constraint_2]
-
-    @staticmethod
-    def scipy_opti_cons_tc(j, d, N, n, D, Q, X_dotT_d, X_trans, delta_j):
-        
-        eye = np.ones(N)
-
-        def constraint_1(opti_x):
-            omega_jd = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
-            beta_j_d = opti_x[D*Q*n + D*j + d]
-            chi_j = opti_x[D*n*(Q+1) + N*j : D*n*(Q+1) + N*(j+1)]
-
-            return -X_dotT_d + X_trans @ omega_jd + beta_j_d*eye + delta_j*eye + chi_j
-
-        def constraint_2(opti_x):
-            omega_jd = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
-            beta_j_d = opti_x[D*Q*n + D*j + d]
-            chi_j = opti_x[D*n*(Q+1) + N*j : D*n*(Q+1) + N*(j+1)]
-
-            return X_dotT_d - X_trans @ omega_jd - beta_j_d*eye + delta_j*eye + chi_j
-
-        return [constraint_1, constraint_2]
-
-    @staticmethod
-    def scipy_opti_cons_strict_seg(i, j, d, N, n, D, X_dotT_d, K_j, delta_j, segments):
-        S = len(segments)
-        def constraint_1(opti_x):
-            alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
-            beta_j_d = opti_x[D*N*n + D*j + d]
-            chi_Si_j = opti_x[D*n*(N+1) + S*j + which_segment(i, segments)]
-
-            return -X_dotT_d[i] + K_j[i].T @ alphas_j_d + beta_j_d + delta_j + chi_Si_j
-
-        def constraint_2(opti_x):
-            alphas_j_d = opti_x[D*N*j + N*d : D*N*j + N*(d+1)]
-            beta_j_d = opti_x[D*N*n + D*j + d]
-            chi_Si_j = opti_x[D*n*(N+1) + S*j + which_segment(i, segments)]
-
-            return X_dotT_d[i] - K_j[i].T @ alphas_j_d - beta_j_d + delta_j + chi_Si_j
-
-        return [constraint_1, constraint_2]
-
-    @staticmethod
-    def scipy_opti_cons_strict_seg_tc(i, j, d, N, n, D, Q, X_dotT_d, X_trans, delta_j, segments):
-        S = len(segments)
-        def constraint_1(opti_x):
-            omega_jd = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
-            beta_j_d = opti_x[D*Q*n + D*j + d]
-            chi_Si_j = opti_x[D*n*(Q+1) + S*j + which_segment(i, segments)]
-
-            return -X_dotT_d[i] + X_trans[i].T @ omega_jd + beta_j_d + delta_j + chi_Si_j
-
-        def constraint_2(opti_x):
-            omega_jd = opti_x[D*Q*j + Q*d : D*Q*j + Q*(d+1)]
-            beta_j_d = opti_x[D*Q*n + D*j + d]
-            chi_Si_j = opti_x[D*n*(Q+1) + S*j + which_segment(i, segments)]
-
-            return X_dotT_d[i] - X_trans[i].T @ omega_jd - beta_j_d + delta_j + chi_Si_j
-
-        return [constraint_1, constraint_2]
-
     def classifier_boundary(self, x, classifier, print_on=False):
         self.check_if_fitted()
         decs = classifier.decision_function(x)[0]

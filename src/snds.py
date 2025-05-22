@@ -13,7 +13,8 @@ from typing_extensions import Self
 from diff_methods import diff_method_fps
 from utils import relative_diff, relative_diff_by_component
 from copy import deepcopy
-
+import tempfile
+import tarfile
 class SlidingMotionException(Exception):
     pass
 
@@ -21,14 +22,40 @@ class UnstableTrajException(Exception):
     pass
 class SNDS:
     '''
-    A switched nonlinear dynamical system.
+    A state-dependant Switched Nonlinear Dynamical System.
     
-    n = number of modes
-    d = dimension of the continuous state vector
-    eqs = list of n lists of d differential equations, one per mode and dimension of the continuous state vector
-    eventlist = list of events to track when simulating trajectory, this is usually the conditions of crossing from one mode to another
-    labeltest = a function that returns the mode in which state x is in, from {0,...,n-1}
+    Attributes
+    ----------
+    n : int
+        The number of modes.
+    
+    d : int
+        The dimension of the continuous state vector
+    
+    eqs : List[List[Callable]]
+        List of `n` lists of `d` differential equations, one per mode and dimension of the continuous state vector.
+    
+    eventlist : List[Callable]
+        List of events to track when simulating trajectory, this is usually the conditions of crossing from one mode to another.
+        This is usually a list of the boundary evaluations B_ij(x) that define the boundaries between modes i and j.
+        The evaluation is tracked and the simulation could switch when the sign changes so that the boundary crossing point (if done) is searched (zero-crossing value).
+    
+    labelfun : Callable
+        A function that returns the mode in which state x is in, from {0,...,n-1}
+
+    
+    Methods
+    -------
+    simulate_trajectory(step, T, x0s, t0=0, stop_at_sliding_motion=False, compare_with_traj=None, compare_tol=0.5, max_step_factor=10)
+        Simulate trajectory given initial conditions.
+
+    generate_points_between_segments(trajectories, segments, seg_tol, timestep='default')
+        Given trajectories as well as change points indicating segments, generate points between consecutive segments of each trajectory.
+
+    get_derivatives(trajectories)
+        Given trajectories of the SNDS, return the corresponding exact derivatives of each point (using equations and labelfun of the SDNS).
     '''
+
     def __init__(self, n, d, eqs, eventlist, labelfun):
         assert (n == len(eqs))
         self.number_of_modes = n
@@ -38,6 +65,38 @@ class SNDS:
         self.eventlist = eventlist
 
     def simulate_trajectory(self, step, T, x0s, t0=0, stop_at_sliding_motion=False, compare_with_traj=None, compare_tol=0.5, max_step_factor=10):
+        '''
+        Simulates trajectories of the SNDS.
+
+        Parameters
+        ----------
+
+        `step` : `float`
+            Time step.
+
+        `T` : `float`
+            Time range.
+
+        `x0s` : list of `ndarray (D)`
+            List of initial data points.
+
+        `t0` : `float`, default=`0`
+            Starting time.
+
+        `stop_at_sliding_motion` : `bool`, default=`False`
+            Stops the simulation and raises a `SlidingMotionException`in case sliding motion is thought to be encountered.
+
+        `compare_with_traj` : `Trajectories`, default=`None`
+            NO LONGER SUPPORTED.
+            Compares with given trajectory. (?)
+
+        `compare_tol` : `float`, default=`0.5`
+            NO LONGER SUPPORTED.
+            Comparison tolerance.
+
+        `max_step_factor` : `float`, default=`10`
+            Inidcates the factor by which to divide `step` to get the simulation maximum time step. The simulation maximum time step is hence `step/max_step_factor`.
+        '''
         # Inspired by https://github.com/Leslieaj/InferDynamic/
         compare = not compare_with_traj is None
         if compare:
@@ -156,6 +215,30 @@ class SNDS:
         return trajs
 
     def generate_points_between_segments(self, trajectories, segments, seg_tol, timestep='default'):
+        '''
+        Simulates the SNDS to generate points between consecutive segments with fine time steps, derivates the generated points and returns them with their derivatives.
+
+        Parameters
+        ----------
+        `trajectories` : `Trajectories`
+            The concerned trajectories in which points will be generated.
+
+        `segments` : `list` of `list` of `int`
+            A list of lists indicating change point indices of each trajectory.
+
+        `seg_tol` : `float`
+            The segmentation tolerance used to re-segment the finely generated points between consecutive segments.
+
+        `timestep` : `float` or `'default'`, default=`default`
+            The simulation time step.
+            Defaults to the simulation time step of `trajectories` divided by 20.
+
+
+        Returns
+        -------
+        `final_X, final_Xdot` : Points generated between consecutive segments as well as their estimated derivatives.
+        *Note*: This is bad design as the function does the derivative estimation too.
+        '''
         t_list = trajectories.t_list
         x_list = trajectories.x_list
         final_X, final_X_dot = np.array([]), np.array([])
@@ -202,6 +285,9 @@ class SNDS:
         return final_X, final_X_dot
 
     def get_derivatives(self, trajectories):
+        '''
+        Given trajectories of the SNDS, return the corresponding exact derivatives of each point (using equations and labelfun of the SDNS).
+        '''
         x_list = trajectories.x_list
         X_dot = np.ndarray((0,self.dim))
         for xpoints in x_list:
@@ -214,10 +300,39 @@ class SNDS:
 
 class Trajectories:
     '''
-    A list of trajectories.
+    A collection of trajectories.
 
-    t_list = list of t point arrays
-    x_list = list of x point arrays, each x point is of d dimensions
+    Attributes
+    ----------
+    t_list : List[ndarray]
+        List of arrays of time points.
+    
+    x_list : List[ndarray]
+        List of arrays of x points (continuous state points), each x point has dimension d.
+    
+    num_trajectories : int
+        The number of trajectories.
+    
+    segmented : Bool
+        Indicated whether the trajectories are segmented or not.
+    
+    d : int
+        Dimension of the continuous state vector.
+
+
+    Methods
+    -------
+    segment_trajectories(tol)
+        Segments each trajectory at points where the difference between the three-point forward and three-point backward derivatives is greater than a certain tolerance. Does not support variable time steps.
+    
+    segment_trajectories_two_points(tol)
+        Segments each trajectory at points where the difference between the two-point forward and two-point backward derivatives is greater than a certain tolerance. Supports variable time steps.
+    
+    append_trajs(trajs):
+        Appends a collection of trajectories.
+    
+    return_unsegmented()
+        Return the unsegmented version of trajectories including the missing points that are dropped due to segmentation.
     '''
     def __init__(self, t_list, x_list):
         self.t_list = t_list
@@ -230,12 +345,28 @@ class Trajectories:
             self.d = None
         
     def return_unsegmented(self):
+        '''
+        Returns an instance of `Trajectories` with the unsegmented trajectories (thus without data loss).
+        If the trajectories was not segmented, it returns a deep copy of `self`.
+        '''
         if self.segmented:
             return Trajectories(self.og_t_list, self.og_x_list)
         else:
             return deepcopy(self)
     
     def append_trajs(self, trajs : Self):
+        '''
+        Appends trajectories to `self`.
+
+        Parameters
+        ----------
+        `trajs` : `Trajectories`
+            Trajectories to be appended.
+
+        Returns
+        -------
+            `None`
+        '''
         assert self.d == trajs.d or self.d is None or trajs.d is None
         self.t_list.extend(trajs.t_list)
         self.x_list.extend(trajs.x_list)
@@ -290,7 +421,7 @@ class Trajectories:
     def segment_trajectories(self, tol):
         '''
         - segments trajectories when the difference between fwd and bwd derivatives is greater than tol
-        - truncates trajectories by removing 5 points around each suspected changepoint (including it)
+        - truncates trajectories by removing 5 points around each suspected changepoint (including it) / this data is removed from the trajectory
         - returns Segments, a list of segment indices per trajectory
           Segments = [segments_1, ..., segments_k] where k is the number of trajectories
           segments_i contains the indices of *changepoints* in the *now truncated* trajectory i
@@ -456,9 +587,113 @@ class Trajectories:
                 index.append('x' + str(d))
             df = pd.DataFrame(data, index=index)
             df.to_csv(dir_name+'/'+dir_name+'_'+str(i)+'.csv', sep=sep)
+    
+    @classmethod
+    def from_path(cls, path):
+        """
+        Create a Trajectories object by loading CSV files from a directory or a tar archive.
+
+        Each CSV file is assumed to represent a single trajectory, where:
+        - The first column is time (1D, shape: [N])
+        - The remaining columns are state variables (2D, shape: [N, D])
+
+        Parameters
+        ----------
+        path : str
+            Path to either a directory containing CSV files, or a `.tar` archive.
+
+        Returns
+        -------
+        Trajectories
+            A new Trajectories object with one entry per CSV file.
+            `t_list[i]` is a 1D numpy array of time values.
+            `x_list[i]` is a 2D numpy array of shape (N, D) for state values.
+
+        Raises
+        ------
+        ValueError
+            If a CSV file contains fewer than 2 columns.
+        IOError
+            If the path is invalid or extraction fails.
+        """
+        def load_csvs_from_dir(directory):
+            t_list = []
+            x_list = []
+            for filename in sorted(os.listdir(directory)):
+                if filename.endswith(".csv"):
+                    filepath = os.path.join(directory, filename)
+                    data = np.loadtxt(filepath, delimiter=",")
+                    if data.ndim == 1 or data.shape[1] < 2:
+                        raise ValueError(f"Invalid CSV format in {filename}: must have at least two columns")
+                    t = data[:, 0]
+                    x = data[:, 1:]
+                    t_list.append(t)
+                    x_list.append(x)
+            return t_list, x_list
+
+        if os.path.isdir(path):
+            t_list, x_list = load_csvs_from_dir(path)
+            return cls(t_list, x_list)
+
+        elif os.path.isfile(path) and path.endswith(".tar"):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                with tarfile.open(path, 'r') as tar:
+                    tar.extractall(path=tmpdir)
+                t_list, x_list = load_csvs_from_dir(tmpdir)
+                return cls(t_list, x_list)
+
+        else:
+            raise IOError(f"Invalid input path: must be a directory or .tar file — got: {path}")
+
+    def to_tarfile(self, tar_path, prefix="traj"):
+        """
+        Save this Trajectories object as a .tar archive of CSV files.
+
+        Parameters
+        ----------
+        tar_path : str
+            Path to the output .tar file.
+        prefix : str, optional
+            Prefix for the CSV filenames inside the archive (default is 'traj').
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for i, (t, x) in enumerate(zip(self.t_list, self.x_list)):
+                assert t.ndim == 1 and x.ndim == 2, f"Invalid shapes at index {i}: t={t.shape}, x={x.shape}"
+                assert len(t) == x.shape[0], f"Mismatched time/state lengths at index {i}"
+                data = np.column_stack((t, x))
+                filename = f"{prefix}_{i}.csv"
+                filepath = os.path.join(tmpdir, filename)
+                np.savetxt(filepath, data, delimiter=",")
+
+            with tarfile.open(tar_path, "w") as tar:
+                for filename in sorted(os.listdir(tmpdir)):
+                    fullpath = os.path.join(tmpdir, filename)
+                    tar.add(fullpath, arcname=filename)
+
+
 
 
 class SNDS_affine(SNDS):
+    '''
+    A state-dependant Switched Nonlinear Dynamical System with affine dynamics.
+    
+    Attributes
+    ----------
+    
+    params : ndarray of shape `(n, d, d+1)`
+        Affine parameters describing the system dynamics such that
+        
+        f_j(x)[0] = params[j][0][0] * x[0] + params[j][0][1] * x[1] + ... + params[j][0][d-1] * x[d-1] + params[j][0][d]
+        .
+        .
+        f_j(x)[d] = params[j][d][0] * x[0] + params[j][d][1] * x[1] + ... + params[j][d][d-1] * x[d-1] + params[j][d][d]
+    
+    eventlist : List[Callable]
+        List of events to track when simulating trajectory, this is usually the conditions of crossing from one mode to another.
+    
+    labelfun : Callable
+        A function that returns the mode in which state x is in, from {0,...,n-1}
+    '''
     def __init__(self,  params, eventlist, labelfun):
         self.params = params
         n = params.shape[0]

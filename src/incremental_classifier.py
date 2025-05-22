@@ -310,53 +310,53 @@ class IncrementalClassifier:
 
         return fig, ax
 
+if __name__ == "__main__":
+    n_samples = 10
+    n_classes = 4
+    partial_fit = True
+    plot_separate_polys = True
 
-n_samples = 10
-n_classes = 4
-partial_fit = True
-plot_separate_polys = True
+    X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
+                            n_clusters_per_class=1, n_redundant=0, n_classes=n_classes, random_state=1)
+    # X, y = make_blobs(n_samples=n_samples, centers=n_classes)
 
-X, y = make_classification(n_samples=n_samples, n_features=2, n_informative=2,
-                           n_clusters_per_class=1, n_redundant=0, n_classes=n_classes, random_state=1)
-# X, y = make_blobs(n_samples=n_samples, centers=n_classes)
+    model = IncrementalClassifier()
 
-model = IncrementalClassifier()
+    model.fit(X, y)
 
-model.fit(X, y)
+    y_pred = model.predict(X)
 
-y_pred = model.predict(X)
-
-fig, ax = model.plot_classi()
-
-
-if partial_fit:
-    Xn = np.array([[0.5, -2], [-4, 0], [-3, -2], [0, 1]])
-    yn = np.array([0, 0, 0, 1])
-
-    Xn = np.array([[0,1]])
-    yn = np.array([1])
-
-    Xn = np.array([[0, 1], [-2,-1.5], [-2,-0.2], [-4, -2], [-4,-1]])
-    yn = np.array([5,4,4,4,4])
-
-    # Xn = np.array([[-4, -2], [-4,-1], [-2,-1.5], [-2,-0.2]])
-    # yn = np.array([4,4,4,4])
-
-    print(model.region_matrix)
-    model.plot_classi(name_hyp=False, X_op=Xn, y_op=yn)
-    model.partial_fit(Xn, yn)
-    model.plot_classi(name_hyp=True, X_op=Xn, y_op=yn)
-    print(model.region_matrix)
-    
-    if plot_separate_polys:
-        c = 0
-        for p in model.regions:
-            a = p.plot(color=plt.cm.tab10(c), alpha = 0.3)
-            a.set_xlim(ax.get_xlim())
-            a.set_ylim(ax.get_ylim())
-            c += 1
+    fig, ax = model.plot_classi()
 
 
-plt.show()
-print(y)
-print(y_pred)
+    if partial_fit:
+        Xn = np.array([[0.5, -2], [-4, 0], [-3, -2], [0, 1]])
+        yn = np.array([0, 0, 0, 1])
+
+        Xn = np.array([[0,1]])
+        yn = np.array([1])
+
+        Xn = np.array([[0, 1], [-2,-1.5], [-2,-0.2], [-4, -2], [-4,-1]])
+        yn = np.array([5,4,4,4,4])
+
+        # Xn = np.array([[-4, -2], [-4,-1], [-2,-1.5], [-2,-0.2]])
+        # yn = np.array([4,4,4,4])
+
+        print(model.region_matrix)
+        model.plot_classi(name_hyp=False, X_op=Xn, y_op=yn)
+        model.partial_fit(Xn, yn)
+        model.plot_classi(name_hyp=True, X_op=Xn, y_op=yn)
+        print(model.region_matrix)
+        
+        if plot_separate_polys:
+            c = 0
+            for p in model.regions:
+                a = p.plot(color=plt.cm.tab10(c), alpha = 0.3)
+                a.set_xlim(ax.get_xlim())
+                a.set_ylim(ax.get_ylim())
+                c += 1
+
+
+    plt.show()
+    print(y)
+    print(y_pred)
