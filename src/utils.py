@@ -5,40 +5,10 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.svm import SVC
 import sobol
 import warnings
-from snds import Trajectories
 
 from statsmodels.tsa.api import VAR
 from statsmodels.tsa.stattools import arma_order_select_ic
 from statsmodels.tsa.ar_model import AutoReg
-
-def trajectories_from_path(path):
-    '''
-    Create a Trajectories object by loading CSV files from a directory or a tar archive.
-
-    Each CSV file is assumed to represent a single trajectory, where:
-    - The first column is time (1D, shape: [N])
-    - The remaining columns are state variables (2D, shape: [N, D])
-
-    Parameters
-    ----------
-    path : str
-        Path to either a directory containing CSV files, or a `.tar` archive.
-
-    Returns
-    -------
-    Trajectories
-        A new Trajectories object with one entry per CSV file.
-        `t_list[i]` is a 1D numpy array of time values.
-        `x_list[i]` is a 2D numpy array of shape (N, D) for state values.
-
-    Raises
-    ------
-    ValueError
-        If a CSV file contains fewer than 2 columns.
-    IOError
-        If the path is invalid or extraction fails.
-    '''
-    return Trajectories.from_path(path)
 
 def which_segment(i, segments):
     '''
