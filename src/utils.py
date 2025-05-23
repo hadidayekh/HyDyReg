@@ -5,10 +5,40 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.svm import SVC
 import sobol
 import warnings
+from snds import Trajectories
 
 from statsmodels.tsa.api import VAR
 from statsmodels.tsa.stattools import arma_order_select_ic
 from statsmodels.tsa.ar_model import AutoReg
+
+def trajectories_from_path(path):
+    '''
+    Create a Trajectories object by loading CSV files from a directory or a tar archive.
+
+    Each CSV file is assumed to represent a single trajectory, where:
+    - The first column is time (1D, shape: [N])
+    - The remaining columns are state variables (2D, shape: [N, D])
+
+    Parameters
+    ----------
+    path : str
+        Path to either a directory containing CSV files, or a `.tar` archive.
+
+    Returns
+    -------
+    Trajectories
+        A new Trajectories object with one entry per CSV file.
+        `t_list[i]` is a 1D numpy array of time values.
+        `x_list[i]` is a 2D numpy array of shape (N, D) for state values.
+
+    Raises
+    ------
+    ValueError
+        If a CSV file contains fewer than 2 columns.
+    IOError
+        If the path is invalid or extraction fails.
+    '''
+    return Trajectories.from_path(path)
 
 def which_segment(i, segments):
     '''
@@ -457,6 +487,14 @@ def gen_matlab_hyeq_flowMap(model, ind=""):
     return s
 
 def gen_full_matlab_hyeq_class(model, name="HybridRegressorModel"):
+    '''
+    Generates a MATLAB class of the learned model to be used with HyEq toolbox.
+
+    Parameters
+    ----------
+    model : HybridRegressor
+        The HybridRegressor learned model.
+    '''
     s = "classdef " + name + " < HybridSystem\n"
     
     omegas = model.Omegas_
@@ -545,6 +583,14 @@ def print_experi_data(DATA, both=False, jin=False):
 
 
 def gen_spaceex(model, name = 'HybridRegressorModel'):
+    '''
+    Generates XML SpaceEx format of the learned model.
+
+    Parameters
+    ----------
+    model : HybridRegressor
+        The HybridRegressor learned model.
+    '''
     s = '<?xml version="1.0" encoding="UTF-8"?>\n'
     s += '<sspaceex xmlns="http://www-verimag.imag.fr/xml-namespaces/sspaceex" version="0.2" math="SpaceEx">\n'
     s += f'\t<component id="{name}">\n'
