@@ -1,3 +1,11 @@
+# Overview #
+HyDyReg is a research project that aims at the identification of switched nonlinear dynamical systems through two main methods : the *optimization-based* and *incremental* approaches, the latter being compatible with active learning by its nature.
+Details about the methods can be found in my [PhD thesis](https://hal.science/tel-05073907/).
+
+**Note**: This is academic code supporting my PhD thesis and publications. While experiments are fully reproducible, the code is not yet structured for deployment.
+
+
+
 # Installation #
 
 This repository requires Python 3.9+ with the following dependencies installed as follows:
