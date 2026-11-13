@@ -249,7 +249,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
                 C_tested.append(C_curr)
 
             # Deduce the modes of validation points and compute validation error
-            modes_val = get_modes_val(model_curr.Chis_segments_, seg_val)
+            modes_val = get_modes_val(model_curr.Xis_segments_, seg_val)
             Xdot_val_pred = model_curr.predict(X_val, labelfun=modes_val)
             MSE_val_curr = mean_squared_error(Xdot_val_pred, Xdot_val)
 

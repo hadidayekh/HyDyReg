@@ -8,8 +8,10 @@ Details about the methods can be found in my [PhD thesis](https://hal.science/te
 
 # Installation #
 
-This repository requires Python 3.9+ with the following dependencies installed as follows:
+This repository requires Python 3.9 (the pinned `casadi==3.5.5` does not provide wheels for newer Python versions). Install the dependencies as follows:
 ```
+python3.9 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
