@@ -14,3 +14,4 @@ poly_for_bernstein.zip
 *.info
 src/model_file2
 *.png
+.venv/
