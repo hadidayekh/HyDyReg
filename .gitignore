@@ -15,3 +15,4 @@ poly_for_bernstein.zip
 src/model_file2
 *.png
 .venv/
+runs/
