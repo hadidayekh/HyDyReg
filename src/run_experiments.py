@@ -5,7 +5,7 @@ Examples (from the repository root or from src/):
     python src/run_experiments.py incr/isolette              # one row
     python src/run_experiments.py 1-8                        # rows by index (see --list)
     python src/run_experiments.py 'incr/*' parametric-4      # globs and short names
-    python src/run_experiments.py all --thesis --out ~/runs/thesis
+    python src/run_experiments.py all --threads 10 --out ~/runs/thesis
     python src/run_experiments.py --out ~/runs/thesis --table --compare thesis
 
 Each row runs in its own fresh Python process, so it gives the same numbers as when run
@@ -14,11 +14,12 @@ inside the original scripts (every row reseeds the global RNG). Results go to
 experi-info/ outputs to <out>/. Rows that already have a result are skipped unless --force,
 so an interrupted run can be resumed with the same command.
 
-Thread count: results of some rows depend on the number of OpenBLAS threads (see
-README, "Reproducing the thesis numbers"). --threads N sets it for the worker processes. OpenBLAS
-never uses more threads than physical cores; to emulate more cores (e.g. 10 for the thesis
-values on an 8-core Mac), pass --fakecores <path to fakecores dylib> (tools/fakecores).
---thesis = --variant thesis --threads 10, plus a platform check.
+Platform: some values depend on last-bit rounding differences of the platform, including the
+number of OpenBLAS threads (see README, "Reproducing the thesis tables"). Every run prints how its
+platform compares with the thesis setup. --threads N sets the OpenBLAS thread count of the worker
+processes (10 on the thesis setup). OpenBLAS never uses more threads than physical cores; to
+emulate more cores on macOS (e.g. 10 on an 8-core Mac), pass --fakecores <path to fakecores
+dylib> (tools/fakecores).
 """
 import argparse
 import fnmatch
@@ -50,9 +51,8 @@ TABLES = [("Table 7.2: optimization-based, other systems", ROW_IDS[0:8]),
           ("Table 7.4: optimization-based, parametric", ROW_IDS[16:20]),
           ("Table 7.5: incremental, parametric", ROW_IDS[20:26])]
 
-# Variants: name -> function(method, system) -> extra keyword arguments for learn_system.
-# 'thesis' is the original implementation, unchanged.
-VARIANTS = {"thesis": lambda method, system: {}}
+# OpenBLAS setup of the thesis runs (x86_64 Python under Rosetta on a 10-core Apple Silicon Mac).
+THESIS_BLAS = {"num_threads": 10, "architecture": "Nehalem"}
 
 COLS = ["d1_avg", "d2_avg", "d3_avg", "d1_max", "d2_max", "d3_max", "t1", "t2", "t3", "NEQ", "d_dot"]
 COMPARED = ["d1_avg", "d2_avg", "d3_avg", "d1_max", "d2_max", "d3_max", "NEQ", "d_dot"]
@@ -115,10 +115,11 @@ def child_env(args):
     return env
 
 
-def blas_threads(env):
-    """Ask a child process (same env) how many threads OpenBLAS actually uses."""
+def blas_info(env):
+    """Ask a child process (same env) which BLAS it loads: [api, threads, kernel architecture]."""
     code = ("import json, numpy, scipy.linalg, threadpoolctl; print(json.dumps(sorted({(i.get('internal_api'), "
-            "i.get('num_threads')) for i in threadpoolctl.threadpool_info() if i.get('user_api') == 'blas'})))")
+            "i.get('num_threads'), i.get('architecture')) for i in threadpoolctl.threadpool_info() "
+            "if i.get('user_api') == 'blas'})))")
     try:
         out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, timeout=600)
         return json.loads(out.stdout.strip().splitlines()[-1])
@@ -141,10 +142,10 @@ def platform_report():
     if platform.python_version_tuple()[:2] != ("3", "9"):
         ok = False
         lines.append("  ! thesis used Python 3.9")
-    if platform.machine() != "x86_64":
+    if not (sys.platform == "darwin" and platform.machine() == "x86_64" and rosetta):
         ok = False
-        lines.append("  ! thesis values were produced by x86_64 Python (macOS under Rosetta); other "
-                     "architectures/BLAS kernels give slightly different numbers")
+        lines.append("  ! thesis values were produced by x86_64 Python under Rosetta on an Apple Silicon "
+                     "Mac; other platforms can give different values")
     pins = {}
     for line in open(os.path.join(REPO, "requirements.txt")):
         line = line.split("#")[0].strip()
@@ -187,7 +188,7 @@ def to_jsonable(x):
     return x
 
 
-def worker(row_id, out, variant, threads_requested):
+def worker(row_id, out, threads_requested):
     """Run one row in this process; cwd = out."""
     for p in (SRC, os.path.join(SRC, "experiments"), os.path.join(SRC, "testing")):
         if p not in sys.path:
@@ -195,12 +196,10 @@ def worker(row_id, out, variant, threads_requested):
     os.chdir(out)
     method, system = row_id.split("/")
     optimization_based = method == "opti"
-    extra = VARIANTS[variant](method, system)
     t0 = time.time()
     if system.startswith("parametric"):
         import parametric
-        res = parametric.run_parametric(int(system.split("-")[1]), optimization_based,
-                                        extra_learn_kwargs=extra)
+        res = parametric.run_parametric(int(system.split("-")[1]), optimization_based)
     else:
         import experiment_infos
         src_path = os.path.join(SRC, "pathtoinferdynamic.txt")
@@ -208,8 +207,7 @@ def worker(row_id, out, variant, threads_requested):
             with open(src_path) as f, open("pathtoinferdynamic.txt", "w") as g:
                 g.write(f.read())
         compare = experiment_infos.load_inferdynamic()
-        res = experiment_infos.run_benchmark(system, optimization_based,
-                                             compare_with_inferDynamic=compare, extra_learn_kwargs=extra)
+        res = experiment_infos.run_benchmark(system, optimization_based, compare_with_inferDynamic=compare)
     wall = time.time() - t0
     data_avg, data_max, data_both = res
 
@@ -218,7 +216,7 @@ def worker(row_id, out, variant, threads_requested):
     from threadpoolctl import threadpool_info
     both = to_jsonable(data_both)
     rec = {
-        "row": row_id, "index": ROW_IDS.index(row_id) + 1, "variant": variant,
+        "row": row_id, "index": ROW_IDS.index(row_id) + 1,
         "values": dict(zip(COLS, both[1:12])),
         "inferdynamic": both[12:],
         "data_avg": to_jsonable(data_avg), "data_max": to_jsonable(data_max), "data_both": both,
@@ -309,11 +307,10 @@ def main():
     ap.add_argument("rows", nargs="*", help="row selectors (see --list); none = only --table/--compare")
     ap.add_argument("--list", action="store_true", help="list the 26 rows and exit")
     ap.add_argument("--out", help="output directory (default: <repo>/runs/<timestamp>)")
-    ap.add_argument("--variant", default="thesis", choices=sorted(VARIANTS))
-    ap.add_argument("--threads", type=int, help="OpenBLAS/OpenMP threads for the workers")
+    ap.add_argument("--threads", type=int, help="OpenBLAS/OpenMP threads for the workers (10 on the thesis "
+                                                "setup; default: OpenBLAS's own choice)")
     ap.add_argument("--fakecores", help="path to fakecores dylib (macOS): lets OpenBLAS use --threads "
                                         "threads even beyond the physical core count")
-    ap.add_argument("--thesis", action="store_true", help="= --variant thesis --threads 10, with platform check")
     ap.add_argument("-j", "--jobs", type=int, default=1, help="rows to run in parallel (default 1); "
                     "results don't depend on it, timing columns do")
     ap.add_argument("--force", action="store_true", help="rerun rows that already have a result")
@@ -323,13 +320,11 @@ def main():
     args = ap.parse_args()
 
     if args.worker:
-        worker(args.worker, args.out, args.variant, args.threads)
+        worker(args.worker, args.out, args.threads)
         return
     if args.list:
         print_list()
         return
-    if args.thesis:
-        args.variant, args.threads = "thesis", args.threads or 10
     if not args.rows and not (args.table or args.compare):
         ap.error("give row selectors (e.g. 'all' or 1-8), or --table/--compare with --out")
     if not args.out:
@@ -337,8 +332,6 @@ def main():
             ap.error("--table/--compare need --out")
         args.out = os.path.join(REPO, "runs", datetime.now().strftime("%Y%m%d-%H%M%S"))
     args.out = os.path.abspath(os.path.expanduser(args.out))
-    if args.out.startswith(os.path.expanduser("~/Documents")) or "Mobile Documents" in args.out:
-        print("! warning: output directory looks iCloud-synced; evicted files can make Python hang")
 
     rc = 0
     if args.rows:
@@ -356,22 +349,29 @@ def run_rows(args, rows):
     env = child_env(args)
     ok, lines = platform_report()
     print("\n".join(lines))
-    if args.thesis and not ok:
-        print("! --thesis: platform differs from the thesis setup; numbers may not match exactly")
-    blas = blas_threads(env)
-    print(f"OpenBLAS threads in workers: {blas}" + (f" (requested {args.threads})" if args.threads else ""))
-    if args.threads and isinstance(blas, list) and any(n != args.threads for _, n in blas):
+    blas = blas_info(env)
+    print(f"BLAS in workers [api, threads, kernel]: {blas}"
+          + (f" (requested {args.threads} threads)" if args.threads else ""))
+    if args.threads and isinstance(blas, list) and any(n != args.threads for _, n, _ in blas):
         print(f"! OpenBLAS does not use the requested {args.threads} threads (it is capped at the number "
               "of physical cores). Use --fakecores to emulate more cores; see tools/fakecores and the README.")
+    if not (isinstance(blas, list) and blas and all(
+            api == "openblas" and n == THESIS_BLAS["num_threads"] and arch == THESIS_BLAS["architecture"]
+            for api, n, arch in blas)):
+        ok = False
+        print(f"  ! thesis runs used OpenBLAS with {THESIS_BLAS['num_threads']} threads and "
+              f"{THESIS_BLAS['architecture']} kernels")
+    print("platform: same as the thesis setup" if ok else
+          "platform differs from the thesis setup: some values can differ from the thesis (see README)")
     done = load_results(args.out)
     todo = [r for r in rows if args.force or r not in done]
     skipped = [r for r in rows if r not in todo]
     if skipped:
         print(f"skipping {len(skipped)} rows with existing results (use --force to rerun): {', '.join(skipped)}")
-    print(f"output: {args.out}\nvariant: {args.variant}; running {len(todo)} rows, "
+    print(f"output: {args.out}\nrunning {len(todo)} rows, "
           f"~{sum(minutes(r) for r in todo)} min sequential estimate\n")
     with open(os.path.join(args.out, "runs.log"), "a") as f:
-        f.write(f"{datetime.now().isoformat(timespec='seconds')} {' '.join(sys.argv)} | variant={args.variant} "
+        f.write(f"{datetime.now().isoformat(timespec='seconds')} {' '.join(sys.argv)} | "
                 f"threads={args.threads} blas={blas} rows={todo}\n")
 
     running, failed = {}, []
@@ -382,8 +382,8 @@ def run_rows(args, rows):
         while queue and len(running) < max(1, args.jobs):
             r = queue.pop(0)
             log = open(os.path.join(args.out, "logs", fname(r) + ".log"), "w")
-            cmd = [sys.executable, os.path.abspath(__file__), "--worker", r, "--out", args.out,
-                   "--variant", args.variant] + (["--threads", str(args.threads)] if args.threads else [])
+            cmd = [sys.executable, os.path.abspath(__file__), "--worker", r, "--out", args.out] + (
+                ["--threads", str(args.threads)] if args.threads else [])
             running[r] = (subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT, cwd=args.out),
                           log, time.time())
             print(f"[{datetime.now():%H:%M:%S}] start {r} (row {ROW_IDS.index(r) + 1})", flush=True)

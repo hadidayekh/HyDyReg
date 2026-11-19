@@ -1,5 +1,4 @@
 from math import hypot
-from turtle import color
 from matplotlib import gridspec
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt

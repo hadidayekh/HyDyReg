@@ -2,7 +2,7 @@
 HyDyReg is a research project that aims at the identification of switched nonlinear dynamical systems through two main methods : the *optimization-based* and *incremental* approaches, the latter being compatible with active learning by its nature.
 Details about the methods can be found in my [PhD thesis](https://hal.science/tel-05073907/).
 
-**Note**: This is academic code supporting my PhD thesis and publications. While experiments are fully reproducible, the code is not yet structured for deployment.
+**Note**: This is academic code supporting my PhD thesis and publications. Experiments are deterministic on a given machine (see [Reproducing the thesis tables](#reproducing-the-thesis-tables)), but the code is not structured for deployment.
 
 
 
@@ -14,6 +14,7 @@ python3.9 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+Python 3.9 is no longer maintained, so your system may not provide it; [uv](https://github.com/astral-sh/uv) can install it (`uv venv --python 3.9 .venv`, then `uv pip install --python .venv/bin/python -r requirements.txt`).
 
 On Apple Silicon Macs, the pinned `casadi==3.5.5.post2` only exists for x86_64, so use an x86_64 Python 3.9 running under Rosetta 2. For example, with [uv](https://github.com/astral-sh/uv):
 ```
@@ -37,25 +38,25 @@ python src/run_experiments.py --out runs/a --table --compare thesis
 - `-j N` runs N rows in parallel. This changes the timing columns, not the results.
 - `--table` prints the tables in thesis format. `--compare thesis` compares the d-values, NEQ and d_dot with the thesis at the printed precision; `--compare <other out dir>` compares two runs exactly.
 
-### Reproducing the thesis numbers exactly
+### Reproducing the thesis tables
 ```
-python src/run_experiments.py all --thesis --out runs/thesis --compare thesis
+python src/run_experiments.py all --threads 10 --out runs/thesis --compare thesis
 ```
-`--thesis` runs the original implementation with 10 OpenBLAS threads and checks the platform. All 26 rows match exactly only on the thesis platform:
-- x86_64 Python 3.9 (on Apple Silicon: under Rosetta, see above);
-- the pinned `requirements.txt`;
-- 10 OpenBLAS threads.
+Runs are deterministic on a given machine. On the thesis setup, all 26 rows are reproduced exactly. On other platforms some values can differ, and which rows differ, and by how much, depends on the platform. Each run starts by printing how its platform compares with the thesis setup.
 
-With this setup, all 26 rows of Tables 7.2–7.5 are reproduced exactly (verified on an Apple Silicon Mac under Rosetta).
+**Why the platform matters.** This is a weakness of the original implementation: the mode classifier is an unregularized `LogisticRegression` fitted on linearly separable data. Such a fit has no finite optimum, so the solver stops at a point that depends on the path it took, and last-bit rounding differences of the platform (BLAS kernels and thread count, math library, compiled solvers) can move the learned boundaries slightly. Later versions of HyDyReg (v2.0 and later) use a well-posed classifier, whose results no longer depend on the thread count.
 
-**Why the thread count matters.** The mode classifier is an unregularized `LogisticRegression` fitted on linearly separable data. Such a fit has no finite optimum, so the solver stops at a point that depends on the path it took. The last-bit rounding differences that OpenBLAS produces with different thread counts can therefore change the learned boundaries slightly. This affects only some rows: d3 for incremental parametric n ≥ 4, and also d2, NEQ and d_dot for n = 20. All other rows are the same for any thread count. Runs are fully deterministic for a given platform and thread count.
+**The thesis setup.** The thesis tables were produced on an Apple Silicon Mac with 10 cores:
+- x86_64 Python 3.9 under Rosetta (see [Installation](#installation)), with the pinned `requirements.txt`;
+- OpenBLAS with 10 threads (`--threads 10`), which then uses its Nehalem kernels.
+
+On an Apple Silicon Mac set up this way, the command above reproduces all 26 rows of Tables 7.2–7.5 exactly. On this setup, the thread count alone changes only some rows: d3 for incremental parametric n ≥ 4, and also d2, NEQ and d_dot for n = 20.
 
 **Fewer than 10 cores.** OpenBLAS never uses more threads than there are physical cores. On macOS, `tools/fakecores` emulates more cores; it changes only the core count that OpenBLAS sees:
 ```
 clang -arch x86_64 -dynamiclib -o fakecores_x86_64.dylib tools/fakecores/fakecores.c
-python src/run_experiments.py all --thesis --fakecores fakecores_x86_64.dylib --out runs/thesis --compare thesis
+python src/run_experiments.py all --threads 10 --fakecores fakecores_x86_64.dylib --out runs/thesis --compare thesis
 ```
-On other platforms (other CPUs or BLAS kernels, Linux), expect the same values for most rows and small differences in the sensitive ones.
 
 ## With the original scripts
 

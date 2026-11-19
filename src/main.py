@@ -112,8 +112,7 @@ def learn_system(exp_name, sul: SNDS, time_step, time_range, x0s, time_step_test
         dir2 = "experi-info/latex-files/"
         dirs = [dir_plots, dir, dir2]
         for directory in dirs:
-            if not os.path.exists(directory):
-                os.makedirs(directory)
+            os.makedirs(directory, exist_ok=True)  # exist_ok: parallel runner workers share these
         file = open(dir + exp_name + ".txt", 'w')
         file2 = open(dir2 + exp_name + "-results.tex", 'w')
         file3 = open(dir2 + exp_name + "-eqs.tex", 'w')

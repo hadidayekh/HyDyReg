@@ -1,5 +1,4 @@
 import sys
-from turtle import color
 
 sys.path.append('./')
 

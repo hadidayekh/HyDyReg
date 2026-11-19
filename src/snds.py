@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import pandas as pd
 import os
-from tslearn.clustering import TimeSeriesKMeans
-from tslearn.utils import to_time_series_dataset
 from sklearn.preprocessing import PolynomialFeatures
 from typing_extensions import Self
 from diff_methods import diff_method_fps
@@ -561,6 +559,9 @@ class Trajectories:
                     _, X_dot, _ = diff_method(np.array([t_list_s]), np.array([x_list_s]))
                     dataset.append(X_dot)
         
+        # Imported here: tslearn warns at import when h5py is missing, and only this method uses it.
+        from tslearn.clustering import TimeSeriesKMeans
+        from tslearn.utils import to_time_series_dataset
         dataset = to_time_series_dataset(dataset)
         km = TimeSeriesKMeans(n_clusters=n_clusters, metric='dtw')
         clusters = km.fit_predict(dataset)
