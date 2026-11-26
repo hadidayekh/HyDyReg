@@ -1,0 +1,2194 @@
+{
+ "opti/isolette": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 2,
+   "poly_degree": 1,
+   "boundary_degree": 1,
+   "seg_tol": 0.01,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      95,
+      105
+     ],
+     [
+      70,
+      110
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.25,
+   "time_range": 25,
+   "x0s": [
+    [
+     105.5,
+     80
+    ],
+    [
+     97.5,
+     100
+    ]
+   ],
+   "test_time_step": 0.25,
+   "test_time_range": 25,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/affine_3modes": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 3,
+   "poly_degree": 1,
+   "boundary_degree": 1,
+   "seg_tol": 0.5,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -2,
+      3
+     ],
+     [
+      -1,
+      8
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.04,
+   "time_range": 4,
+   "x0s": [
+    [
+     -2,
+     4
+    ],
+    [
+     1.5,
+     10
+    ],
+    [
+     0,
+     5
+    ]
+   ],
+   "test_time_step": 0.04,
+   "test_time_range": 2,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/lorentz_attractor": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 2,
+   "poly_degree": 2,
+   "boundary_degree": 1,
+   "seg_tol": 0.5,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      0,
+      8
+     ],
+     [
+      0,
+      8
+     ],
+     [
+      0,
+      8
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.005,
+   "time_range": 1,
+   "x0s": [
+    [
+     5,
+     5,
+     5
+    ],
+    [
+     2,
+     2,
+     2
+    ]
+   ],
+   "test_time_step": 0.005,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/poly2_3modes": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 3,
+   "poly_degree": 2,
+   "boundary_degree": 1,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -6,
+      7
+     ],
+     [
+      -5,
+      15
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.04,
+   "time_range": 4,
+   "x0s": [
+    [
+     -1,
+     1
+    ],
+    [
+     2,
+     -3
+    ]
+   ],
+   "test_time_step": 0.04,
+   "test_time_range": 4,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/poly3_2modes_nonlinclass": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 2,
+   "poly_degree": 3,
+   "boundary_degree": 2,
+   "seg_tol": 0.5,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1,
+      1
+     ],
+     [
+      -8,
+      5
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.04,
+   "time_range": 8,
+   "x0s": [
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     4.5
+    ],
+    [
+     0,
+     5
+    ]
+   ],
+   "test_time_step": 0.04,
+   "test_time_range": 8,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/poly2_4d": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 2,
+   "poly_degree": 2,
+   "boundary_degree": 1,
+   "seg_tol": 0.01,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      3.5,
+      6.0
+     ],
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -4.0,
+      4.0
+     ],
+     [
+      -5.0,
+      5.0
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.03,
+   "time_range": 5,
+   "x0s": [
+    [
+     6,
+     0.7,
+     2,
+     0
+    ],
+    [
+     4,
+     0.1,
+     3.1,
+     0
+    ],
+    [
+     5.9,
+     0.2,
+     -3,
+     0
+    ],
+    [
+     4.1,
+     0.5,
+     2,
+     0
+    ]
+   ],
+   "test_time_step": 0.01,
+   "test_time_range": 2,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/bio_sys": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 2,
+   "poly_degree": 3,
+   "boundary_degree": 1,
+   "seg_tol": 0.15,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -4,
+      4
+     ],
+     [
+      -6,
+      12
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.01,
+   "time_range": 3,
+   "x0s": [
+    [
+     1,
+     7
+    ],
+    [
+     0.9,
+     -1.1
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     4,
+     6
+    ]
+   ],
+   "test_time_step": 0.01,
+   "test_time_range": 2.5,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/ham": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 2,
+   "poly_degree": 3,
+   "boundary_degree": 2,
+   "seg_tol": 0.15,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.5,
+      1.5
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.075,
+   "time_range": 10,
+   "x0s": [
+    [
+     1,
+     1
+    ],
+    [
+     0.9,
+     -1.1
+    ],
+    [
+     -0.9,
+     0.3
+    ],
+    [
+     0.4,
+     0.6
+    ],
+    [
+     0.1,
+     0.1
+    ],
+    [
+     0.3,
+     0.1
+    ]
+   ],
+   "test_time_step": 0.1,
+   "test_time_range": 5,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/isolette": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 2,
+   "poly_degree": 1,
+   "boundary_degree": 1,
+   "seg_tol": 0.01,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      95,
+      105
+     ],
+     [
+      70,
+      110
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.25,
+   "time_range": 25,
+   "x0s": [
+    [
+     105.5,
+     80
+    ],
+    [
+     97.5,
+     100
+    ]
+   ],
+   "test_time_step": 0.25,
+   "test_time_range": 25,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/affine_3modes": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 3,
+   "poly_degree": 1,
+   "boundary_degree": 1,
+   "seg_tol": 0.5,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -2,
+      3
+     ],
+     [
+      -1,
+      8
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.04,
+   "time_range": 4,
+   "x0s": [
+    [
+     -2,
+     4
+    ],
+    [
+     1.5,
+     10
+    ],
+    [
+     0,
+     5
+    ]
+   ],
+   "test_time_step": 0.04,
+   "test_time_range": 2,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/lorentz_attractor": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 2,
+   "poly_degree": 2,
+   "boundary_degree": 1,
+   "seg_tol": 0.5,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      0,
+      8
+     ],
+     [
+      0,
+      8
+     ],
+     [
+      0,
+      8
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.005,
+   "time_range": 1,
+   "x0s": [
+    [
+     5,
+     5,
+     5
+    ],
+    [
+     2,
+     2,
+     2
+    ]
+   ],
+   "test_time_step": 0.005,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/poly2_3modes": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 3,
+   "poly_degree": 2,
+   "boundary_degree": 1,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -6,
+      7
+     ],
+     [
+      -5,
+      15
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.04,
+   "time_range": 4,
+   "x0s": [
+    [
+     -1,
+     1
+    ],
+    [
+     2,
+     -3
+    ]
+   ],
+   "test_time_step": 0.04,
+   "test_time_range": 4,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/poly3_2modes_nonlinclass": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 2,
+   "poly_degree": 3,
+   "boundary_degree": 2,
+   "seg_tol": 0.5,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1,
+      1
+     ],
+     [
+      -8,
+      5
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.04,
+   "time_range": 8,
+   "x0s": [
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     4.5
+    ],
+    [
+     0,
+     5
+    ]
+   ],
+   "test_time_step": 0.04,
+   "test_time_range": 8,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/poly2_4d": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 2,
+   "poly_degree": 2,
+   "boundary_degree": 1,
+   "seg_tol": 0.01,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      3.5,
+      6.0
+     ],
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -4.0,
+      4.0
+     ],
+     [
+      -5.0,
+      5.0
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.03,
+   "time_range": 5,
+   "x0s": [
+    [
+     6,
+     0.7,
+     2,
+     0
+    ],
+    [
+     4,
+     0.1,
+     3.1,
+     0
+    ],
+    [
+     5.9,
+     0.2,
+     -3,
+     0
+    ],
+    [
+     4.1,
+     0.5,
+     2,
+     0
+    ]
+   ],
+   "test_time_step": 0.01,
+   "test_time_range": 2,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/bio_sys": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 2,
+   "poly_degree": 3,
+   "boundary_degree": 1,
+   "seg_tol": 0.15,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -4,
+      4
+     ],
+     [
+      -6,
+      12
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.01,
+   "time_range": 3,
+   "x0s": [
+    [
+     1,
+     7
+    ],
+    [
+     0.9,
+     -1.1
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     4,
+     6
+    ]
+   ],
+   "test_time_step": 0.01,
+   "test_time_range": 2.5,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/ham": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 2,
+   "poly_degree": 3,
+   "boundary_degree": 2,
+   "seg_tol": 0.15,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.5,
+      1.5
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.075,
+   "time_range": 10,
+   "x0s": [
+    [
+     1,
+     1
+    ],
+    [
+     0.9,
+     -1.1
+    ],
+    [
+     -0.9,
+     0.3
+    ],
+    [
+     0.4,
+     0.6
+    ],
+    [
+     0.1,
+     0.1
+    ],
+    [
+     0.3,
+     0.1
+    ]
+   ],
+   "test_time_step": 0.1,
+   "test_time_range": 5,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/parametric-2": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 2,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.01,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.01,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/parametric-3": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 3,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.01,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.01,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/parametric-4": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 4,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.01,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.01,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "opti/parametric-5": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 5,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.01,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.01,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/parametric-2": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 2,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.001,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.001,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/parametric-3": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 3,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.001,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.001,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/parametric-4": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 4,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.001,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.001,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/parametric-5": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 5,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.001,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.001,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/parametric-10": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 10,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 10
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.001,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.001,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "incr/parametric-20": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 20,
+   "poly_degree": 1,
+   "boundary_degree": 2,
+   "seg_tol": 0.1,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 10
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 2
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -1.0,
+      1.0
+     ],
+     [
+      -1.0,
+      1.0
+     ]
+    ],
+    "n_trajs": 100,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 10,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.001,
+   "time_range": 1,
+   "x0s": [
+    [
+     -1.0,
+     -1
+    ],
+    [
+     1,
+     -1
+    ],
+    [
+     -1,
+     1
+    ]
+   ],
+   "test_time_step": 0.001,
+   "test_time_range": 1,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ }
+}

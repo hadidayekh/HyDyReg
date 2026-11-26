@@ -1,0 +1,21 @@
+# Passive learning from recorded trajectories with the incremental method.
+#   hydyreg fit --config examples/configs/fit_incremental.toml --out result/
+# Every key is optional; omitted keys take the defaults of hydyreg.LearnConfig.
+
+method = "incremental"     # "incremental" (finds the number of modes) or "optimization" (needs n_modes)
+poly_degree = 1            # largest degree of the polynomial dynamics of each mode
+boundary_degree = 1        # largest degree of the polynomial features of the mode boundaries
+seg_tol = 0.01             # size of a derivative jump that marks a switch (segmentation tolerance)
+
+[data]                     # read by the command line only
+files = ["examples/data/isolette_*.csv"]   # one file per trajectory (glob patterns allowed)
+time_column = 0            # index or header name of the time column; omit and give dt if there is none
+# state_columns = [1, 2]   # default: all other columns
+delimiter = ","            # "," for CSV, "whitespace" for space-separated text
+skip_header = "auto"       # skip the first line when it is not numeric (its names name the variables)
+
+[classifier]
+kind = "logistic"          # "logistic" (polytope regions), "decision_list" (if / else if / else), "pairwise"
+
+[noise]
+adapt = true               # tolerances, windows and the regression follow the noise estimated from the data

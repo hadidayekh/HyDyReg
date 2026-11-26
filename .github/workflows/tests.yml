@@ -1,0 +1,55 @@
+# Tests on Linux (x86_64) in three kinds of environment:
+# - reference: Python 3.12 and requirements-lock.txt, the exact environment of the golden references;
+# - lowest:    the oldest Python and the lower bounds of pyproject.toml (checks that the bounds are true);
+# - latest:    the newest Python releases and the newest dependencies (early warning of breakage).
+# Unit tests and golden cases must pass in each. The golden cases (short learning runs compared with references
+# recorded on arm64 macOS) use tolerances that hold across platforms and dependency versions. If a new release of a
+# dependency moves results beyond them, only the latest job fails: decide then whether to raise the bounds.
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1"  # weekly, so that the latest job sees new releases of the dependencies
+
+jobs:
+  tests:
+    name: ${{ matrix.env }} (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - env: reference
+            python: "3.12"
+          - env: lowest
+            python: "3.11"
+          - env: latest
+            python: "3.13"
+          - env: latest
+            python: "3.14"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Environment
+        run: |
+          uv venv --python ${{ matrix.python }} .venv
+          case "${{ matrix.env }}" in
+            reference) uv pip install --python .venv/bin/python -r requirements-lock.txt
+                       uv pip install --python .venv/bin/python --no-deps -e . ;;
+            lowest)    uv pip install --python .venv/bin/python --resolution lowest-direct -e .
+                       uv pip install --python .venv/bin/python pytest pytest-xdist ;;
+            latest)    uv pip install --python .venv/bin/python -e ".[dev]" ;;
+          esac
+          uv pip list --python .venv/bin/python
+      - name: Unit tests
+        env:
+          MPLBACKEND: Agg
+        run: .venv/bin/python -m pytest tests/unit -n 4 -q
+      - name: Golden cases
+        env:
+          MPLBACKEND: Agg
+        run: .venv/bin/python -m pytest tests/golden -n 4 -q

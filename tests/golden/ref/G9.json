@@ -1,0 +1,220 @@
+{
+ "case": "G9",
+ "row": "opti/isolette",
+ "overrides": {
+  "optimization.solver": "clusterwise"
+ },
+ "environment": {
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "python": "3.12.12",
+  "numpy": "2.5.5",
+  "scipy": "1.18.1",
+  "scikit-learn": "1.9.1",
+  "casadi": "3.8.2"
+ },
+ "settings": {
+  "config": {
+   "method": "optimization",
+   "n_modes": 2,
+   "poly_degree": 1,
+   "boundary_degree": 1,
+   "seg_tol": 0.01,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      95,
+      105
+     ],
+     [
+      70,
+      110
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.25,
+   "time_range": 25,
+   "x0s": [
+    [
+     105.5,
+     80
+    ],
+    [
+     97.5,
+     100
+    ]
+   ],
+   "test_time_step": 0.25,
+   "test_time_range": 25,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "trace": [
+  {
+   "n_modes": 2,
+   "Omegas": "a510b4e5f5d28baba3d79d71e712cdaff3babb96a744fdcb873a05273dd84faf",
+   "betas": "070d4f382092e32ce28e6863736e5119229de97ac34e792dee2ed3373e6e52aa",
+   "X_classify": "7e282da500bb787abb5e659b07d494abcaf58985873607661dc1a83525fd2658",
+   "modes_classify": "7111a7d194ca513d05d6fd93336c7d5cde97674c4897db52d6adee9b8db84e2a",
+   "classifier_coef_": "ecccd420770b2fc96b093d34fb2b321946786a4776a93c54a51f1f066f2f3b7d",
+   "classifier_intercept_": "afa8d3cc5270e6c1d3eac956057cfcc1acc416b375dd65659d4c2d3ae4d903e8"
+  },
+  {
+   "n_modes": 2,
+   "Omegas": "a510b4e5f5d28baba3d79d71e712cdaff3babb96a744fdcb873a05273dd84faf",
+   "betas": "070d4f382092e32ce28e6863736e5119229de97ac34e792dee2ed3373e6e52aa",
+   "X_classify": "2dbddcd0bc2cfb0c02a0095ecb855cf9cb0b203fb391211af4a0409e17dbaa52",
+   "modes_classify": "c0af5531e16cf2b19b1668d100926a5a658a8e07f9e5ae86655939f6a5675de7",
+   "classifier_coef_": "c393bd60f30644ca6ced65af0b549ac94db228f25f4ac7ddc2d98b22028caeb0",
+   "classifier_intercept_": "404466f1d9d194477261a8b0c2263d31c253a7be30e20b835f641d2797434e9a"
+  }
+ ],
+ "final": {
+  "Omegas": [
+   [
+    [
+     -0.025999999998454853,
+     0.0259999999984529
+    ],
+    [
+     -5.877937084076686e-14,
+     -3.1008080849829045e-15
+    ]
+   ],
+   [
+    [
+     -0.025999999998458777,
+     0.025999999998453524
+    ],
+    [
+     9.224657842550493e-14,
+     -3.0351702994804127e-15
+    ]
+   ]
+  ],
+  "betas": [
+   [
+    -5.93071147747537e-11,
+    -0.9999999999939162
+   ],
+   [
+    5.999944985290995e-11,
+    0.999999999991425
+   ]
+  ],
+  "classifier_coef_": [
+   [
+    -776.9079658898186,
+    0.03766764828948403
+   ]
+  ],
+  "classifier_intercept_": [
+   76522.0183020572
+  ],
+  "Xfit_": {
+   "shape": [
+    167,
+    2
+   ],
+   "sha": "7e282da500bb787abb5e659b07d494abcaf58985873607661dc1a83525fd2658"
+  },
+  "X_dot_fit_": {
+   "shape": [
+    167,
+    2
+   ],
+   "sha": "0cb74e68b522a82e23cf9b4b1e3e547ad9930f8355bde1af8951201c81583bf2"
+  },
+  "modesfit_": {
+   "shape": [
+    167
+   ],
+   "sha": "7111a7d194ca513d05d6fd93336c7d5cde97674c4897db52d6adee9b8db84e2a"
+  }
+ },
+ "values": {
+  "d1_avg": 0.0017425473906727445,
+  "d2_avg": 4.578071018818168e-06,
+  "d3_avg": 4.578071018818168e-06,
+  "d1_max": 0.0041905713403194034,
+  "d2_max": 2.2187932297783644e-05,
+  "d3_max": 2.2187932297783644e-05,
+  "NEQ": 1.0,
+  "d_dot": 2.925489837826279e-11
+ },
+ "run_info": {
+  "noise_std": 0.0,
+  "noise_std_estimated": 4.4359657429020146e-14,
+  "seg_tol_used": 0.01,
+  "windows": {
+   "training": {
+    "m_seg": 2,
+    "seg_threshold": 0.01,
+    "m_deriv": 2,
+    "deriv_noise": 1.6859263755461714e-13,
+    "deriv_bias": 1.0010690452349008e-10
+   }
+  },
+  "deltas": 1.0000000000002888e-06,
+  "noise_engaged": false,
+  "terminated": true,
+  "n_modes": 2,
+  "n_eq": 1,
+  "n_pending_segments": 0,
+  "n_pending_points": 0,
+  "boundary": {
+   "gaps": 3,
+   "explained_with_model": 3,
+   "queried": 0
+  },
+  "heldout": {
+   "n": 50,
+   "d_avg": 6.581966296895709e-06,
+   "d_max": 8.023772852930383e-05,
+   "d_dot": 2.8719011460946477e-11
+  }
+ },
+ "seconds": 9.861462831497192
+}

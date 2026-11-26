@@ -1,0 +1,221 @@
+{
+ "case": "G5",
+ "row": "incr/isolette",
+ "overrides": {
+  "design.noise_std": 0.01,
+  "equivalence.max_rounds": 3
+ },
+ "environment": {
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "python": "3.12.12",
+  "numpy": "2.5.5",
+  "scipy": "1.18.1",
+  "scikit-learn": "1.9.1",
+  "casadi": "3.8.2"
+ },
+ "settings": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 2,
+   "poly_degree": 1,
+   "boundary_degree": 1,
+   "seg_tol": 0.01,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      95,
+      105
+     ],
+     [
+      70,
+      110
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.25,
+   "time_range": 25,
+   "x0s": [
+    [
+     105.5,
+     80
+    ],
+    [
+     97.5,
+     100
+    ]
+   ],
+   "test_time_step": 0.25,
+   "test_time_range": 25,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "trace": [
+  {
+   "n_modes": 2,
+   "Omegas": "e9554f54cbc3780c81cf37acf4a85b00f146bd77742b23acecf0732b7cae1fc2",
+   "betas": "8b2b9480f9cc7b6d257f5a4dba4da378dd7362f2574705ca2e8a2fc014913b76",
+   "X_classify": "e9822b7a55e08cdcd37c552f4f638f3496e2595b4c6ef5c99db7f6dea444d345",
+   "modes_classify": "e6c982436192be34f9878a1ba5236c7a695e8a5bf6854567b533db0e6b9f0413",
+   "classifier_coef_": "121b7de90cec8a9c8c9e1d894489905fedfee1c6777076d525efe97b9a870db6",
+   "classifier_intercept_": "d71ed28c903f19186951cb33e1d1c5ba1d8d50b84a5341e815285a8d8dd77b24"
+  },
+  {
+   "n_modes": 2,
+   "Omegas": "e9554f54cbc3780c81cf37acf4a85b00f146bd77742b23acecf0732b7cae1fc2",
+   "betas": "8b2b9480f9cc7b6d257f5a4dba4da378dd7362f2574705ca2e8a2fc014913b76",
+   "X_classify": "c0bbf09eb8d904ed7017b97186c63824f1cf8a482cbb7afaee415ee566a562f2",
+   "modes_classify": "bbf5e4da3825ffa0749ef236ddd12fb541eb2bbd2f248dbc8cdc4029e589da59",
+   "classifier_coef_": "f65877be8ac673a66904d0b66285ed9bfc0b6439cf0c17fffa2f9dcc70e47bbc",
+   "classifier_intercept_": "e555cae3893cc48f2765ad85bb611599d11b3d8ff7d92e76f62e32b4a3b47ba9"
+  }
+ ],
+ "final": {
+  "Omegas": [
+   [
+    [
+     -0.0262820908097259,
+     0.02592896169090029
+    ],
+    [
+     -0.0019154259448252238,
+     -0.00028434184382705816
+    ]
+   ],
+   [
+    [
+     -0.02562405934230124,
+     0.025941759379147906
+    ],
+    [
+     -0.0007344219559163636,
+     8.883723481793947e-05
+    ]
+   ]
+  ],
+  "betas": [
+   [
+    0.03394177890055189,
+    -0.782313555380509
+   ],
+   [
+    -0.03092352693715511,
+    1.0618457175534513
+   ]
+  ],
+  "classifier_coef_": [
+   [
+    -480.0949194298828,
+    0.007764935533306528
+   ]
+  ],
+  "classifier_intercept_": [
+   47290.51692006449
+  ],
+  "Xfit_": {
+   "shape": [
+    122,
+    2
+   ],
+   "sha": "e9822b7a55e08cdcd37c552f4f638f3496e2595b4c6ef5c99db7f6dea444d345"
+  },
+  "X_dot_fit_": {
+   "shape": [
+    122,
+    2
+   ],
+   "sha": "d9509d84c18db1d8d272f837ed00345f8ae389fb61adeb15368ea329683efadc"
+  },
+  "modesfit_": {
+   "shape": [
+    122
+   ],
+   "sha": "e6c982436192be34f9878a1ba5236c7a695e8a5bf6854567b533db0e6b9f0413"
+  }
+ },
+ "values": {
+  "d1_avg": 0.008886113177125315,
+  "d2_avg": 0.00013038625714324723,
+  "d3_avg": 0.00013038625714324723,
+  "d1_max": 0.021649303551371932,
+  "d2_max": 0.0009066110214517364,
+  "d3_max": 0.0009066110214517364,
+  "NEQ": 1.0,
+  "d_dot": 0.0013200678671326813
+ },
+ "run_info": {
+  "noise_std": 0.01,
+  "noise_std_estimated": 0.010076242146648774,
+  "seg_tol_used": 0.9537896392544815,
+  "windows": {
+   "training": {
+    "m_seg": 8,
+    "seg_threshold": 0.14495213323584688,
+    "m_deriv": 24,
+    "deriv_noise": 0.013628672198453727,
+    "deriv_bias": 0.0
+   }
+  },
+  "deltas": 0.05451468879381491,
+  "noise_engaged": true,
+  "terminated": true,
+  "n_modes": 2,
+  "n_eq": 1,
+  "n_pending_segments": 0,
+  "n_pending_points": 0,
+  "boundary": {
+   "gaps": 3,
+   "explained_with_model": 3,
+   "queried": 0
+  },
+  "heldout": {
+   "n": 50,
+   "d_avg": 0.00012169846054711973,
+   "d_max": 0.0009342432548841991,
+   "d_dot": 0.0015074709451580153
+  }
+ },
+ "seconds": 9.97445297241211
+}

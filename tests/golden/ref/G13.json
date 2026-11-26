@@ -1,0 +1,273 @@
+{
+ "case": "G13",
+ "row": "incr/affine_3modes",
+ "overrides": {
+  "classifier.kind": "decision_list"
+ },
+ "environment": {
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "python": "3.12.12",
+  "numpy": "2.5.5",
+  "scipy": "1.18.1",
+  "scikit-learn": "1.9.1",
+  "casadi": "3.8.2"
+ },
+ "settings": {
+  "config": {
+   "method": "incremental",
+   "n_modes": 3,
+   "poly_degree": 1,
+   "boundary_degree": 1,
+   "seg_tol": 0.5,
+   "rd_tol": 0.001,
+   "seed": 0,
+   "classifier": {
+    "kind": "logistic",
+    "C": 1000000.0,
+    "estimator": null
+   },
+   "noise": {
+    "adapt": true,
+    "integral_refit": false
+   },
+   "boundaries": {
+    "points": "model",
+    "fine_step_factor": 20
+   },
+   "optimization": {
+    "solver": "ipopt",
+    "C_space": [
+     0.0
+    ],
+    "deltas": "auto",
+    "n_starts": 30,
+    "init_seed": null,
+    "init": "random",
+    "stop_tol": "auto",
+    "refit": "ridge",
+    "clusterwise_restarts": 200
+   },
+   "simulation": {
+    "max_step_factor": 10
+   },
+   "equivalence": {
+    "enabled": true,
+    "bounds": [
+     [
+      -2,
+      3
+     ],
+     [
+      -1,
+      8
+     ]
+    ],
+    "n_trajs": 50,
+    "tol": 0.01,
+    "time_step": null,
+    "time_range": null,
+    "max_counterexamples": 5,
+    "max_rounds": 100,
+    "update_dynamics": null
+   }
+  },
+  "design": {
+   "time_step": 0.04,
+   "time_range": 4,
+   "x0s": [
+    [
+     -2,
+     4
+    ],
+    [
+     1.5,
+     10
+    ],
+    [
+     0,
+     5
+    ]
+   ],
+   "test_time_step": 0.04,
+   "test_time_range": 2,
+   "test_x0s": "random",
+   "noise_std": 0.0
+  }
+ },
+ "trace": [
+  {
+   "n_modes": 3,
+   "Omegas": "70754202e9366130f8742b20ebb14c2a9050f6c38851ed6d3eb5e0f84ac78c1a",
+   "betas": "b473d836c02fd1e41a6eabc4ffac6e170ee08e85910fa924e12b11ee85844af2",
+   "X_classify": "dfbdd4d1defdf41a78773456d30e22b770f553a297c331a370ec56a4ea044464",
+   "modes_classify": "0baf720904de4318d075d217cbf6f71b64489799b1dfa919e8a028eb59bebca5",
+   "classifier_W_": "460528a1359722d45eed01324cbe89082dfbfab9e20312c8697d28a115579024",
+   "classifier_B_": "4d643003bf8dfe675a67a85587336c655e8d874a0d8254c4d9f4f9a782c0ef72"
+  },
+  {
+   "n_modes": 3,
+   "Omegas": "70754202e9366130f8742b20ebb14c2a9050f6c38851ed6d3eb5e0f84ac78c1a",
+   "betas": "b473d836c02fd1e41a6eabc4ffac6e170ee08e85910fa924e12b11ee85844af2",
+   "X_classify": "c90034f41a36b0ec0598127d7f2360691948838ae2e5935ad04f54f269f1a5a8",
+   "modes_classify": "016618ff1847155ac29731c2380ec683937e932aba410f6d2e17821728bd92bf",
+   "classifier_W_": "c76550b1733f366a8b833c40609a1abe70321671df18f59a678c4cb5c7ed391a",
+   "classifier_B_": "a8c6b651e109557a7d1a9bad945c31ae5c25bbdece28146a2bdbfc421a02256e"
+  },
+  {
+   "n_modes": 3,
+   "Omegas": "70754202e9366130f8742b20ebb14c2a9050f6c38851ed6d3eb5e0f84ac78c1a",
+   "betas": "b473d836c02fd1e41a6eabc4ffac6e170ee08e85910fa924e12b11ee85844af2",
+   "X_classify": "8bcf4e38e5d70e4336266e6eebcf9cf5c9bb38484df312a8fabb8a99772bbf13",
+   "modes_classify": "e8a0ab26720176e7b53b8095b589ce63ec0cf8108803ab1db8604cad4596287d",
+   "classifier_W_": "faf145ab5e4cde25dc54fd7efe4481d25a0d710926a588f9940f315c0251b20c",
+   "classifier_B_": "18be9cfe17270a563cf438bc9972008cab8e72f832acc8b6a1dd53dc025cf19b"
+  },
+  {
+   "n_modes": 3,
+   "Omegas": "70754202e9366130f8742b20ebb14c2a9050f6c38851ed6d3eb5e0f84ac78c1a",
+   "betas": "b473d836c02fd1e41a6eabc4ffac6e170ee08e85910fa924e12b11ee85844af2",
+   "X_classify": "9d595a65393ce6c3403078feb201fe11531414dc219de33c27cd1ef084e0ae71",
+   "modes_classify": "ebb3c8f540ab7f2f2f6a9293fc509022ce71d4fcfbb7b4adad8e2c4110ff2c5f",
+   "classifier_W_": "f84144b5dacccfbd5e09a7b5779579eb0539ce1995852da395904498d57208a7",
+   "classifier_B_": "bd170557b30f17eb18fa5914da01d5c3176bfb23096ee88772d4dc7ab8140c60"
+  }
+ ],
+ "final": {
+  "Omegas": [
+   [
+    [
+     0.1000000000119493,
+     0.1000000000247489
+    ],
+    [
+     -0.3000000000742748,
+     0.2000000000366547
+    ]
+   ],
+   [
+    [
+     -1.999987004545527,
+     -2.000015154266261
+    ],
+    [
+     4.000030308532518,
+     -0.9999794274123994
+    ]
+   ],
+   [
+    [
+     -3.000016052540254,
+     2.0000257608320386
+    ],
+    [
+     -4.000051521664076,
+     -0.9999902917082154
+    ]
+   ]
+  ],
+  "betas": [
+   [
+    1.0000000001450589,
+    -2.000000000520445
+   ],
+   [
+    -1.000004762161057,
+    1.1259888292203257e-05
+   ],
+   [
+    8.409939411535561e-15,
+    2.842170943040401e-14
+   ]
+  ],
+  "classifier_W_": [
+   [
+    1232.4262508908928,
+    0.011411604598986253
+   ],
+   [
+    -0.32511333421153804,
+    393.9349885726442
+   ]
+  ],
+  "classifier_B_": [
+   -1233.3248400058199,
+   -788.3730995512532
+  ],
+  "classifier_order_": [
+   2,
+   0,
+   1
+  ],
+  "Xfit_": {
+   "shape": [
+    411,
+    2
+   ],
+   "sha": "149ac4c34d4caa50ef466aa96c65cc9be5da45e615918c9f3ecd8d33145fe8d6"
+  },
+  "X_dot_fit_": {
+   "shape": [
+    411,
+    2
+   ],
+   "sha": "23ce8933eab5b2f0f7e195c1c86ab2c4f4927258f8f7c8b62c330815440e9194"
+  },
+  "modesfit_": {
+   "shape": [
+    411
+   ],
+   "sha": "e59355e20961d9bde2587a0d7abff99f5a67436a8e609b93488745e9ae881e5d"
+  }
+ },
+ "values": {
+  "d1_avg": 0.16978493009341988,
+  "d2_avg": 0.01028605675396877,
+  "d3_avg": 0.0005003670011460901,
+  "d1_max": 0.9999764589913138,
+  "d2_max": 0.21905501178228495,
+  "d3_max": 0.0020316444988526367,
+  "NEQ": 2.0,
+  "d_dot": 4.3857144044313434e-06
+ },
+ "run_info": {
+  "noise_std": 0.0,
+  "noise_std_estimated": 2.1313200619452057e-08,
+  "seg_tol_used": 0.5,
+  "windows": {
+   "training": {
+    "m_seg": 2,
+    "seg_threshold": 0.5,
+    "m_deriv": 2,
+    "deriv_noise": 5.062664078438946e-07,
+    "deriv_bias": 0.00013078822406400306
+   },
+   "counterexamples": {
+    "m_seg": 2,
+    "seg_threshold": 0.5,
+    "m_deriv": 2,
+    "deriv_noise": 5.062664078438946e-07,
+    "deriv_bias": 3.466099425411315e-05
+   }
+  },
+  "deltas": 0.00031555451605644075,
+  "noise_engaged": false,
+  "terminated": true,
+  "n_modes": 3,
+  "n_eq": 2,
+  "n_pending_segments": 0,
+  "n_pending_points": 0,
+  "boundary": {
+   "gaps": 7,
+   "explained_with_model": 7,
+   "queried": 0
+  },
+  "heldout": {
+   "n": 50,
+   "d_avg": 0.00032210474118139347,
+   "d_max": 0.001633451993971789,
+   "d_dot": 0.0006586678274327141
+  }
+ },
+ "seconds": 8.244478940963745
+}

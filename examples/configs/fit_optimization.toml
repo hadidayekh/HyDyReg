@@ -1,0 +1,18 @@
+# Passive learning with the optimization-based method (thesis 4.2): the number of modes is given.
+#   hydyreg fit --config examples/configs/fit_optimization.toml --out result/
+
+method = "optimization"
+n_modes = 2                # number of modes (required by this method)
+poly_degree = 1
+boundary_degree = 1
+seg_tol = 0.01
+
+[data]
+files = ["examples/data/isolette_*.csv"]
+
+[optimization]
+solver = "ipopt"           # "ipopt" (the program of thesis 4.2) or "clusterwise" (alternating least squares)
+C_space = [0.0]            # values of C, selected on validation data (no effect with the refit; use values > 0 with refit = "none")
+deltas = "auto"            # insensitivity error: a number, or "auto" (from the estimated derivative error)
+n_starts = 30              # starting points of IPOPT for the smallest C (lowest objective kept)
+refit = "ridge"            # refit of each mode after the program: "ridge", "ls" or "none" (coefficients computed by IPOPT)

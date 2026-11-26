@@ -1,24 +1,10 @@
-numpy==1.22.2
-matplotlib==3.7.1
-tqdm
-libsvm-official==3.31.0
-scikit-learn==1.1.3
-scipy==1.8.0
-casadi==3.5.5.post2; sys_platform == "darwin"
-casadi==3.5.5; sys_platform != "darwin"
-# Requires Python 3.9 (casadi 3.5.5 has no wheels for newer Python versions).
-# Dependencies below are imported by the core modules but were previously undeclared.
-# Versions chosen for compatibility with numpy 1.22 / scikit-learn 1.1.
-pandas==1.5.3
-statsmodels==0.13.5
-tslearn==0.5.3.2
-numba==0.56.4
-pysindy==1.7.2
-sobol==0.9
-sobol_seq==0.2.0
-typing_extensions==4.5.0
-# pysindy 1.7.2 imports pkg_resources, which was removed from recent setuptools
-setuptools<70
-# Only needed by incremental_classifier.py
-polytope==0.2.3
-matplotlib-label-lines==0.5.1
+# Core dependencies of hydyreg at the versions of the reference environment (Python 3.12). The package itself accepts
+# a range of versions (pyproject.toml); other versions can change results in the last digits (and, on fragile rows
+# such as incr/poly3, more). requirements-lock.txt lists the full reference environment.
+numpy==2.5.5
+scipy==1.18.1
+scikit-learn==1.9.1
+casadi==3.8.2
+matplotlib==3.11.2
+tqdm==4.70.1
+threadpoolctl==3.8.0

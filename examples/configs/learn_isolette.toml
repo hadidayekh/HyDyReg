@@ -1,0 +1,23 @@
+# Active learning on a system defined in Python (here the isolette benchmark).
+#   hydyreg learn --system hydyreg.benchmarks.systems:isolette --config examples/configs/learn_isolette.toml --out result/
+
+method = "incremental"
+poly_degree = 1
+boundary_degree = 1
+seg_tol = 0.01
+
+[design]                   # the data asked of the system
+time_step = 0.25           # training trajectories: sampling step,
+time_range = 25            #   duration,
+x0s = [[105.5, 80], [97.5, 100]]   #   initial conditions
+test_time_step = 0.25      # test trajectories (errors are measured on them)
+test_time_range = 25
+test_x0s = "random"        # 10 initial conditions drawn in the equivalence bounds (or a list)
+noise_std = 0.0            # measurement noise added to everything the learner observes (experiments)
+
+[equivalence]              # approximate equivalence queries
+bounds = [[95, 105], [70, 110]]   # box of initial conditions of the query trajectories
+n_trajs = 50               # trajectories per query
+tol = 0.01                 # relative difference above which a trajectory is a counterexample (the default)
+max_counterexamples = 5    # a query stops after this many counterexamples
+max_rounds = 100           # largest number of queries

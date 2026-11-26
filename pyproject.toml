@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hydyreg"
+version = "2.0.0"
+description = "Identification of switched nonlinear dynamical systems from trajectories, with active learning"
+readme = "README.md"
+license = {text = "GPL-3.0-or-later"}
+authors = [{name = "Hugo Hadi Dayekh", email = "hadidayekh@gmail.com"}]
+requires-python = ">=3.11"
+# Lower bounds only: the oldest versions the test suite (unit + golden cases) was checked with. The exact reference
+# environment, in which the golden references and the reported results were recorded, is requirements-lock.txt.
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.13",
+    "scikit-learn>=1.5",
+    "casadi>=3.6",
+    "matplotlib>=3.8.4",
+    "tqdm>=4.60",
+    "threadpoolctl>=3.1",
+]
+
+[project.urls]
+Repository = "https://github.com/hadidayekh/HyDyReg"
+Thesis = "https://hal.science/tel-05073907/"
+
+[project.scripts]
+hydyreg = "hydyreg.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-xdist", "pyflakes", "pdoc"]
+notebook = ["jupyterlab", "ipykernel"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+hydyreg = ["benchmarks/thesis_rows.json", "py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: golden cases that take more than a minute"]
